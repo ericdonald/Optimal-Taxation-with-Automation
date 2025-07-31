@@ -352,7 +352,7 @@ class Processor:
         
         Σ_j = self.E.σ + (z_j + z_jk) / self.E.ζ
         
-        ES_weight = self.E.S_j_sq * (self.E.Σ_k - self.E.σ) * self.E.ζ / z_jk
+        ES_weight = self.E.S_j_sq * (self.E.Σ_k - self.E.σ) * self.E.ζ / xz_jk
         
         CapbyOcc_df['Σ_j'] = Σ_j
         CapbyOcc_df['ES_weight'] = ES_weight
