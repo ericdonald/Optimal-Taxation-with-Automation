@@ -1,0 +1,9 @@
+
+#Ignore Folders
+Raw\ Data/
+Results/
+Papers/
+Feedback/
+
+#Ignore System Files
+.DS_Store
