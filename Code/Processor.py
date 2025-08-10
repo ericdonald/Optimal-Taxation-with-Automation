@@ -27,6 +27,8 @@ import requests as api
 import numpy as np
 from ipumspy import IpumsApiClient, MicrodataExtract
 import scipy as sp
+from pathlib import Path
+import os
 import Roots as rt
 import Functions as fn
 import Perturbations as pr
@@ -40,9 +42,9 @@ class Processor:
         
         'Load in the Economy Object'
         self.E = E
-        self.Directory = '/projectnb/econdept/ericdon/Optimal Taxation with Automation'
-        self.FRED_API = 'e992d0545959081369e14ec7b5015b0a'
-        self.IPUMS_API = '59cba10d8a5da536fc06b59dec5c582a5a7040adb74c065089682684'
+        self.Directory = Path(__file__).resolve().parent
+        self.FRED_API = os.getenv("FRED_API")
+        self.IPUMS_API = os.getenv("IPUMS_API")
                 
         
         
