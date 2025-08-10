@@ -7,3 +7,4 @@ Feedback/
 
 #Ignore System Files
 .DS_Store
+.env
