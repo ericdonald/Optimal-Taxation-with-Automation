@@ -295,13 +295,17 @@ class Processor:
         
         Validation_Results = {'Variable':[], 'Value':[]}
         
-        'Load Data'
+        # --------- #
+        # Load Data #
+        # --------- #
         Census80_df = pd.read_pickle(f'{self.Directory}/Clean Data/Census80.pkl')
         ACS16_df = pd.read_pickle(f'{self.Directory}/Clean Data/ACS16.pkl')
         CapbyOcc_ES_2d_df = pd.read_pickle(f'{self.Directory}/Clean Data/CapbyOcc_ES_2d.pkl')
 
         
-        '1980-2016 Log Changes'
+        # --------------------- #
+        # 1980-2016 Log Changes #
+        # --------------------- #
         w_80 = Census80_df['w'].to_numpy()
         w_16 = ACS16_df['w'].to_numpy()
         L_16 = ACS16_df['L'].to_numpy()
@@ -309,7 +313,9 @@ class Processor:
         dln_w_j = np.log(w_16) - np.log(w_80)
 
                 
-        'Automation Regression Fit'
+        # ------------------------- #
+        # Automation Regression Fit #
+        # ------------------------- #
         N = np.sum(L_16)
         weight = L_16 / N
         
@@ -335,7 +341,9 @@ class Processor:
         Validation_Results['Value'].append(fn.clean_round(R_squared*100, 1))
         
         
-        'Occupation-Level Elasticities of Subsitution'
+        # -------------------------------------------- #
+        # Occupation-Level Elasticities of Subsitution #
+        # -------------------------------------------- #
         CapbyOcc_df = ACS16_df[['occ1990dd']]
         
         conditions = [
@@ -425,8 +433,9 @@ class Processor:
         StatusQuo_Results['Value'].append(fn.clean_round(θ*100, 1))
         
         
-        'Derive Equilibria'
-        
+        # ----------------- #
+        # Derive Equilibria #
+        # ----------------- #
         E_sq = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
         
         Eqbm = sp.optimize.root(rt.Eqbm_Root, E_sq,
@@ -441,7 +450,9 @@ class Processor:
         x = E[3*self.E.J:]
         
         
-        'Optimal Perturbations'
+        # --------------------- #
+        # Optimal Perturbations #
+        # --------------------- #
         ΔH_ΔΕ = pr.δH_δclx(E, θ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0, self.E.Ψ, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ)
         ΔH_Δθ = pr.δH_δθ(θ, self.E.J)
 
@@ -470,7 +481,9 @@ class Processor:
         cov = np.sum(self.E.n * (λ-1) * δI)
         
         
-        'Optimal Perturbations'
+        # ------------------------ #
+        # Status Quo Perturbations #
+        # ------------------------ #
         ΔH_ΔΕ_sq = pr.δH_δclx(E_sq, 0, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0, self.E.Ψ, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ)
         ΔH_Δθ_sq = pr.δH_δθ(0, self.E.J)
 
@@ -493,7 +506,9 @@ class Processor:
         cov_sq = np.sum(self.E.n * (λ_sq-1) * δI_sq)
         
         
-        'Comparison Table'
+        # ---------------- #
+        # Comparison Table #
+        # ---------------- #
         ΔoptK = (np.log(K) - np.log(self.E.K_sq)) * 100
         ΔoptY = (np.log(Y) - np.log(self.E.Y_sq)) * 100
         ΔoptCOV = (np.log(cov) - np.log(cov_sq)) * 100
@@ -514,7 +529,9 @@ class Processor:
         StatusQuo_Results['Value'].append(fn.clean_round(ConEquiv, 1))
         
         
-        'Covariance Figure'
+        # ----------------- #
+        # Covariance Figure #
+        # ----------------- #
         X_opt = np.hstack((np.ones((self.E.J,1)), δI.reshape((-1,1))))
         X_sq = np.hstack((np.ones((self.E.J,1)), δI_sq.reshape((-1,1))))
         W = np.diag(self.E.n)
@@ -550,7 +567,9 @@ class Processor:
         Y_bar = Y_0 + (1-self.E.δ) * K_0
         
         
-        'Solve for Two Planner Allocations'
+        # --------------------------------- #
+        # Solve for Two Planner Allocations #
+        # --------------------------------- #
         (c_0, c_1, l, x, K, θ) = self.E.Mirrlees_Lagr_θ()
         (c_0_NT, c_1_NT, l_NT, x_NT, K_NT) = self.E.Mirrlees_Lagr_NT()
         
@@ -573,7 +592,9 @@ class Processor:
         Mirrlees_Results['Value'].append(fn.clean_round(τ_K_NT*100, 1))
         
         
-        'Comparison Table'
+        # ---------------- #
+        # Comparison Table #
+        # ---------------- #
         ΔoptK = (np.log(K) - np.log(K_NT)) * 100
         ΔoptY = (np.log(Y) - np.log(Y_NT)) * 100
         
