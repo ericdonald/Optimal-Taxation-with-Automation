@@ -1,9 +1,7 @@
 """""""""""
 Economy Module
 
-Last Modified: Eric Donald 5/25
-
-Notes:
+Notes: This file defines a class for the economy of "Optimal Taxation with Automation".
     
 Output:
 """""""""""
@@ -14,6 +12,7 @@ import scipy as sp
 import numba as nb
 import quantecon as qe
 import cyipopt as cp
+from pathlib import Path
 import Roots as rt
 import Functions as fn
 import Perturbations as pr
@@ -25,10 +24,12 @@ class Economy:
     def __init__(self, J):
         "Initialize Economy Object"
         
-        self.Directory = '/projectnb/econdept/ericdon/Optimal Taxation with Automation'
+        self.Directory = Path(__file__).resolve().parent
         
         
-        'Define Externally Calibrated Parameters'
+        # --------------------------------------- #
+        # Define Externally Calibrated Parameters #
+        # --------------------------------------- #
         self.J = J #Number of Occupations
         self.var_θ = 1 #Marginal Utility Curvature
         self.ε = 0.75 #Frisch Elasticity
@@ -36,7 +37,9 @@ class Economy:
         self.δ = 0.07 #Depreciation Rate
         
 
-        'Define Calibration Targets'
+        # -------------------------- #
+        # Define Calibration Targets #
+        # -------------------------- #
         self.COR = 3.5 #Capital-Output Ratio
         self.S_k = 0.4 #Capital Income Share
         self.Y_sq = 100 #Status Quo Output
@@ -49,7 +52,9 @@ class Economy:
         self.Σ_k = 1.25 #Aggregate Elasticity of Substitution
         
         
-        'Define Internally Calibrated Parameters'
+        # --------------------------------------- #
+        # Define Internally Calibrated Parameters #
+        # --------------------------------------- #
         self.Θ = 0 #Wealth Share Convexity
         self.K_sq = self.COR * self.Y_sq #Status Quo Capital
         self.r_sq = self.S_k / self.COR #Status Quo Rent
@@ -77,13 +82,17 @@ class Economy:
     def Calibrate(self):
         "Calibrate Parameters and Status Quo Allocation"
         
-        'Load Data'
+        # --------- #
+        # Load Data #
+        # --------- #
         SCF_df = pd.read_pickle(f'{self.Directory}/Clean Data/SCF_2016.pkl')
         ACS16_df = pd.read_pickle(f'{self.Directory}/Clean Data/ACS16.pkl')
         Webb_df = pd.read_pickle(f'{self.Directory}/Clean Data/Webb.pkl')
 
 
-        'Wealth Distribution Convexity'
+        # ----------------------------- #
+        # Wealth Distribution Convexity #
+        # ----------------------------- #
         YS = fn.compute_decile_shares(SCF_df, 'Labor Income')
         WS = fn.compute_decile_shares(SCF_df, 'Wealth')
         
@@ -94,7 +103,9 @@ class Economy:
         self.Θ = Θ_cal.x[0]
         
         
-        'Labor Market'
+        # ------------ #
+        # Labor Market #
+        # ------------ #
         ACS16_df['wL'] = ACS16_df['w'] * ACS16_df['L']
         ACS16_df['S'] = (1-self.S_k) * ACS16_df['wL'] / ACS16_df['wL'].sum()
         
@@ -113,7 +124,9 @@ class Economy:
         self.χ = (Webb_df['pct_software'].to_numpy() + Webb_df['pct_robot'].to_numpy()) / 2
         
         
-        'Consumption & Labor Disutility'
+        # ------------------------------ #
+        # Consumption & Labor Disutility #
+        # ------------------------------ #
         self.w_j_sq = self.S_j_sq * self.Y_sq / self.L_j_sq
         
         Y_0 = self.Y_sq / (1+self.g)
@@ -153,7 +166,9 @@ class Economy:
         self.φ = (self.Ψ * (1-self.ψ) * (self.w_j_sq)**(1-self.ψ)) / (self.l_j_sq**(self.ψ + 1/self.ε) * self.c_1_sq**(self.var_θ))
         
 
-        'Task-Level Productivity Parameters'
+        # ---------------------------------- #
+        # Task-Level Productivity Parameters #
+        # ---------------------------------- #
         args = (self.var_κ, self.Σ_k, self.χ, self.x_bar, self.σ, self.S_k, self.S_j_sq, self.J)
         
         a = 0

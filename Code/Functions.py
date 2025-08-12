@@ -1,8 +1,6 @@
 """""""""""
 Functions
 
-Last Modified: Eric Donald 4/25
-
 Notes:
     
 Output:

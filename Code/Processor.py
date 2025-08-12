@@ -1,9 +1,7 @@
 """""""""""
 Processor Module
 
-Last Modified: Eric Donald 8/25
-
-Notes:
+Notes: This file defines a class for processing the economy of "Optimal Taxation with Automation".
     
 Output: Clean Data/FRED_CPI.pkl
         Clean Data/SCF_2016.pkl
@@ -40,7 +38,6 @@ class Processor:
     def __init__(self, E):
         "Initialize Processor Object"
         
-        'Load in the Economy Object'
         self.E = E
         self.Directory = Path(__file__).resolve().parent
         self.FRED_API = os.getenv("FRED_API")
@@ -51,9 +48,10 @@ class Processor:
     def Cleaner(self, ipums_extract=0):
         "Clean Data"
    
-        'FRED Data'
         
-        'CPI'
+        # -------- #
+        # FRED CPI #
+        # -------- #
         FRED = api.get(f'https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&frequency=a&observation_start=1980-01-01&observation_end=2016-01-01&api_key={self.FRED_API}&file_type=json')
         data = FRED.json()['observations']
         filtered_data = [{'date': entry['date'], 'value': entry['value']} for entry in data]
@@ -67,14 +65,18 @@ class Processor:
         CPI_df.to_pickle(f'{self.Directory}/Clean Data/FRED_CPI.pkl')
         
         
-        'SCF'
+        # --- #
+        # SCF #
+        # --- #
         SCF_df = pd.read_csv(f'{self.Directory}/Raw Data/SCF_2016.csv', usecols=['WGT', 'NETWORTH', 'WAGEINC'])
         SCF_df.rename(columns={'WGT': 'Weight', 'NETWORTH': 'Wealth', 'WAGEINC': 'Labor Income'}, inplace=True)
         
         SCF_df.to_pickle(f'{self.Directory}/Clean Data/SCF_2016.pkl')
         
         
-        'IPUMS'
+        # ----- #
+        # IPUMS #
+        # ----- #
         if ipums_extract==1:
             ipums = IpumsApiClient(self.IPUMS_API)
             extract = MicrodataExtract(
@@ -120,7 +122,9 @@ class Processor:
         IPUMS_df = IPUMS_df.apply(pd.to_numeric, errors='coerce')
 
         
-        'Census & ACS'
+        # ------------ #
+        # Census & ACS #
+        # ------------ #
         Crosswalk_df = pd.read_stata(f'{self.Directory}/Raw Data/onet_to_occ1990dd.dta')
         Crosswalk_df = Crosswalk_df[['occ1990dd', 'occ']]
         Crosswalk_df = Crosswalk_df.drop_duplicates()
@@ -197,7 +201,9 @@ class Processor:
         
         ACS16_df.to_pickle(f'{self.Directory}/Clean Data/ACS16.pkl')
         
-        'Webb'
+        # ---- #
+        # Webb #
+        # ---- #
         Webb_df = pd.read_csv(f'{self.Directory}/Raw Data/Webb.csv')
         Webb_df = Webb_df.drop('lswt2010', axis=1)
                 
@@ -210,7 +216,9 @@ class Processor:
         
         Webb_df.to_pickle(f'{self.Directory}/Clean Data/Webb.pkl')
         
-        'Capital by Occupation'
+        # --------------------- #
+        # Capital by Occupation #
+        # --------------------- #
         CapbyOcc_ES_2d_df = pd.read_csv(f'{self.Directory}/Raw Data/CapbyOcc_ES_2d.csv')
         
         CapbyOcc_ES_2d_df.rename(columns={'occp': 'occ1990dd_2d_title',
@@ -234,7 +242,9 @@ class Processor:
         Calibrate_Results['Variable'].append('Household Discount Factor')
         Calibrate_Results['Value'].append(fn.clean_round(self.E.β, 2))
         
-        'Wealth Convexity Graph'
+        # ---------------------- #
+        # Wealth Convexity Graph #
+        # ---------------------- #
         Calibrate_Results['Variable'].append('Wealth Convexity')
         Calibrate_Results['Value'].append(fn.clean_round(self.E.Θ, 2))
         
@@ -252,7 +262,9 @@ class Processor:
         Calibrate_Results['Variable'].append('Top Wealth Share')
         Calibrate_Results['Value'].append(fn.clean_round(WS[-1,0]*100, 1))
         
-        'Marginal Effect of Task Displacement'
+        # ------------------------------------ #
+        # Marginal Effect of Task Displacement #
+        # ------------------------------------ #
         x_j = self.E.var_κ * self.E.x_bar
         rel_l = fn.relα(x_j, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0)
         
@@ -264,7 +276,9 @@ class Processor:
         Calibrate_Results['Variable'].append('Task Displacement Effect')
         Calibrate_Results['Value'].append(fn.clean_round(β_auto, 2))
         
-        '50th Percentile Effect'
+        # ---------------------- #
+        # 50th Percentile Effect #
+        # ---------------------- #
         ζ_50 = fn.zeta(self.E.Γ, 50)
         Fif = 1 / ζ_50
         

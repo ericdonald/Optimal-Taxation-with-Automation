@@ -1,9 +1,7 @@
 """""""""""
-Executor Module
+Executor
 
-Last Modified: Eric Donald 5/25
-
-Notes:
+Notes: This file executes the code for "Optimal Taxation with Automation".
     
 Output:
 """""""""""
@@ -12,28 +10,48 @@ import Economy as e
 import Processor as p
 
 
+# ----------------------------------------------------------------
 
-"Define Objects"
+# Define project objects.
+
+# ----------------------------------------------------------------
+
 E = e.Economy(300)
 
 P = p.Processor(E)
 
 
-"Clean Data"
+# ----------------------------------------------------------------
+
+# Run project methods.
+
+# ----------------------------------------------------------------
+
+# ---------- #
+# Clean Data #
+# ---------- #
 P.Cleaner()
 
 
-"Calibrate"
+# --------- #
+# Calibrate #
+# --------- #
 P.Calibrate()
 
 
-"Validation"
+# ---------- #
+# Validation #
+# ---------- #
 P.Validation()
 
 
-"Optimal Threshold Rule in Status Quo"
+# ------------------------------------ #
+# Optimal Threshold Rule in Status Quo #
+# ------------------------------------ #
 P.StatusQuo_Optimum()
 
 
-"Non-Linear Tax Problem"
+# ---------------------- #
+# Non-Linear Tax Problem #
+# ---------------------- #
 P.Mirrlees_Optimum()

@@ -1,8 +1,6 @@
 """""""""""
 Perturbations
 
-Last Modified: Eric Donald 5/25
-
 Notes:
     
 Output:
