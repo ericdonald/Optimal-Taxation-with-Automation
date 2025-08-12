@@ -39,7 +39,7 @@ class Processor:
         "Initialize Processor Object"
         
         self.E = E
-        self.Directory = Path(__file__).resolve().parent
+        self.Directory = Path(__file__).resolve().parent.parent
         self.FRED_API = os.getenv("FRED_API")
         self.IPUMS_API = os.getenv("IPUMS_API")
                 
