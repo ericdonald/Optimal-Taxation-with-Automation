@@ -32,7 +32,9 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     S_k = r * K / Y
     S_j = w * L / Y
     
-    'Output Derivatives'
+    # ------------------ #
+    # Output Derivatives #
+    # ------------------ #
     α_k = x**(ζ*(ν-1))
     
     if σ == 1:
@@ -44,21 +46,27 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     δlnY_δlnK = S_k
     δlnY_δlnL = S_j
     
-    'Wage Derivatives'
+    # ---------------- #
+    # Wage Derivatives #
+    # ---------------- #
     rel_l = fn.relα(x, x_bar, ζ, ν, σ, 0)
     
     δlnw_δX = - (1/σ) * fn.make_diag(rel_l) + (1/σ) * fn.broadcast_row_to_matrix(δlnY_δX)
     δlnw_δlnK = (1/σ) * δlnY_δlnK * np.ones(J)
     δlnw_δlnL = (1/σ) * fn.broadcast_row_to_matrix(δlnY_δlnL) - np.eye(J) / σ
     
-    'Rent Derivatives'
+    # ---------------- #
+    # Rent Derivatives #
+    # ---------------- #
     rel_k = fn.relα(x, x_bar, ζ, ν, σ, 1)
     
     δlnr_δX = (1/σ) * rel_k + (1/σ) * δlnY_δX
     δlnr_δlnK = (1/σ) * (δlnY_δlnK - 1)
     δlnr_δlnL = (1/σ) * δlnY_δlnL
     
-    'Lump-Sum'    
+    # --------- #
+    # Lump-Sum' #
+    # --------- #
     δD_δX = (n * (w * l - Ψ * (1-ψ) * (w * l)**(1-ψ))).reshape((1,J)) @ δlnw_δX + τ_k * r * K * δlnr_δX
     δD_δK = np.sum(n * (w * l - Ψ * (1-ψ) * (w * l)**(1-ψ)) * δlnw_δlnK) / K + τ_k * r * δlnr_δlnK + τ_k * (r - δ)
     δD_δL = (w * l - Ψ * (1-ψ) * (w * l)**(1-ψ)) / L + (((n * (w * l - Ψ * (1-ψ) * (w * l)**(1-ψ))).reshape((1,J)) @ δlnw_δlnL) / L
@@ -67,70 +75,78 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     δD_δL = δD_δL.reshape(J)
     
     
-    'Derivatives of Log Labor Supply Condition'
-    '   wrt to c_0'
+    # ----------------------------------------- #
+    # Derivatives of Log Labor Supply Condition #
+    # ----------------------------------------- #
+    #   wrt to c_0
     δlnLS_δc_0 = - (1-ψ) * np.outer(δlnw_δlnK, -n/K)
     
-    '   wrt to c_1'
+    #   wrt to c_1
     δlnLS_δc_1 = fn.make_diag(1/c_1) * var_θ
     
-    '   wrt to l'
+    #   wrt to l
     δlnLS_δl = fn.make_diag(1/l) * (1/ε + ψ) - (1-ψ) * δlnw_δlnL * fn.broadcast_row_to_matrix(n / L)
     
-    '   wrt to x'
+    #   wrt to x
     δlnLS_δx =  - (1-ψ) * δlnw_δX
     
     δlnLS = np.hstack((δlnLS_δc_0, δlnLS_δc_1, δlnLS_δl, δlnLS_δx))
     
     
-    'Derivatives of Log Euler Equation'
-    '   wrt to c_0'
+    # --------------------------------- #
+    # Derivatives of Log Euler Equation #
+    # --------------------------------- #
+    #   wrt to c_0
     δlnEE_δc_0 = - fn.make_diag(1/c_0) * var_θ - ((1-τ_k) * r / R) * δlnr_δlnK / K * fn.broadcast_row_to_matrix(-n)
     
-    '   wrt to c_1'
+    #   wrt to c_1
     δlnEE_δc_1 = fn.make_diag(1/c_1) * var_θ
     
-    '   wrt to l'
+    #   wrt to l
     δlnEE_δl = - ((1-τ_k) * r / R) * fn.broadcast_row_to_matrix(δlnr_δlnL * n / L)
     
-    '   wrt to x'
+    #   wrt to x
     δlnEE_δx = - ((1-τ_k) * r / R) * fn.broadcast_row_to_matrix(δlnr_δX)
     
     δlnEE = np.hstack((δlnEE_δc_0, δlnEE_δc_1, δlnEE_δl, δlnEE_δx))
     
     
-    'Derivatives of Household Budget'
-    '   wrt to c_0'
+    # ------------------------------- #
+    # Derivatives of Household Budget #
+    # ------------------------------- #
+    #   wrt to c_0
     δHB_δc_0 = np.eye(J)*R + (fn.broadcast_col_to_matrix(c_0 - y_0) * (1-τ_k) * r * δlnr_δlnK / K 
                               - fn.broadcast_col_to_matrix(Ψ * (1-ψ) * (w * l)**(1-ψ) * δlnw_δlnK) / K
                               - δD_δK) * fn.broadcast_row_to_matrix(-n)
     
-    '   wrt to c_1'
+    #   wrt to c_1
     δHB_δc_1 = np.eye(J)
     
-    '   wrt to l'
+    #   wrt to l
     δHB_δl = -fn.make_diag(Ψ * (1-ψ) * (w * l)**(1-ψ) / l) + (fn.broadcast_col_to_matrix(c_0 - y_0) * (1-τ_k) * r * fn.broadcast_row_to_matrix(δlnr_δlnL / L)
                                                            - fn.broadcast_col_to_matrix(Ψ * (1-ψ) * (w * l)**(1-ψ)) * δlnw_δlnL * fn.broadcast_row_to_matrix(1 / L)
                                                            - fn.broadcast_row_to_matrix(δD_δL) * fn.broadcast_row_to_matrix(n))
     
-    '   wrt to x'
+    #   wrt to x
     δHB_δx = (fn.broadcast_col_to_matrix(c_0 - y_0) * (1-τ_k) * r * fn.broadcast_row_to_matrix(δlnr_δX)
                   - fn.broadcast_col_to_matrix(Ψ * (1-ψ) * (w * l)**(1-ψ)) * δlnw_δX
                   - fn.broadcast_row_to_matrix(δD_δX))
     
     δHB = np.hstack((δHB_δc_0, δHB_δc_1, δHB_δl, δHB_δx))
     
-    'Derivatives of Log Automation Thresholds'
-    '   wrt to c_0'
+    # ---------------------------------------- #
+    # Derivatives of Log Automation Thresholds #
+    # ---------------------------------------- #
+    #   wrt to c_0
     δlnAT_δc_0 = (- fn.broadcast_col_to_matrix(δlnw_δlnK) / K + δlnr_δlnK / K) * fn.broadcast_row_to_matrix(-n)
     
-    '   wrt to c_1'
+    #   wrt to c_1
     δlnAT_δc_1 = np.zeros((J,J))
     
-    '   wrt to l'
+    #   wrt to l
     δlnAT_δl = - δlnw_δlnL * fn.broadcast_row_to_matrix(n / L) + fn.broadcast_row_to_matrix(δlnr_δlnL * n / L)
     
-    '   wrt to x'
+    #   wrt to x
     δlnAT_δx = fn.make_diag(ζ/x) - δlnw_δX + fn.broadcast_row_to_matrix(δlnr_δX)
     
     δlnAT = np.hstack((δlnAT_δc_0, δlnAT_δc_1, δlnAT_δl, δlnAT_δx))
@@ -144,19 +160,27 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
 def δH_δθ(θ, J):
     "Jacobian of H wrt Threshold Rule"
     
-    'Derivative of Log Labor Supply Condition'
+    # ---------------------------------------- #
+    # Derivative of Log Labor Supply Condition #
+    # ---------------------------------------- #
     δlnLS = np.zeros((J,1))
     
     
-    'Derivative of Log Euler Equation'
+    # -------------------------------- #
+    # Derivative of Log Euler Equation #
+    # -------------------------------- #
     δlnEE = np.zeros((J,1))
     
     
-    'Derivative of Household Budget'
+    # ------------------------------ #
+    # Derivative of Household Budget #
+    # ------------------------------ #
     δHB = np.zeros((J,1))
     
     
-    'Derivative of Log Automation Thresholds'
+    # --------------------------------------- #
+    # Derivative of Log Automation Thresholds #
+    # --------------------------------------- #
     δlnAT = np.ones((J,1)) / (1+θ)
     
     return np.vstack((δlnLS, δlnEE, δHB, δlnAT))
@@ -180,7 +204,9 @@ def dlnY(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0):
     δK = - np.sum(n * dc_0)
     δL = n * dl
         
-    'Output Derivative'
+    # ----------------- #
+    # Output Derivative #
+    # ----------------- #
     α_k = x**(ζ*(ν-1))
     
     if σ == 1:
@@ -203,10 +229,14 @@ def dlnw(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0):
     L = n * l
     δL = n * dl
     
-    'Output Derivative'
+    # ----------------- #
+    # Output Derivative #
+    # ----------------- #
     δlnY = dlnY(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0)
 
-    'Wage Derivatives'
+    # ---------------- #
+    # Wage Derivatives #
+    # ---------------- #
     rel_l = fn.relα(x, x_bar, ζ, ν, σ, 0)
     
     δlnw = (1/σ) * (- rel_l * dx + δlnY - δL / L)
@@ -222,10 +252,14 @@ def dlnr(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0):
     K = np.sum(n * (y_0 - c_0))
     δK = - np.sum(n * dc_0)
         
-    'Output Derivative'
+    # ----------------- #
+    # Output Derivative #
+    # ----------------- #
     δlnY = dlnY(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0)
 
-    'Rent Derivative'
+    # --------------- #
+    # Rent Derivative #
+    # --------------- #
     rel_k = fn.relα(x, x_bar, ζ, ν, σ, 1)
     
     δlnr = (1/σ) * (np.sum(rel_k * dx) + δlnY - δK / K)
@@ -242,23 +276,25 @@ def δObj_δX(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ
     c_1 = X[J:2*J]
     l = X[2*J:3*J]
     
-    'Derivatives of Welfare'
-    '   wrt to c_0'
+    # ---------------------- #
+    # Derivatives of Welfare #
+    # ---------------------- #
+    #   wrt to c_0
     δW_δc_0 = n * c_0**(-var_θ)
     
-    '   wrt to c_1'
+    #   wrt to c_1
     δW_δc_1 = n * (β / (1-β)) *  c_1**(-var_θ)
     
-    '   wrt to l'
+    #   wrt to l
     δW_δl = - n * (β / (1-β)) * φ * l**(1/ε)
     
-    '   wrt to x'
+    #   wrt to x
     δW_δx = np.zeros(J)
     
-    '   wrt to K'
+    #   wrt to K
     δW_δK = np.zeros(1)
     
-    '   wrt to θ'
+    #   wrt to θ
     δW_δθ = np.zeros(1)
     
     if TR==1:
@@ -316,23 +352,25 @@ def δEC_δX(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ,
     δlnr_δlnK = (1/σ) * (δlnY_δlnK - 1)
     δlnr_δlnL = (1/σ) * δlnY_δlnL
     
-    'Derivatives of Initial Period Resource Constraint'
-    '   wrt to c_0'
+    # ------------------------------------------------- #
+    # Derivatives of Initial Period Resource Constraint #
+    # ------------------------------------------------- #
+    #   wrt to c_0
     δRC_0_δc_0 = n.reshape((1,J))
     
-    '   wrt to c_1'
+    #   wrt to c_1
     δRC_0_δc_1 = np.zeros((1,J))
     
-    '   wrt to l'
+    #   wrt to l
     δRC_0_δl = np.zeros((1,J))
     
-    '   wrt to x'
+    #   wrt to x
     δRC_0_δx = np.zeros((1,J))
     
-    '   wrt to K'
+    #   wrt to K
     δRC_0_δK = np.ones((1,1))
     
-    '   wrt to θ'
+    #   wrt to θ
     δRC_0_δθ = np.zeros((1,1))
     
     if TR==1:
@@ -341,23 +379,25 @@ def δEC_δX(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ,
         δRC_0 = np.hstack((δRC_0_δc_0, δRC_0_δc_1, δRC_0_δl, δRC_0_δx, δRC_0_δK))
         
     
-    'Derivatives of Second Period Resource Constraint'
-    '   wrt to c_0'
+    # ------------------------------------------------ #
+    # Derivatives of Second Period Resource Constraint #
+    # ------------------------------------------------ #
+    #   wrt to c_0
     δRC_1_δc_0 = np.zeros((1,J))
     
-    '   wrt to c_1'
+    #   wrt to c_1
     δRC_1_δc_1 = n.reshape((1,J))
     
-    '   wrt to l'
+    #   wrt to l
     δRC_1_δl = - (w * n).reshape((1,J))
     
-    '   wrt to x'
+    #   wrt to x
     δRC_1_δx = - δY_δX.reshape((1,J))
     
-    '   wrt to K'
+    #   wrt to K
     δRC_1_δK = - np.ones((1,1)) * (1 + r - δ_hat)
     
-    '   wrt to θ'
+    #   wrt to θ
     δRC_1_δθ = np.zeros((1,1))
     
     if TR==1:
@@ -366,23 +406,25 @@ def δEC_δX(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ,
         δRC_1 = np.hstack((δRC_1_δc_0, δRC_1_δc_1, δRC_1_δl, δRC_1_δx, δRC_1_δK))
         
     
-    'Derivatives of Log Automation Thresholds'
-    '   wrt to c_0'
+    # ---------------------------------------- #
+    # Derivatives of Log Automation Thresholds #
+    # ---------------------------------------- #
+    #   wrt to c_0
     δlnAT_δc_0 = np.zeros((J,J))
     
-    '   wrt to c_1'
+    #   wrt to c_1
     δlnAT_δc_1 = np.zeros((J,J))
     
-    '   wrt to l'
+    #   wrt to l
     δlnAT_δl = - δlnw_δlnL * fn.broadcast_row_to_matrix(n / L) + fn.broadcast_row_to_matrix(δlnr_δlnL * n / L)
     
-    '   wrt to x'
+    #   wrt to x
     δlnAT_δx = fn.make_diag(ζ/x) - δlnw_δX + fn.broadcast_row_to_matrix(δlnr_δX)
     
-    '   wrt to K'
+    #   wrt to K
     δlnAT_δK = - (δlnw_δlnK).reshape((J,1)) / K + δlnr_δlnK / K * np.ones((J,1))
     
-    '   wrt to θ'
+    #   wrt to θ
     δlnAT_δθ = np.ones((J,1)) / (1+θ)
     
     if TR==1:
@@ -410,8 +452,10 @@ def δIC_δX(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ,
     rel_l = fn.relα(x, x_bar, ζ, ν, σ, 0)
     
     
-    'Derivatives of IC'
-    '   wrt to c_0'
+    # ----------------- #
+    # Derivatives of IC #
+    # ----------------- #
+    #   wrt to c_0
     δIC_δc_0 = np.zeros((IC_count,J))
     k = 0
     
@@ -421,7 +465,7 @@ def δIC_δX(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ,
             δIC_δc_0[k, j] = -c_0[j]**(-var_θ)
             k += 1
    
-    '   wrt to c_1'
+    #   wrt to c_1
     δIC_δc_1 = np.zeros((IC_count,J))
     k = 0
     
@@ -431,7 +475,7 @@ def δIC_δX(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ,
             δIC_δc_1[k, j] = -(β/(1-β)) * c_1[j]**(-var_θ)
             k += 1
     
-    '   wrt to l'
+    #   wrt to l
     δIC_δl = np.zeros((IC_count,J))
     k = 0
     
@@ -441,7 +485,7 @@ def δIC_δX(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ,
             δIC_δl[k, j] = (β/(1-β)) * ((σ-1)/σ) * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε)
             k += 1
     
-    '   wrt to x'
+    #   wrt to x
     δIC_δx = np.zeros((IC_count,J))
     k = 0
     
@@ -451,10 +495,10 @@ def δIC_δX(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ,
             δIC_δx[k, j] = -(β/(1-β)) * (φ[i]/σ) * (w[j]*l[j]/w[i])**(1+1/ε) * rel_l[j]
             k += 1
     
-    '   wrt to K'
+    #   wrt to K
     δIC_δK = np.zeros((IC_count,1))
     
-    '   wrt to θ'
+    #   wrt to θ
     δIC_δθ = np.zeros((IC_count,1))
     
     if TR==1:
