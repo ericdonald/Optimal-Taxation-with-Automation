@@ -26,7 +26,6 @@ import numpy as np
 from ipumspy import IpumsApiClient, MicrodataExtract
 import scipy as sp
 from pathlib import Path
-import os
 import Roots as rt
 import Functions as fn
 import Perturbations as pr
@@ -40,8 +39,17 @@ class Processor:
         
         self.E = E
         self.Directory = Path(__file__).resolve().parent.parent
-        self.FRED_API = os.getenv("FRED_API")
-        self.IPUMS_API = os.getenv("IPUMS_API")
+        
+        keys_path = self.Directory / ".keys"
+        keys = {}
+        with open(keys_path) as f:
+            for line in f:
+                if "=" in line:
+                    k, v = line.strip().split("=", 1)
+                    keys[k.strip()] = v.strip()
+        
+        self.FRED_API = keys.get("FRED_API")
+        self.IPUMS_API = keys.get("IPUMS_API")
                 
         
         
