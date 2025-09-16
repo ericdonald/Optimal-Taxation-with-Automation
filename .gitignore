@@ -5,6 +5,7 @@ Clean\ Data/
 Results/
 Papers/
 Feedback/
+__pycache__/
 
 #Ignore System Files
 .DS_Store
