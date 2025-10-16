@@ -54,3 +54,21 @@ P.StatusQuo_Optimum()
 # Non-Linear Tax Problem #
 # ---------------------- #
 P.Mirrlees_Optimum()
+
+
+# ----------------------- #
+# Record Package Versions #
+# ----------------------- #
+packages = ["cyipopt", "ipumspy", "numba", "numpy", "pandas", "quantecon", "scipy"]
+P.write_package_versions(packages)
+
+
+
+
+
+
+
+
+
+
+

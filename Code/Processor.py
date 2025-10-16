@@ -26,6 +26,8 @@ import numpy as np
 from ipumspy import IpumsApiClient, MicrodataExtract
 import scipy as sp
 from pathlib import Path
+import sys
+import importlib.metadata as md
 import Roots as rt
 import Functions as fn
 import Perturbations as pr
@@ -624,5 +626,33 @@ class Processor:
         Mirrlees_Results_df.to_csv(f'{self.Directory}/Results/Tables/Mirrlees_Results.csv', index=False)
         
         
-            
+    def write_package_versions(self, packages):
+        """""
+        Table of Package Versions
+    
+        Output: Results/core_versions.txt
+        """""
+        
+        filename=f'{self.Directory}/Results/core_versions.txt'
+        
+        
+        # ---------------- #
+        # Collect Packages #
+        # ---------------- #
+        rows = []
+        for pkg in packages:
+            ver = md.version(pkg)
+            rows.append((pkg, ver))
+    
+    
+        # ----------- #
+        # Write Table #
+        # ----------- #
+        print(sys.version)
+        
+        with open(filename, "w") as f:
+            f.write("| Package | Version |\n")
+            f.write("|---------|---------|\n")
+            for pkg, ver in rows:
+                f.write(f"| {pkg} | {ver} |\n")
             
