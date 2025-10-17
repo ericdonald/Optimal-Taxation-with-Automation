@@ -1,9 +1,8 @@
 """""""""""
 Roots
 
-Notes:
-    
-Output:
+Notes: Functions that define the various roots of the economy.
+
 """""""""""
 
 import numpy as np
@@ -28,23 +27,31 @@ def WealthShapeRoot(Θ, WS, YS):
 def ConCalRoot(CSQ, J, Y, K, G, n, w_j, l_j, y_j0, r, δ, g, τ_k, Ψ, ψ, var_θ):
     "Consumption, Tax Scale, and Investment Price Root"
     
-    'Unpack Variables'
+    # ---------------- #
+    # Unpack Variables #
+    # ---------------- #
     c_j0 = CSQ[:J]
     β = CSQ[-1]
     
     R = (1-τ_k) * (r - δ) - g
     D_1 = G * Y
     
-    'Find c_j1 with Euler'
+    # -------------------- #
+    # Find c_j1 with Euler #
+    # -------------------- #
     c_j1 = c_j0 * (R * β / (1-β))**(1 / var_θ)
     
-    'Consumption Root'
+    # ---------------- #
+    # Consumption Root #
+    # ---------------- #
     κ_j1 = (c_j1 - Ψ * (w_j * l_j)**(1-ψ) - D_1) / R
     
     RHS_c0 = y_j0 - κ_j1
     Root_c0 = c_j0 - RHS_c0
     
-    'Investment Root'
+    # --------------- #
+    # Investment Root #
+    # --------------- #
     RHS_β = np.sum(n * (y_j0 - c_j0))
     Root_β = np.array([K - RHS_β])
     
@@ -117,16 +124,24 @@ def Eqbm_Root(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     D = np.sum(n * (w * l - Ψ * (w * l)**(1-ψ))) + τ_k * (r - δ) * K
     
     
-    'Log Labor Supply'
+    # ---------------- #
+    # Log Labor Supply #
+    # ---------------- #
     ln_LS = np.log(φ) + (ψ + 1/ε) * np.log(l) + var_θ * np.log(c_1) - (np.log(Ψ) + np.log(1-ψ) + (1-ψ) * np.log(w))
     
-    'Log Euler Equation'
+    # ------------------ #
+    # Log Euler Equation #
+    # ------------------ #
     ln_EE = var_θ * np.log(c_1) - var_θ * np.log(c_0) - (np.log(R) + np.log(β/(1-β)))
     
-    'Budget Constraint'
+    # ----------------- #
+    # Budget Constraint #
+    # ----------------- #
     BC = R * c_0 + c_1 - (R * y_0 + Ψ * (w*l)**(1-ψ) + D)
     
-    'Log Automation Threshold'
+    # ------------------------ #
+    # Log Automation Threshold #
+    # ------------------------ #
     ln_AT = ζ * np.log(x) - ((np.log(w) - np.log(A_j)) - (np.log(1+θ) + np.log(r) - np.log(A_k)))
 
 
@@ -149,7 +164,9 @@ def Optimalθ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β,
     l = E[2*J:3*J]
     x = E[3*J:]
     
-    'Compute Threshold Rule Perturbations'
+    # ------------------------------------ #
+    # Compute Threshold Rule Perturbations #
+    # ------------------------------------ #
     ΔH_ΔΕ = pr.δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ)
     ΔH_Δθ = pr.δH_δθ(θ, J)
 
@@ -186,7 +203,9 @@ def Optimalθ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β,
     
     λ = c_1**(-var_θ) / np.sum(n * c_1**(-var_θ))
     
-    'Optimality Condition'
+    # -------------------- #
+    # Optimality Condition #
+    # -------------------- #
     MC = -np.sum(δY_δX * dx)
     cov = np.sum(n * (λ-1) * (Ψ * (1-ψ) * (w*l)**(1-ψ) * δlnw + (1-τ_k) * R * κ * δlnR))
     Expect = np.sum(n * ((w*l - Ψ * (1-ψ) * (w*l)**(1-ψ)) * δlnl + τ_k * R * κ * δlnκ))
@@ -249,13 +268,19 @@ def Equal_Constr(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ,
     r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     
-    'Initial Period Resource Constraint'
+    # ---------------------------------- #
+    # Initial Period Resource Constraint #
+    # ---------------------------------- #
     RC_0 = np.sum(n * c_0) + K - Y_bar
     
-    'Second Period Resource Constraint'
+    # --------------------------------- #
+    # Second Period Resource Constraint #
+    # --------------------------------- #
     RC_1 = np.sum(n * c_1) - Y - (1-δ_hat) * K
     
-    'Log Automation Threshold'
+    # ------------------------ #
+    # Log Automation Threshold #
+    # ------------------------ #
     ln_AT = ζ * np.log(x) - ((np.log(w) - np.log(A_j)) - (np.log(1+θ) + np.log(r) - np.log(A_k)))
     
     return np.concatenate((np.array([RC_0, RC_1]), ln_AT)) 
@@ -292,7 +317,7 @@ def Inequal_Constr(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_�
 
 @njit
 def IC_Full(X, J, n, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ, ε):
-    "All Incentive Compatibility Constraints"
+    "Global Incentive Compatibility Constraints"
     
     c_0 = X[:J]
     c_1 = X[J:2*J]
