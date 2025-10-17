@@ -58,7 +58,7 @@ class Processor:
         # -------- #
         # FRED CPI #
         # -------- #
-        FRED = api.get(f'https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&frequency=a&observation_start=1980-01-01&observation_end=2016-01-01&api_key={self.FRED_API}&file_type=json')
+        FRED = api.get(f'https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&frequency=a&api_key={self.FRED_API}&file_type=json')
         data = FRED.json()['observations']
         filtered_data = [{'date': entry['date'], 'value': entry['value']} for entry in data]
         CPI_df = pd.DataFrame(filtered_data)
@@ -257,8 +257,8 @@ class Processor:
         
         SCF_df = pd.read_pickle(f'{self.Directory}/Clean Data/SCF_2016.pkl')
         
-        YS = fn.compute_decile_shares(SCF_df, 'Labor Income').reshape((-1,1))
-        WS = fn.compute_decile_shares(SCF_df, 'Wealth').reshape((-1,1))
+        YS = gpf.compute_decile_shares(SCF_df, 'Labor Income').reshape((-1,1))
+        WS = gpf.compute_decile_shares(SCF_df, 'Wealth').reshape((-1,1))
         WS_hat = ( YS**self.E.Θ ) / ( sum(YS**self.E.Θ) ).reshape((-1,1))
         Deciles = np.arange(1,11).reshape((-1,1))
         

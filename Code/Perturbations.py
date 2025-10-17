@@ -8,6 +8,7 @@ Notes: Functions that describe the perturbations of the economy.
 import numpy as np
 from numba import njit
 import Production_Functions as fn
+import Processing_Functions as gpf
 
 
 
@@ -50,9 +51,9 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     # ---------------- #
     rel_l = fn.relα(x, x_bar, ζ, ν, σ, 0)
     
-    δlnw_δX = - (1/σ) * fn.make_diag(rel_l) + (1/σ) * fn.broadcast_row_to_matrix(δlnY_δX)
+    δlnw_δX = - (1/σ) * gpf.make_diag(rel_l) + (1/σ) * gpf.broadcast_row_to_matrix(δlnY_δX)
     δlnw_δlnK = (1/σ) * δlnY_δlnK * np.ones(J)
-    δlnw_δlnL = (1/σ) * fn.broadcast_row_to_matrix(δlnY_δlnL) - np.eye(J) / σ
+    δlnw_δlnL = (1/σ) * gpf.broadcast_row_to_matrix(δlnY_δlnL) - np.eye(J) / σ
     
     # ---------------- #
     # Rent Derivatives #
@@ -81,10 +82,10 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     δlnLS_δc_0 = - (1-ψ) * np.outer(δlnw_δlnK, -n/K)
     
     #   wrt to c_1
-    δlnLS_δc_1 = fn.make_diag(1/c_1) * var_θ
+    δlnLS_δc_1 = gpf.make_diag(1/c_1) * var_θ
     
     #   wrt to l
-    δlnLS_δl = fn.make_diag(1/l) * (1/ε + ψ) - (1-ψ) * δlnw_δlnL * fn.broadcast_row_to_matrix(n / L)
+    δlnLS_δl = gpf.make_diag(1/l) * (1/ε + ψ) - (1-ψ) * δlnw_δlnL * gpf.broadcast_row_to_matrix(n / L)
     
     #   wrt to x
     δlnLS_δx =  - (1-ψ) * δlnw_δX
@@ -96,16 +97,16 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     # Derivatives of Log Euler Equation #
     # --------------------------------- #
     #   wrt to c_0
-    δlnEE_δc_0 = - fn.make_diag(1/c_0) * var_θ - ((1-τ_k) * r / R) * δlnr_δlnK / K * fn.broadcast_row_to_matrix(-n)
+    δlnEE_δc_0 = - gpf.make_diag(1/c_0) * var_θ - ((1-τ_k) * r / R) * δlnr_δlnK / K * gpf.broadcast_row_to_matrix(-n)
     
     #   wrt to c_1
-    δlnEE_δc_1 = fn.make_diag(1/c_1) * var_θ
+    δlnEE_δc_1 = gpf.make_diag(1/c_1) * var_θ
     
     #   wrt to l
-    δlnEE_δl = - ((1-τ_k) * r / R) * fn.broadcast_row_to_matrix(δlnr_δlnL * n / L)
+    δlnEE_δl = - ((1-τ_k) * r / R) * gpf.broadcast_row_to_matrix(δlnr_δlnL * n / L)
     
     #   wrt to x
-    δlnEE_δx = - ((1-τ_k) * r / R) * fn.broadcast_row_to_matrix(δlnr_δX)
+    δlnEE_δx = - ((1-τ_k) * r / R) * gpf.broadcast_row_to_matrix(δlnr_δX)
     
     δlnEE = np.hstack((δlnEE_δc_0, δlnEE_δc_1, δlnEE_δl, δlnEE_δx))
     
@@ -114,22 +115,22 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     # Derivatives of Household Budget #
     # ------------------------------- #
     #   wrt to c_0
-    δHB_δc_0 = np.eye(J)*R + (fn.broadcast_col_to_matrix(c_0 - y_0) * (1-τ_k) * r * δlnr_δlnK / K 
-                              - fn.broadcast_col_to_matrix(Ψ * (1-ψ) * (w * l)**(1-ψ) * δlnw_δlnK) / K
-                              - δD_δK) * fn.broadcast_row_to_matrix(-n)
+    δHB_δc_0 = np.eye(J)*R + (gpf.broadcast_col_to_matrix(c_0 - y_0) * (1-τ_k) * r * δlnr_δlnK / K 
+                              - gpf.broadcast_col_to_matrix(Ψ * (1-ψ) * (w * l)**(1-ψ) * δlnw_δlnK) / K
+                              - δD_δK) * gpf.broadcast_row_to_matrix(-n)
     
     #   wrt to c_1
     δHB_δc_1 = np.eye(J)
     
     #   wrt to l
-    δHB_δl = -fn.make_diag(Ψ * (1-ψ) * (w * l)**(1-ψ) / l) + (fn.broadcast_col_to_matrix(c_0 - y_0) * (1-τ_k) * r * fn.broadcast_row_to_matrix(δlnr_δlnL / L)
-                                                           - fn.broadcast_col_to_matrix(Ψ * (1-ψ) * (w * l)**(1-ψ)) * δlnw_δlnL * fn.broadcast_row_to_matrix(1 / L)
-                                                           - fn.broadcast_row_to_matrix(δD_δL) * fn.broadcast_row_to_matrix(n))
+    δHB_δl = -gpf.make_diag(Ψ * (1-ψ) * (w * l)**(1-ψ) / l) + (gpf.broadcast_col_to_matrix(c_0 - y_0) * (1-τ_k) * r * gpf.broadcast_row_to_matrix(δlnr_δlnL / L)
+                                                           - gpf.broadcast_col_to_matrix(Ψ * (1-ψ) * (w * l)**(1-ψ)) * δlnw_δlnL * gpf.broadcast_row_to_matrix(1 / L)
+                                                           - gpf.broadcast_row_to_matrix(δD_δL) * gpf.broadcast_row_to_matrix(n))
     
     #   wrt to x
-    δHB_δx = (fn.broadcast_col_to_matrix(c_0 - y_0) * (1-τ_k) * r * fn.broadcast_row_to_matrix(δlnr_δX)
-                  - fn.broadcast_col_to_matrix(Ψ * (1-ψ) * (w * l)**(1-ψ)) * δlnw_δX
-                  - fn.broadcast_row_to_matrix(δD_δX))
+    δHB_δx = (gpf.broadcast_col_to_matrix(c_0 - y_0) * (1-τ_k) * r * gpf.broadcast_row_to_matrix(δlnr_δX)
+                  - gpf.broadcast_col_to_matrix(Ψ * (1-ψ) * (w * l)**(1-ψ)) * δlnw_δX
+                  - gpf.broadcast_row_to_matrix(δD_δX))
     
     δHB = np.hstack((δHB_δc_0, δHB_δc_1, δHB_δl, δHB_δx))
     
@@ -137,16 +138,16 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     # Derivatives of Log Automation Thresholds #
     # ---------------------------------------- #
     #   wrt to c_0
-    δlnAT_δc_0 = (- fn.broadcast_col_to_matrix(δlnw_δlnK) / K + δlnr_δlnK / K) * fn.broadcast_row_to_matrix(-n)
+    δlnAT_δc_0 = (- gpf.broadcast_col_to_matrix(δlnw_δlnK) / K + δlnr_δlnK / K) * gpf.broadcast_row_to_matrix(-n)
     
     #   wrt to c_1
     δlnAT_δc_1 = np.zeros((J,J))
     
     #   wrt to l
-    δlnAT_δl = - δlnw_δlnL * fn.broadcast_row_to_matrix(n / L) + fn.broadcast_row_to_matrix(δlnr_δlnL * n / L)
+    δlnAT_δl = - δlnw_δlnL * gpf.broadcast_row_to_matrix(n / L) + gpf.broadcast_row_to_matrix(δlnr_δlnL * n / L)
     
     #   wrt to x
-    δlnAT_δx = fn.make_diag(ζ/x) - δlnw_δX + fn.broadcast_row_to_matrix(δlnr_δX)
+    δlnAT_δx = gpf.make_diag(ζ/x) - δlnw_δX + gpf.broadcast_row_to_matrix(δlnr_δX)
     
     δlnAT = np.hstack((δlnAT_δc_0, δlnAT_δc_1, δlnAT_δl, δlnAT_δx))
     
@@ -341,9 +342,9 @@ def δEC_δX(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ,
     
     rel_l = fn.relα(x, x_bar, ζ, ν, σ, 0)
     
-    δlnw_δX = - (1/σ) * fn.make_diag(rel_l) + (1/σ) * fn.broadcast_row_to_matrix(δlnY_δX)
+    δlnw_δX = - (1/σ) * gpf.make_diag(rel_l) + (1/σ) * gpf.broadcast_row_to_matrix(δlnY_δX)
     δlnw_δlnK = (1/σ) * δlnY_δlnK * np.ones(J)
-    δlnw_δlnL = (1/σ) * fn.broadcast_row_to_matrix(δlnY_δlnL) - np.eye(J) / σ
+    δlnw_δlnL = (1/σ) * gpf.broadcast_row_to_matrix(δlnY_δlnL) - np.eye(J) / σ
     
     rel_k = fn.relα(x, x_bar, ζ, ν, σ, 1)
     
@@ -415,10 +416,10 @@ def δEC_δX(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ,
     δlnAT_δc_1 = np.zeros((J,J))
     
     #   wrt to l
-    δlnAT_δl = - δlnw_δlnL * fn.broadcast_row_to_matrix(n / L) + fn.broadcast_row_to_matrix(δlnr_δlnL * n / L)
+    δlnAT_δl = - δlnw_δlnL * gpf.broadcast_row_to_matrix(n / L) + gpf.broadcast_row_to_matrix(δlnr_δlnL * n / L)
     
     #   wrt to x
-    δlnAT_δx = fn.make_diag(ζ/x) - δlnw_δX + fn.broadcast_row_to_matrix(δlnr_δX)
+    δlnAT_δx = gpf.make_diag(ζ/x) - δlnw_δX + gpf.broadcast_row_to_matrix(δlnr_δX)
     
     #   wrt to K
     δlnAT_δK = - (δlnw_δlnK).reshape((J,1)) / K + δlnr_δlnK / K * np.ones((J,1))

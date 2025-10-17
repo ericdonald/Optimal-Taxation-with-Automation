@@ -15,6 +15,7 @@ from pathlib import Path
 import Roots as rt
 import Production_Functions as fn
 import Perturbations as pr
+import Processing_Functions as gpf
 
 
 
@@ -92,8 +93,8 @@ class Economy:
         # ----------------------------- #
         # Wealth Distribution Convexity #
         # ----------------------------- #
-        YS = fn.compute_decile_shares(SCF_df, 'Labor Income')
-        WS = fn.compute_decile_shares(SCF_df, 'Wealth')
+        YS = gpf.compute_decile_shares(SCF_df, 'Labor Income')
+        WS = gpf.compute_decile_shares(SCF_df, 'Wealth')
         
         Θ_cal = sp.optimize.root(rt.WealthShapeRoot, 1.88,
                       args=(WS, YS),
@@ -173,7 +174,7 @@ class Economy:
         a = 0
         b = -np.log(1000) / 100 #Lower bound for ζ of 1/1000
         
-        Γ = fn.bisect_scalar(rt.GammaRoot, a, b, args)
+        Γ = gpf.bisect_scalar(rt.GammaRoot, a, b, args)
  
         self.Γ = Γ 
         self.ζ = np.exp(self.Γ * self.χ)
@@ -201,7 +202,7 @@ class Economy:
         args = (E_sq, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.J, self.n, self.y_0, self.Ψ, self.ψ, self.β, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ)
         
         qe.tic()
-        θ = fn.bisect_scalar(rt.Optimalθ_Root, θ_lower, θ_upper, args)
+        θ = gpf.bisect_scalar(rt.Optimalθ_Root, θ_lower, θ_upper, args)
         qe.toc()
         
         return θ
@@ -218,7 +219,7 @@ class Economy:
         Y_bar = Y_0 + (1-self.δ) * K_0
         
         MRS_order = self.c_0_sq**(self.var_θ) * (self.w_j_sq * self.l_j_sq)**(self.ψ + 1/self.ε)
-        IC_Comp_J_py = fn.compute_comp_J(MRS_order, 0.1)
+        IC_Comp_J_py = gpf.compute_comp_J(MRS_order, 0.1)
         IC_count = sum(len(j) for j in IC_Comp_J_py)
         
         IC_Comp_J = nb.typed.List.empty_list(nb.types.ListType(nb.types.int64))
@@ -271,7 +272,7 @@ class Economy:
         Y_bar = Y_0 + (1-self.δ) * K_0
         
         MRS_order = self.c_0_sq**(self.var_θ) * (self.w_j_sq * self.l_j_sq)**(self.ψ + 1/self.ε)
-        IC_Comp_J_py = fn.compute_comp_J(MRS_order, 0.1)
+        IC_Comp_J_py = gpf.compute_comp_J(MRS_order, 0.1)
         IC_count = sum(len(j) for j in IC_Comp_J_py)
         
         IC_Comp_J = nb.typed.List.empty_list(nb.types.ListType(nb.types.int64))
