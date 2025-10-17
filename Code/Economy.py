@@ -3,7 +3,6 @@ Economy Module
 
 Notes: This file defines a class for the economy of "Optimal Taxation with Automation".
     
-Output:
 """""""""""
 
 import numpy as np
@@ -14,7 +13,7 @@ import quantecon as qe
 import cyipopt as cp
 from pathlib import Path
 import Roots as rt
-import Functions as fn
+import Production_Functions as fn
 import Perturbations as pr
 
 

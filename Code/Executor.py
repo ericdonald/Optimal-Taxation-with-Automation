@@ -3,7 +3,6 @@ Executor
 
 Notes: This file executes the code for "Optimal Taxation with Automation".
     
-Output:
 """""""""""
 
 import Economy as e

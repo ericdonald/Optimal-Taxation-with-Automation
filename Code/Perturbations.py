@@ -1,14 +1,13 @@
 """""""""""
 Perturbations
 
-Notes:
+Notes: Functions that describe the perturbations of the economy.
     
-Output:
 """""""""""
 
 import numpy as np
 from numba import njit
-import Functions as fn
+import Production_Functions as fn
 
 
 
