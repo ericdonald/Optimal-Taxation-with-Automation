@@ -13,17 +13,16 @@ where `XX` is the user's API key for the relevant data source.
 ### API/Web Acessible:
 
 - FRED
-  - CPI
+  - [CPI](https://fred.stlouisfed.org/series/CPIAUCSL)
 - IPUMS
-  - 1980 Census
-  - 2016 ACS
+  - [1980 Census](https://usa.ipums.org/usa/)
+  - [2016 ACS](https://usa.ipums.org/usa/)
 
 ### Contained in Raw Data:
 
-- 2016 SCF
-- Occupation Exposure Scores
-- Occupation Crosswalk
-- Capital-Labor Elasticities of Substitution
+- [2016 SCF](https://www.federalreserve.gov/econres/scf_2016.htm)
+- Occupation Exposure Scores and Crosswalk from [Webb (2020)](http://eepurl.com/gxo4zr)
+- Capital-Labor Elasticities of Substitution from [Caunedo et al. (2023)](https://capitalbyoccupation.weebly.com/)
 
 ## Software Requirements:
 
