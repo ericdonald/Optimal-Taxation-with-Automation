@@ -25,7 +25,7 @@ def WealthShapeRoot(Θ, WS, YS):
 
 
 def ConCalRoot(CSQ, J, Y, K, G, n, w_j, l_j, y_j0, r, δ, g, τ_k, Ψ, ψ, var_θ):
-    "Consumption, Tax Scale, and Investment Price Root"
+    "Consumption and Discount Factor Root"
     
     # ---------------- #
     # Unpack Variables #
@@ -49,9 +49,9 @@ def ConCalRoot(CSQ, J, Y, K, G, n, w_j, l_j, y_j0, r, δ, g, τ_k, Ψ, ψ, var_�
     RHS_c0 = y_j0 - κ_j1
     Root_c0 = c_j0 - RHS_c0
     
-    # --------------- #
-    # Investment Root #
-    # --------------- #
+    # -------------------- #
+    # Discount Factor Root #
+    # -------------------- #
     RHS_β = np.sum(n * (y_j0 - c_j0))
     Root_β = np.array([K - RHS_β])
     
@@ -152,7 +152,9 @@ def Eqbm_Root(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
 def Optimalθ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ):
     "Root for Optimal Threshold Rule with Status Quo Taxes"
     
-    'Solve for Equilibrium Allocation'
+    # -------------------------------- #
+    # Solve for Equilibrium Allocation #
+    # -------------------------------- #
     Eqbm = sp.optimize.root(Eqbm_Root, E_sq,
                   args=(θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ),
                   jac=pr.δH_δclx)
