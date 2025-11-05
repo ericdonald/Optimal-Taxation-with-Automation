@@ -34,12 +34,13 @@ def ConCalRoot(CSQ, J, Y, K, G, n, w_j, l_j, y_j0, r, δ, g, τ_k, Ψ, ψ, var_�
     β = CSQ[-1]
     
     R = (1-τ_k) * (r - δ) - g
+    beta_tilde = β / (1 - β * (1+g)**(1-var_θ))
     D_1 = G * Y
     
     # -------------------- #
     # Find c_j1 with Euler #
     # -------------------- #
-    c_j1 = c_j0 * (R * β / (1-β))**(1 / var_θ)
+    c_j1 = c_j0 * (R * beta_tilde)**(1 / var_θ)
     
     # ---------------- #
     # Consumption Root #
