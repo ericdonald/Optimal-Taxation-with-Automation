@@ -37,10 +37,12 @@ def ConCalRoot(CSQ, J, Y, K, G, n, w_j, l_j, y_j0, r, δ, g, τ_k, Ψ, ψ, var_�
     beta_tilde = β / (1 - β * (1+g)**(1-var_θ))
     D_1 = G * Y
     
+    
     # -------------------- #
     # Find c_j1 with Euler #
     # -------------------- #
     c_j1 = c_j0 * (R * beta_tilde)**(1 / var_θ)
+    
     
     # ---------------- #
     # Consumption Root #
@@ -49,6 +51,7 @@ def ConCalRoot(CSQ, J, Y, K, G, n, w_j, l_j, y_j0, r, δ, g, τ_k, Ψ, ψ, var_�
     
     RHS_c0 = y_j0 - κ_j1
     Root_c0 = c_j0 - RHS_c0
+    
     
     # -------------------- #
     # Discount Factor Root #
@@ -130,15 +133,18 @@ def Eqbm_Root(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     # ---------------- #
     ln_LS = np.log(φ) + (ψ + 1/ε) * np.log(l) + var_θ * np.log(c_1) - (np.log(Ψ) + np.log(1-ψ) + (1-ψ) * np.log(w))
     
+    
     # ------------------ #
     # Log Euler Equation #
     # ------------------ #
     ln_EE = var_θ * np.log(c_1) - var_θ * np.log(c_0) - (np.log(R) + np.log(β/(1-β)))
     
+    
     # ----------------- #
     # Budget Constraint #
     # ----------------- #
     BC = R * c_0 + c_1 - (R * y_0 + Ψ * (w*l)**(1-ψ) + D)
+    
     
     # ------------------------ #
     # Log Automation Threshold #
@@ -166,6 +172,7 @@ def Optimalθ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β,
     c_1 = E[J:2*J]
     l = E[2*J:3*J]
     x = E[3*J:]
+    
     
     # ------------------------------------ #
     # Compute Threshold Rule Perturbations #
@@ -205,6 +212,7 @@ def Optimalθ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β,
     δY_δX = Y * (A_k * α_k / r)**(σ-1) * θ_wedge
     
     λ = c_1**(-var_θ) / np.sum(n * c_1**(-var_θ))
+    
     
     # -------------------- #
     # Optimality Condition #
@@ -271,15 +279,18 @@ def Equal_Constr(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ,
     r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     
+    
     # ---------------------------------- #
     # Initial Period Resource Constraint #
     # ---------------------------------- #
     RC_0 = np.sum(n * c_0) + K - Y_bar
     
+    
     # --------------------------------- #
     # Second Period Resource Constraint #
     # --------------------------------- #
     RC_1 = np.sum(n * c_1) - Y - (1-δ_hat) * K
+    
     
     # ------------------------ #
     # Log Automation Threshold #
