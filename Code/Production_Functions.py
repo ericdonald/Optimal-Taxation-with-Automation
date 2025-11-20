@@ -68,6 +68,7 @@ def Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ):
     return Y
 
 
+
 @njit
 def Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ):
     "Marginal Product of Labor"

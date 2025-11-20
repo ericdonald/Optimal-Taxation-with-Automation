@@ -242,7 +242,7 @@ def CERoot(CE, c_0prime, c_1prime, lprime, c_0, c_1, l, n, β, var_θ, φ, ε):
 
 
 @njit
-def Mir_obj(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ, ε, IC_Comp_J, IC_count, TR):
+def Mir_obj(X, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, x_bar, J):
     "Mirrlees Objective"
     
     c_0 = X[:J]
@@ -258,26 +258,18 @@ def Mir_obj(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ, 
     
   
 @njit
-def Equal_Constr(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ, ε, IC_Comp_J, IC_count, TR):
+def Equal_Constr(X, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, x_bar, J):
     "Equality Constraints"
     
     c_0 = X[:J]
     c_1 = X[J:2*J]
     l = X[2*J:3*J]
-    x = X[3*J:4*J]
-    K = X[4*J]
-    
-    if TR==1:
-        θ = X[-1]
-    else:
-        θ = 0
+    K = X[-1]
     
     δ_hat = 1 + δ + g
     
     L = n * l
-    w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
+    Y = r * K + np.sum(w * L)
     
     
     # ---------------------------------- #
@@ -292,30 +284,24 @@ def Equal_Constr(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ,
     RC_1 = np.sum(n * c_1) - Y - (1-δ_hat) * K
     
     
-    # ------------------------ #
-    # Log Automation Threshold #
-    # ------------------------ #
-    ln_AT = ζ * np.log(x) - ((np.log(w) - np.log(A_j)) - (np.log(1+θ) + np.log(r) - np.log(A_k)))
-    
-    return np.concatenate((np.array([RC_0, RC_1]), ln_AT)) 
+    return np.array([RC_0, RC_1]) 
 
 
 
 @njit
-def Inequal_Constr(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ, ε, IC_Comp_J, IC_count, TR):
+def Inequal_Constr(X, w, IC_act, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, x_bar, J):
     "Local Incentive Compatibility Constraints"
     
     c_0 = X[:J]
     c_1 = X[J:2*J]
     l = X[2*J:3*J]
-    x = X[3*J:4*J]
-    K = X[4*J]
     
-    L = n * l
-    w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     Val = fn.V(c_0, c_1, l, β, var_θ, φ, ε)
     
     Val_con = Val + (β / (1-β)) * φ * l**(1 + 1/ε) / (1 + 1/ε)
+    
+    IC_Comp_J = [np.where(IC_act[i] == 1)[0] for i in range(J)]
+    IC_count = int(IC_act.sum()) 
     
     IC = np.zeros(IC_count)
     k=0
@@ -330,17 +316,13 @@ def Inequal_Constr(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_�
 
 
 @njit
-def IC_Full(X, J, n, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ, ε):
+def IC_Full(X, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, x_bar, J):
     "Global Incentive Compatibility Constraints"
     
     c_0 = X[:J]
     c_1 = X[J:2*J]
     l = X[2*J:3*J]
-    x = X[3*J:4*J]
-    K = X[4*J]
     
-    L = n * l
-    w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     Val = fn.V(c_0, c_1, l, β, var_θ, φ, ε)
     
     Val_con = Val + (β / (1-β)) * φ * l**(1 + 1/ε) / (1 + 1/ε)

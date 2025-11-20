@@ -269,7 +269,7 @@ def dlnr(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0):
 
 
 @njit
-def δObj_δX(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ, ε, IC_Comp_J, IC_count, TR):
+def δObj_δX(X, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, x_bar, J):
     "Jacobian of Mirrlees Objective"
     
     c_0 = X[:J]
@@ -288,69 +288,18 @@ def δObj_δX(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ
     #   wrt to l
     δW_δl = - n * (β / (1-β)) * φ * l**(1/ε)
     
-    #   wrt to x
-    δW_δx = np.zeros(J)
-    
-    #   wrt to K
-    δW_δK = np.zeros(1)
-    
-    #   wrt to θ
-    δW_δθ = np.zeros(1)
-    
-    if TR==1:
-        δW = np.concatenate((δW_δc_0, δW_δc_1, δW_δl, δW_δx, δW_δK, δW_δθ))
-    else:
-        δW = np.concatenate((δW_δc_0, δW_δc_1, δW_δl, δW_δx, δW_δK))
+    δW = np.concatenate((δW_δc_0, δW_δc_1, δW_δl))
     
     return - δW
     
 
 
 @njit
-def δEC_δX(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ, ε, IC_Comp_J, IC_count, TR):
+def δEC_δX(X, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, x_bar, J):
     "Jacobian of Equality Constraints"
-    
-    l = X[2*J:3*J]
-    x = X[3*J:4*J]
-    K = X[4*J]
-    
-    if TR==1:
-        θ = X[-1]
-    else:
-        θ = 0
         
     δ_hat = 1 + δ + g
     
-    L = n * l
-    w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    
-    S_k = r * K / Y
-    S_j = w * L / Y
-    α_k = x**(ζ*(ν-1))
-    
-    if σ == 1:
-        θ_wedge = np.log(1+θ)
-    else:
-        θ_wedge = ((1+θ)**(1-σ) - 1) / (1 - σ)
-    
-    δY_δX = Y * (A_k * α_k / r)**(σ-1) * θ_wedge
-    δlnY_δX = δY_δX / Y
-    δlnY_δlnK = S_k
-    δlnY_δlnL = S_j
-    
-    rel_l = fn.relα(x, x_bar, ζ, ν, σ, 0)
-    
-    δlnw_δX = - (1/σ) * gpf.make_diag(rel_l) + (1/σ) * gpf.broadcast_row_to_matrix(δlnY_δX)
-    δlnw_δlnK = (1/σ) * δlnY_δlnK * np.ones(J)
-    δlnw_δlnL = (1/σ) * gpf.broadcast_row_to_matrix(δlnY_δlnL) - np.eye(J) / σ
-    
-    rel_k = fn.relα(x, x_bar, ζ, ν, σ, 1)
-    
-    δlnr_δX = (1/σ) * rel_k + (1/σ) * δlnY_δX
-    δlnr_δlnK = (1/σ) * (δlnY_δlnK - 1)
-    δlnr_δlnL = (1/σ) * δlnY_δlnL
     
     # ------------------------------------------------- #
     # Derivatives of Initial Period Resource Constraint #
@@ -364,19 +313,10 @@ def δEC_δX(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ,
     #   wrt to l
     δRC_0_δl = np.zeros((1,J))
     
-    #   wrt to x
-    δRC_0_δx = np.zeros((1,J))
-    
     #   wrt to K
     δRC_0_δK = np.ones((1,1))
     
-    #   wrt to θ
-    δRC_0_δθ = np.zeros((1,1))
-    
-    if TR==1:
-        δRC_0 = np.hstack((δRC_0_δc_0, δRC_0_δc_1, δRC_0_δl, δRC_0_δx, δRC_0_δK, δRC_0_δθ))
-    else:
-        δRC_0 = np.hstack((δRC_0_δc_0, δRC_0_δc_1, δRC_0_δl, δRC_0_δx, δRC_0_δK))
+    δRC_0 = np.hstack((δRC_0_δc_0, δRC_0_δc_1, δRC_0_δl, δRC_0_δK))
         
     
     # ------------------------------------------------ #
@@ -391,65 +331,26 @@ def δEC_δX(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ,
     #   wrt to l
     δRC_1_δl = - (w * n).reshape((1,J))
     
-    #   wrt to x
-    δRC_1_δx = - δY_δX.reshape((1,J))
-    
     #   wrt to K
     δRC_1_δK = - np.ones((1,1)) * (1 + r - δ_hat)
     
-    #   wrt to θ
-    δRC_1_δθ = np.zeros((1,1))
-    
-    if TR==1:
-        δRC_1 = np.hstack((δRC_1_δc_0, δRC_1_δc_1, δRC_1_δl, δRC_1_δx, δRC_1_δK, δRC_1_δθ))
-    else:
-        δRC_1 = np.hstack((δRC_1_δc_0, δRC_1_δc_1, δRC_1_δl, δRC_1_δx, δRC_1_δK))
-        
-    
-    # ---------------------------------------- #
-    # Derivatives of Log Automation Thresholds #
-    # ---------------------------------------- #
-    #   wrt to c_0
-    δlnAT_δc_0 = np.zeros((J,J))
-    
-    #   wrt to c_1
-    δlnAT_δc_1 = np.zeros((J,J))
-    
-    #   wrt to l
-    δlnAT_δl = - δlnw_δlnL * gpf.broadcast_row_to_matrix(n / L) + gpf.broadcast_row_to_matrix(δlnr_δlnL * n / L)
-    
-    #   wrt to x
-    δlnAT_δx = gpf.make_diag(ζ/x) - δlnw_δX + gpf.broadcast_row_to_matrix(δlnr_δX)
-    
-    #   wrt to K
-    δlnAT_δK = - (δlnw_δlnK).reshape((J,1)) / K + δlnr_δlnK / K * np.ones((J,1))
-    
-    #   wrt to θ
-    δlnAT_δθ = np.ones((J,1)) / (1+θ)
-    
-    if TR==1:
-        δlnAT = np.hstack((δlnAT_δc_0, δlnAT_δc_1, δlnAT_δl, δlnAT_δx, δlnAT_δK, δlnAT_δθ))
-    else:
-        δlnAT = np.hstack((δlnAT_δc_0, δlnAT_δc_1, δlnAT_δl, δlnAT_δx, δlnAT_δK))
+    δRC_1 = np.hstack((δRC_1_δc_0, δRC_1_δc_1, δRC_1_δl, δRC_1_δK))
         
         
-    return np.vstack((δRC_0, δRC_1, δlnAT))
+    return np.vstack((δRC_0, δRC_1))
     
     
  
 @njit
-def δIC_δX(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ, ε, IC_Comp_J, IC_count, TR):
+def δIC_δX(X, w, IC_act, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, x_bar, J):
     "Jacobian of Inequality Constraints"
     
     c_0 = X[:J]
     c_1 = X[J:2*J]
     l = X[2*J:3*J]
-    x = X[3*J:4*J]
-    K = X[4*J]
     
-    L = n * l
-    w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    rel_l = fn.relα(x, x_bar, ζ, ν, σ, 0)
+    IC_Comp_J = [np.where(IC_act[i] == 1)[0] for i in range(J)]
+    IC_count = int(IC_act.sum()) 
     
     
     # ----------------- #
@@ -481,30 +382,11 @@ def δIC_δX(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ,
     
     for i in range(J):
         for j in IC_Comp_J[i]:
-            δIC_δl[k, i] = (β/(1-β)) * φ[i] * l[i]**(1/ε) * ((1/σ) * ((w[j]*l[j])/(w[i]*l[i]))**(1+1/ε) - 1)
-            δIC_δl[k, j] = (β/(1-β)) * ((σ-1)/σ) * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε)
+            δIC_δl[k, i] = - (β/(1-β)) * φ[i] * l[i]**(1/ε)
+            δIC_δl[k, j] = (β/(1-β)) * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε) * (w[j]/w[i])
             k += 1
     
-    #   wrt to x
-    δIC_δx = np.zeros((IC_count,J))
-    k = 0
-    
-    for i in range(J):
-        for j in IC_Comp_J[i]:
-            δIC_δx[k, i] = (β/(1-β)) * (φ[i]/σ) * (w[j]*l[j]/w[i])**(1+1/ε) * rel_l[i]
-            δIC_δx[k, j] = -(β/(1-β)) * (φ[i]/σ) * (w[j]*l[j]/w[i])**(1+1/ε) * rel_l[j]
-            k += 1
-    
-    #   wrt to K
-    δIC_δK = np.zeros((IC_count,1))
-    
-    #   wrt to θ
-    δIC_δθ = np.zeros((IC_count,1))
-    
-    if TR==1:
-        δIC = np.hstack((δIC_δc_0, δIC_δc_1, δIC_δl, δIC_δx, δIC_δK, δIC_δθ))
-    else:
-        δIC = np.hstack((δIC_δc_0, δIC_δc_1, δIC_δl, δIC_δx, δIC_δK))
+    δIC = np.hstack((δIC_δc_0, δIC_δc_1, δIC_δl))
     
     return δIC
     

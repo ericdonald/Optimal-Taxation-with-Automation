@@ -8,6 +8,10 @@ Notes: Functions that accomplish basic processing for the project.
 import numpy as np
 import pandas as pd
 from numba import njit
+import scipy as sp
+import cyipopt as cp
+import Roots as rt
+import Perturbations as pr
 
 
 
@@ -148,44 +152,40 @@ def broadcast_col_to_matrix(col):
 
 
 
-def compute_comp_J(x, delta):
-    "Find IC Comparison Indices"
+def solve_planner(w, r, IC_act, X_0, args):
+    "Solve Inner Loop for Fixed IC Set"
     
-    x = np.asarray(x)
-    J = x.shape[0]
-   
-    sorted_idx  = np.argsort(x)
-    pos_of_idx  = np.empty(J, dtype=int)
-    pos_of_idx[sorted_idx] = np.arange(J)
-    logx = np.log(x)
-
-    comp_J = []
-    for j in range(J):
-        pos  = pos_of_idx[j]
-        nbrs = set()
-
-        # -------------------- #
-        # immediate neighbours #
-        # -------------------- #
-        if pos > 0:
-            nbrs.add(sorted_idx[pos - 1])
-        if pos < J-1:
-            nbrs.add(sorted_idx[pos + 1])
-
-        # ------------------------- #
-        # within‐delta log‐distance #
-        # ------------------------- #
-        mask = np.abs(logx - logx[j]) <= delta
-        for i in np.nonzero(mask)[0]:
-            if i != j:
-                nbrs.add(i)
-
-        comp_J.append(nbrs)
-
-    return comp_J
-
-
-
+    J = args[-1]
+    x_bar = args[-2]
+    
+    
+    # ------------------ #
+    # Define Constraints #
+    # ------------------ #
+    eq_fun = lambda x: rt.Equal_Constr(x, w, r, *args)
+    eq_jac = lambda x: pr.δEC_δX(x, w, r, *args)
+    
+    ineq_fun = lambda x: rt.Inequal_Constr(x, w, IC_act, *args)
+    ineq_jac = lambda x: pr.δIC_δX(x, w, IC_act, *args)
+    
+    eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
+    ineq_cons = sp.optimize.NonlinearConstraint(ineq_fun, lb=0, ub=np.inf, jac=ineq_jac)
+    
+    bounds = sp.optimize.Bounds(np.zeros(4 * J + 2), np.concatenate((np.ones(3 * J)*np.inf, np.ones(J)*x_bar, np.ones(2)*np.inf)))
+    
+    
+    # ----- #
+    # Solve #
+    # ----- #
+    opt = cp.minimize_ipopt(rt.Mir_obj, X_0, jac=pr.δObj_δX,
+                            args=args, bounds=bounds,
+                            constraints=[eq_cons, ineq_cons], options={'maxiter': 1000, 'disp': True})
+    
+    alloc = opt.x
+    slack = rt.IC_Full(alloc, w, *args)
+    
+    
+    return alloc, slack
 
 
 

@@ -218,16 +218,6 @@ class Economy:
         K_0 = self.K_sq / (1+self.g)
         Y_bar = Y_0 + (1-self.δ) * K_0
         
-        MRS_order = self.c_0_sq**(self.var_θ) * (self.w_j_sq * self.l_j_sq)**(self.ψ + 1/self.ε)
-        IC_Comp_J_py = gpf.compute_comp_J(MRS_order, 0.1)
-        IC_count = sum(len(j) for j in IC_Comp_J_py)
-        
-        IC_Comp_J = nb.typed.List.empty_list(nb.types.ListType(nb.types.int64))
-        for j in IC_Comp_J_py:
-            sub = nb.typed.List.empty_list(nb.types.int64)
-            for idx in j:
-                sub.append(idx)
-            IC_Comp_J.append(sub)
             
         common_args = (self.J, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.β, self.var_θ, self.φ, self.ε, IC_Comp_J, IC_count, 1)
         
@@ -248,8 +238,7 @@ class Economy:
                                 constraints=[eq_cons, ineq_cons], options={'maxiter': 1000, 'disp': True})
         qe.toc()
         
-        IC = rt.IC_Full(opt.x, self.J, self.n, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.β, self.var_θ, self.φ, self.ε)
-        print(f'IC: {np.min(IC)}')
+       
         
         c_0 = opt.x[:self.J]
         c_1 = opt.x[self.J:2*self.J]
