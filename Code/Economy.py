@@ -8,13 +8,10 @@ Notes: This file defines a class for the economy of "Optimal Taxation with Autom
 import numpy as np
 import pandas as pd
 import scipy as sp
-import numba as nb
 import quantecon as qe
-import cyipopt as cp
 from pathlib import Path
 import Roots as rt
 import Production_Functions as fn
-import Perturbations as pr
 import Processing_Functions as gpf
 
 
@@ -223,7 +220,8 @@ class Economy:
         
         w = self.w_j_sq
         r = self.r_sq
-        IC_act = np.zeros((self.J, self.J), dtype=bool)
+        IC_full = rt.IC_Full(X, w, *args)
+        IC_act = (IC_full <= tol)
         
         
         # ---------- #
@@ -287,7 +285,8 @@ class Economy:
         
         w = self.w_j_sq
         r = self.r_sq
-        IC_act = np.zeros((self.J, self.J), dtype=bool)
+        IC_full = rt.IC_Full(X, w, *args)
+        IC_act = (IC_full <= tol)
         
         
         # ---------- #

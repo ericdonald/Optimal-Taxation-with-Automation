@@ -65,7 +65,7 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     δlnr_δlnL = (1/σ) * δlnY_δlnL
     
     # --------- #
-    # Lump-Sum' #
+    # Lump-Sum  #
     # --------- #
     δD_δX = (n * (w * l - Ψ * (1-ψ) * (w * l)**(1-ψ))).reshape((1,J)) @ δlnw_δX + τ_k * r * K * δlnr_δX
     δD_δK = np.sum(n * (w * l - Ψ * (1-ψ) * (w * l)**(1-ψ)) * δlnw_δlnK) / K + τ_k * r * δlnr_δlnK + τ_k * (r - δ)
