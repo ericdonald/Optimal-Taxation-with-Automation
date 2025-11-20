@@ -88,7 +88,7 @@ def compute_decile_shares(df, value_col, weight_col='Weight', n_groups=10):
 
 
 
-def bisect_scalar(func, a, b, args, tol=1e-5):
+def bisect_scalar(func, a, b, args, tol=1e-8):
     "Scalar Bisection"
     
     fa, fb = func(a, *args), func(b, *args)
@@ -185,10 +185,10 @@ def solve_planner(w, r, IC_act, X_0, args):
 
 
 
-def inner_solve_with_active_set(w, r, IC_act, X_0, args, slack_tol=1e-8, max_inner_iter=20):
+def inner_solve(w, r, IC_act, X_0, args, viol_tol=1e-8, bind_tol=1e-6, max_inner_iter=20):
     "Solve Inner Loop"
 
-    for k in range(max_inner_iter):
+    for _ in range(max_inner_iter):
 
         # ----- #
         # Solve #
@@ -199,19 +199,21 @@ def inner_solve_with_active_set(w, r, IC_act, X_0, args, slack_tol=1e-8, max_inn
         # --------------------- #
         # Scan for IC Violation #
         # --------------------- #
-        viols = (rt.IC_Full(alloc, w, *args) > slack_tol)
+        IC_full = rt.IC_Full(alloc, w, *args)
+        viols = (IC_full < - viol_tol)
         
-        if viols.sum() == 0:
+        if not viols.any():
             break
 
-        IC_act = np.maximum(IC_act+viols, 1)
+        IC_act = np.logical_or(IC_act, viols)
         X_0 = alloc.copy()
 
 
-    # ------------------------------------- #
-    # Save IC Violations at Final Iteration #
-    # ------------------------------------- #
-    IC_act = viols.copy()
+    # --------------------------- #
+    # Save Binding IC at Solution #
+    # --------------------------- #
+    IC_full = rt.IC_Full(alloc, w, *args)
+    IC_act = (IC_full <= bind_tol)
 
     return alloc, IC_act
 

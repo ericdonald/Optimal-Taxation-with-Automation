@@ -202,104 +202,136 @@ class Economy:
         args = (E_sq, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.J, self.n, self.y_0, self.Ψ, self.ψ, self.β, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ)
         
         qe.tic()
-        θ = gpf.bisect_scalar(rt.Optimalθ_Root, θ_lower, θ_upper, args)
+        θ = gpf.bisect_scalar(rt.Optimalθ_SQ_Root, θ_lower, θ_upper, args)
         qe.toc()
         
         return θ
     
     
     
-    def Mirrlees_Lagr_θ(self):
+    def Mirrlees_Lagr_θ(self, θ_lower, θ_upper, θ=0.25, damp=1/10, tol=1e-8, max_iter=100):
         "Solve Non-Linear Tax Problem with Threshold Rule"
             
-        X_g = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, self.var_κ * self.x_bar, np.array([self.K_sq, 0.25])))
+        X = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, np.array([self.K_sq])))
+        x = self.var_κ * self.x_bar
         
         Y_0 = self.Y_sq / (1+self.g)
         K_0 = self.K_sq / (1+self.g)
         Y_bar = Y_0 + (1-self.δ) * K_0
         
+        args = (self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J)
+        
+        w = self.w_j_sq
+        r = self.r_sq
+        IC_act = np.zeros((self.J, self.J), dtype=bool)
+        
+        
+        # ---------- #
+        # Outer Loop #
+        # ---------- #
+        for _ in range(max_iter):
+        
+            # ---------------- #
+            # Solve Inner Loop #
+            # ---------------- #
+            X, IC_act = gpf.inner_solve(w, r, IC_act, X, args)
+            l = X[2*self.J:3*self.J]
+            K = X[-1]
             
-        common_args = (self.J, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.β, self.var_θ, self.φ, self.ε, IC_Comp_J, IC_count, 1)
+            
+            # -------------------- #
+            # Update Factor Prices #
+            # -------------------- #
+            L = self.n * l
+            w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            
+            
+            # -------------------- #
+            # Solve for Thresholds #
+            # -------------------- #
+            θ_new = gpf.bisect_scalar(rt.Optimalθ_NL_Root, θ_lower, θ_upper, args)
+            x_new = ((w / self.A_j) / ((1+θ_new) * r / self.A_k))**(1/self.ζ)
+            
+            
+            # ---------------------------- #
+            # Check Convergence and Update #
+            # ---------------------------- #
+            if np.abs(θ - θ_new) < tol and np.max(np.abs(x - x_new)) < tol:
+                break
+            
+            θ = θ * (1-damp) + θ_new * damp
+            x = x * (1-damp) + x_new * damp
+            
+            w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            
+        c_0 = X[:self.J]
+        c_1 = X[self.J:2*self.J]
         
-        eq_fun = lambda x: rt.Equal_Constr(x, *common_args)
-        eq_jac = lambda x: pr.δEC_δX(x, *common_args)
-        
-        ineq_fun = lambda x: rt.Inequal_Constr(x, *common_args)
-        ineq_jac = lambda x: pr.δIC_δX(x, *common_args)
-        
-        eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
-        ineq_cons = sp.optimize.NonlinearConstraint(ineq_fun, lb=0, ub=np.inf, jac=ineq_jac)
-        
-        bounds = sp.optimize.Bounds(np.zeros(4 * self.J + 2), np.concatenate((np.ones(3 * self.J)*np.inf, np.ones(self.J)*self.x_bar, np.ones(2)*np.inf)))
-        
-        qe.tic()    
-        opt = cp.minimize_ipopt(rt.Mir_obj, X_g, jac=pr.δObj_δX,
-                                args=common_args, bounds=bounds,
-                                constraints=[eq_cons, ineq_cons], options={'maxiter': 1000, 'disp': True})
-        qe.toc()
-        
-       
-        
-        c_0 = opt.x[:self.J]
-        c_1 = opt.x[self.J:2*self.J]
-        l = opt.x[2*self.J:3*self.J]
-        x = opt.x[3*self.J:4*self.J]
-        K = opt.x[-2]
-        θ = opt.x[-1]
-        
-        return (c_0, c_1, l, x, K, θ)
+        return (c_0, c_1, l, K, x, θ)
     
     
     
-    def Mirrlees_Lagr_NT(self):
+    def Mirrlees_Lagr_NT(self, damp=1/10, tol=1e-8, max_iter=100):
         "Solve Non-Linear Tax Problem without Threshold Rule"
             
-        X_g = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, self.var_κ * self.x_bar, np.array([self.K_sq])))
+        X = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, np.array([self.K_sq])))
+        x = self.var_κ * self.x_bar
         
         Y_0 = self.Y_sq / (1+self.g)
         K_0 = self.K_sq / (1+self.g)
         Y_bar = Y_0 + (1-self.δ) * K_0
         
-        MRS_order = self.c_0_sq**(self.var_θ) * (self.w_j_sq * self.l_j_sq)**(self.ψ + 1/self.ε)
-        IC_Comp_J_py = gpf.compute_comp_J(MRS_order, 0.1)
-        IC_count = sum(len(j) for j in IC_Comp_J_py)
+        args = (self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J)
         
-        IC_Comp_J = nb.typed.List.empty_list(nb.types.ListType(nb.types.int64))
-        for j in IC_Comp_J_py:
-            sub = nb.typed.List.empty_list(nb.types.int64)
-            for idx in j:
-                sub.append(idx)
-            IC_Comp_J.append(sub)
+        w = self.w_j_sq
+        r = self.r_sq
+        IC_act = np.zeros((self.J, self.J), dtype=bool)
+        
+        
+        # ---------- #
+        # Outer Loop #
+        # ---------- #
+        for _ in range(max_iter):
+        
+            # ---------------- #
+            # Solve Inner Loop #
+            # ---------------- #
+            X, IC_act = gpf.inner_solve(w, r, IC_act, X, args)
+            l = X[2*self.J:3*self.J]
+            K = X[-1]
             
-        common_args = (self.J, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.β, self.var_θ, self.φ, self.ε, IC_Comp_J, IC_count, 0)
+            
+            # -------------------- #
+            # Update Factor Prices #
+            # -------------------- #
+            L = self.n * l
+            w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            
+            
+            # -------------------- #
+            # Solve for Thresholds #
+            # -------------------- #
+            x_new = ((w / self.A_j) / (r / self.A_k))**(1/self.ζ)
+            
+            
+            # ---------------------------- #
+            # Check Convergence and Update #
+            # ---------------------------- #
+            if np.max(np.abs(x - x_new)) < tol:
+                break
+            
+            x = x * (1-damp) + x_new * damp
+            
+            w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            
+        c_0 = X[:self.J]
+        c_1 = X[self.J:2*self.J]
         
-        eq_fun = lambda x: rt.Equal_Constr(x, *common_args)
-        eq_jac = lambda x: pr.δEC_δX(x, *common_args)
-        
-        ineq_fun = lambda x: rt.Inequal_Constr(x, *common_args)
-        ineq_jac = lambda x: pr.δIC_δX(x, *common_args)
-        
-        eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
-        ineq_cons = sp.optimize.NonlinearConstraint(ineq_fun, lb=0, ub=np.inf, jac=ineq_jac)
-        
-        bounds = sp.optimize.Bounds(np.zeros(4 * self.J + 1), np.concatenate((np.ones(3 * self.J)*np.inf, np.ones(self.J)*self.x_bar, np.ones(1)*np.inf)))
-        
-        qe.tic()    
-        opt = cp.minimize_ipopt(rt.Mir_obj, X_g, jac=pr.δObj_δX,
-                                args=common_args, bounds=bounds,
-                                constraints=[eq_cons, ineq_cons], options={'maxiter': 1000, 'disp': True})
-        qe.toc()
-        
-        IC = rt.IC_Full(opt.x, self.J, self.n, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.β, self.var_θ, self.φ, self.ε)
-        print(f'IC_NT: {np.min(IC)}')
-        
-        c_0 = opt.x[:self.J]
-        c_1 = opt.x[self.J:2*self.J]
-        l = opt.x[2*self.J:3*self.J]
-        x = opt.x[3*self.J:4*self.J]
-        K = opt.x[-1]
-        
-        return (c_0, c_1, l, x, K)
+        return (c_0, c_1, l, K, x)
         
         
         

@@ -574,8 +574,8 @@ class Processor:
         # --------------------------------- #
         # Solve for Two Planner Allocations #
         # --------------------------------- #
-        (c_0, c_1, l, x, K, θ) = self.E.Mirrlees_Lagr_θ()
-        (c_0_NT, c_1_NT, l_NT, x_NT, K_NT) = self.E.Mirrlees_Lagr_NT()
+        (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr_θ()
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr_NT()
         
         Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
         
@@ -613,6 +613,7 @@ class Processor:
         
         
         Mirrlees_Results.to_csv(f'{self.Directory}/Results/Tables/Mirrlees_Results.csv')
+        
         
         
     def write_package_versions(self, packages):
