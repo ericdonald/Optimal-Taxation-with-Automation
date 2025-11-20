@@ -288,7 +288,10 @@ def δObj_δX(X, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     #   wrt to l
     δW_δl = - n * (β / (1-β)) * φ * l**(1/ε)
     
-    δW = np.concatenate((δW_δc_0, δW_δc_1, δW_δl))
+    #   wrt to K
+    δW_δK = np.zeros(1)
+    
+    δW = np.concatenate((δW_δc_0, δW_δc_1, δW_δl, δW_δK))
     
     return - δW
     
@@ -385,8 +388,11 @@ def δIC_δX(X, w, IC_act, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
             δIC_δl[k, i] = - (β/(1-β)) * φ[i] * l[i]**(1/ε)
             δIC_δl[k, j] = (β/(1-β)) * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε) * (w[j]/w[i])
             k += 1
+            
+    #   wrt to K
+    δIC_δK = np.zeros((IC_count,1))
     
-    δIC = np.hstack((δIC_δc_0, δIC_δc_1, δIC_δl))
+    δIC = np.hstack((δIC_δc_0, δIC_δc_1, δIC_δl, δIC_δK))
     
     return δIC
     
