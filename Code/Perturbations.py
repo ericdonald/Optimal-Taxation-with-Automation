@@ -269,7 +269,7 @@ def dlnr(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0):
 
 
 @njit
-def δObj_δX(X, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, x_bar, J):
+def δObj_δX(X, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     "Jacobian of Mirrlees Objective"
     
     c_0 = X[:J]
@@ -295,7 +295,7 @@ def δObj_δX(X, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, x_bar, J):
 
 
 @njit
-def δEC_δX(X, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, x_bar, J):
+def δEC_δX(X, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     "Jacobian of Equality Constraints"
         
     δ_hat = 1 + δ + g
@@ -342,7 +342,7 @@ def δEC_δX(X, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, x_bar, J):
     
  
 @njit
-def δIC_δX(X, w, IC_act, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, x_bar, J):
+def δIC_δX(X, w, IC_act, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     "Jacobian of Inequality Constraints"
     
     c_0 = X[:J]

@@ -242,7 +242,7 @@ def CERoot(CE, c_0prime, c_1prime, lprime, c_0, c_1, l, n, β, var_θ, φ, ε):
 
 
 @njit
-def Mir_obj(X, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, x_bar, J):
+def Mir_obj(X, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     "Mirrlees Objective"
     
     c_0 = X[:J]
@@ -258,7 +258,7 @@ def Mir_obj(X, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, x_bar, J):
     
   
 @njit
-def Equal_Constr(X, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, x_bar, J):
+def Equal_Constr(X, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     "Equality Constraints"
     
     c_0 = X[:J]
@@ -289,7 +289,7 @@ def Equal_Constr(X, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, x_bar, 
 
 
 @njit
-def Inequal_Constr(X, w, IC_act, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, x_bar, J):
+def Inequal_Constr(X, w, IC_act, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     "Local Incentive Compatibility Constraints"
     
     c_0 = X[:J]
@@ -316,7 +316,7 @@ def Inequal_Constr(X, w, IC_act, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, 
 
 
 @njit
-def IC_Full(X, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, x_bar, J):
+def IC_Full(X, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     "Global Incentive Compatibility Constraints"
     
     c_0 = X[:J]

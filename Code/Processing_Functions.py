@@ -153,10 +153,9 @@ def broadcast_col_to_matrix(col):
 
 
 def solve_planner(w, r, IC_act, X_0, args):
-    "Solve Inner Loop for Fixed IC Set"
+    "Solve Mirrlees for Fixed IC Set"
     
     J = args[-1]
-    x_bar = args[-2]
     
     
     # ------------------ #
@@ -171,7 +170,7 @@ def solve_planner(w, r, IC_act, X_0, args):
     eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
     ineq_cons = sp.optimize.NonlinearConstraint(ineq_fun, lb=0, ub=np.inf, jac=ineq_jac)
     
-    bounds = sp.optimize.Bounds(np.zeros(4 * J + 2), np.concatenate((np.ones(3 * J)*np.inf, np.ones(J)*x_bar, np.ones(2)*np.inf)))
+    bounds = sp.optimize.Bounds(np.zeros(3 * J + 1), np.ones(3 * J + 1)*np.inf)
     
     
     # ----- #
@@ -181,13 +180,38 @@ def solve_planner(w, r, IC_act, X_0, args):
                             args=args, bounds=bounds,
                             constraints=[eq_cons, ineq_cons], options={'maxiter': 1000, 'disp': True})
     
-    alloc = opt.x
-    slack = rt.IC_Full(alloc, w, *args)
     
-    
-    return alloc, slack
+    return opt.x
 
 
 
+def inner_solve_with_active_set(w, r, IC_act, X_0, args, slack_tol=1e-8, max_inner_iter=20):
+    "Solve Inner Loop"
 
+    for k in range(max_inner_iter):
+
+        # ----- #
+        # Solve #
+        # ----- #
+        alloc = solve_planner(w, r, IC_act, X_0, args)
+
+
+        # --------------------- #
+        # Scan for IC Violation #
+        # --------------------- #
+        viols = (rt.IC_Full(alloc, w, *args) > slack_tol)
+        
+        if viols.sum() == 0:
+            break
+
+        IC_act = np.maximum(IC_act+viols, 1)
+        X_0 = alloc.copy()
+
+
+    # ------------------------------------- #
+    # Save IC Violations at Final Iteration #
+    # ------------------------------------- #
+    IC_act = viols.copy()
+
+    return alloc, IC_act
 
