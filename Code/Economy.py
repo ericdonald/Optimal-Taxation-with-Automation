@@ -285,8 +285,7 @@ class Economy:
         
         w = self.w_j_sq
         r = self.r_sq
-        IC_full = rt.IC_Full(X, w, *args)
-        IC_act = (IC_full <= tol)
+        IC_act = np.eye(self.J, dtype=bool)
         
         
         # ---------- #
