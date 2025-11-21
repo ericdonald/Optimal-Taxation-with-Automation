@@ -228,11 +228,11 @@ def Optimalθ_SQ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, 
 
 
 @njit
-def CERoot(CE, c_0prime, c_1prime, lprime, c_0, c_1, l, n, β, var_θ, φ, ε):
+def CERoot(CE, c_0prime, c_1prime, lprime, c_0, c_1, l, n, β, var_θ, φ, ε, g):
     "Consumption Equivalence Root"
     
-    Val_CE = fn.V(CE * c_0, CE * c_1, l, β, var_θ, φ, ε)
-    Val_prime = fn.V(c_0prime, c_1prime, lprime, β, var_θ, φ, ε)
+    Val_CE = fn.V(CE * c_0, CE * c_1, l, β, var_θ, φ, ε, g)
+    Val_prime = fn.V(c_0prime, c_1prime, lprime, β, var_θ, φ, ε, g)
     
     W_CE = np.sum(n * Val_CE)
     W_prime = np.sum(n * Val_prime)
@@ -249,7 +249,7 @@ def Mir_obj(X, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     c_1 = X[J:2*J]
     l = X[2*J:3*J]
     
-    Val = fn.V(c_0, c_1, l, β, var_θ, φ, ε)
+    Val = fn.V(c_0, c_1, l, β, var_θ, φ, ε, g)
     
     W = np.sum(n * Val)
     
@@ -296,7 +296,7 @@ def Inequal_Constr(X, w, IC_act, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, 
     c_1 = X[J:2*J]
     l = X[2*J:3*J]
     
-    Val = fn.V(c_0, c_1, l, β, var_θ, φ, ε)
+    Val = fn.V(c_0, c_1, l, β, var_θ, φ, ε, g)
     
     Val_con = Val + (β / (1-β)) * φ * l**(1 + 1/ε) / (1 + 1/ε)
     
@@ -323,7 +323,7 @@ def IC_Full(X, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     c_1 = X[J:2*J]
     l = X[2*J:3*J]
     
-    Val = fn.V(c_0, c_1, l, β, var_θ, φ, ε)
+    Val = fn.V(c_0, c_1, l, β, var_θ, φ, ε, g)
     
     Val_con = Val + (β / (1-β)) * φ * l**(1 + 1/ε) / (1 + 1/ε)
     

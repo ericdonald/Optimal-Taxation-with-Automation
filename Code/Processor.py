@@ -520,7 +520,7 @@ class Processor:
         ΔoptCOV = (np.log(cov) - np.log(cov_sq)) * 100
         
         CE = sp.optimize.root(rt.CERoot, 1,
-                      args=(c_0, c_1, l, self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε),
+                      args=(c_0, c_1, l, self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
                       method='lm')
         
         ConEquiv = (CE.x[0] - 1) * 100
@@ -601,7 +601,7 @@ class Processor:
         ΔoptY = (np.log(Y) - np.log(Y_NT)) * 100
         
         CE = sp.optimize.root(rt.CERoot, 1,
-                      args=(c_0, c_1, l, c_0_NT, c_1_NT, l_NT, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε),
+                      args=(c_0, c_1, l, c_0_NT, c_1_NT, l_NT, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
                       method='lm')
         
         ConEquiv = (CE.x[0] - 1) * 100

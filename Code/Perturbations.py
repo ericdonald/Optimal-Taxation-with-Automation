@@ -283,7 +283,7 @@ def δObj_δX(X, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     δW_δc_0 = n * c_0**(-var_θ)
     
     #   wrt to c_1
-    δW_δc_1 = n * (β / (1-β)) *  c_1**(-var_θ)
+    δW_δc_1 = n * (β / (1-β * (1+g)**(1-var_θ))) *  c_1**(-var_θ)
     
     #   wrt to l
     δW_δl = - n * (β / (1-β)) * φ * l**(1/ε)
@@ -375,8 +375,8 @@ def δIC_δX(X, w, IC_act, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     
     for i in range(J):
         for j in IC_Comp_J[i]:
-            δIC_δc_1[k, i] = (β/(1-β)) * c_1[i]**(-var_θ)
-            δIC_δc_1[k, j] = -(β/(1-β)) * c_1[j]**(-var_θ)
+            δIC_δc_1[k, i] = (β/(1-β*(1+g)**(1-var_θ))) * c_1[i]**(-var_θ)
+            δIC_δc_1[k, j] = -(β/(1-β*(1+g)**(1-var_θ))) * c_1[j]**(-var_θ)
             k += 1
     
     #   wrt to l
@@ -386,7 +386,7 @@ def δIC_δX(X, w, IC_act, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     for i in range(J):
         for j in IC_Comp_J[i]:
             δIC_δl[k, i] = - (β/(1-β)) * φ[i] * l[i]**(1/ε)
-            δIC_δl[k, j] = (β/(1-β)) * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε) * (w[j]/w[i])
+            δIC_δl[k, j] = (β/(1-β)) * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε)
             k += 1
             
     #   wrt to K
