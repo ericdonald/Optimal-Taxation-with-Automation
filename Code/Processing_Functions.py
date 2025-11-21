@@ -187,6 +187,8 @@ def solve_planner(w, r, IC_act, X_0, args):
 
 def inner_solve(w, r, IC_act, X_0, args, viol_tol=1e-8, bind_tol=1e-6, max_inner_iter=20):
     "Solve Inner Loop"
+    
+    J = args[-1]
 
     for _ in range(max_inner_iter):
 
@@ -200,7 +202,14 @@ def inner_solve(w, r, IC_act, X_0, args, viol_tol=1e-8, bind_tol=1e-6, max_inner
         # Scan for IC Violation #
         # --------------------- #
         IC_full = rt.IC_Full(alloc, w, *args)
-        viols = (IC_full < - viol_tol)
+        
+        row_min = IC_full.min(axis=1)
+        j_star  = IC_full.argmin(axis=1)
+
+        viols = np.zeros_like(IC_act, dtype=bool)
+        for i in range(J):
+            if row_min[i] < -viol_tol:
+                viols[i, j_star[i]] = True  
         
         if not viols.any():
             break
