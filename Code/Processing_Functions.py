@@ -152,7 +152,7 @@ def broadcast_col_to_matrix(col):
 
 
 
-def solve_planner(w, r, IC_act, X_0, args):
+def solve_planner(w, r, IC_act, X_0, args, Δ):
     "Solve Mirrlees for Fixed IC Set"
     
     J = args[-1]
@@ -164,13 +164,13 @@ def solve_planner(w, r, IC_act, X_0, args):
     eq_fun = lambda x: rt.Equal_Constr(x, w, r, *args)
     eq_jac = lambda x: pr.δEC_δX(x, w, r, *args)
     
-    ineq_fun = lambda x: rt.Inequal_Constr(x, w, IC_act, *args)
+    ineq_fun = lambda x: rt.Inequal_Constr(x, w, IC_act, *args) + Δ
     ineq_jac = lambda x: pr.δIC_δX(x, w, IC_act, *args)
     
     eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
     ineq_cons = sp.optimize.NonlinearConstraint(ineq_fun, lb=0, ub=np.inf, jac=ineq_jac)
     
-    bounds = sp.optimize.Bounds(np.zeros(3 * J), np.ones(3 * J)*np.inf)
+    bounds = sp.optimize.Bounds(np.ones(3 * J)*1e-8, np.ones(3 * J)*np.inf)
     
     
     # ----- #
@@ -187,15 +187,17 @@ def solve_planner(w, r, IC_act, X_0, args):
 
 
 
-def inner_solve(w, r, IC_act, X_0, args, viol_tol=1e-8, bind_tol=1e-6, max_inner_iter=20, max_new_ic=10):
+def inner_solve(w, r, IC_act, X_0, args, viol_tol=1e-8, bind_tol=1e-6, max_inner_iter=20, max_new_ic=10, Δ_damp=0.9):
     "Solve Inner Loop"
+    
+    Δ = 0
     
     for _ in range(max_inner_iter):
 
         # ----- #
         # Solve #
         # ----- #
-        alloc = solve_planner(w, r, IC_act, X_0, args)
+        alloc = solve_planner(w, r, IC_act, X_0, args, Δ)
 
 
         # --------------------- #
@@ -220,6 +222,7 @@ def inner_solve(w, r, IC_act, X_0, args, viol_tol=1e-8, bind_tol=1e-6, max_inner
         additions[i_idx[chosen], j_idx[chosen]] = True
 
         IC_act = IC_act | additions
+        Δ = np.minimum(np.min(IC_full) * Δ_damp, 0)
         X_0 = alloc.copy()
 
 
