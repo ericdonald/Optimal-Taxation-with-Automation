@@ -178,18 +178,18 @@ def solve_planner(w, r, IC_act, X_0, args):
     # ----- #
     opt = cp.minimize_ipopt(rt.Mir_obj, X_0, jac=pr.δObj_δX,
                             args=args, bounds=bounds,
-                            constraints=[eq_cons, ineq_cons], options={'maxiter': 1000, 'disp': True})
+                            constraints=[eq_cons, ineq_cons])
     
+    print(opt.message)
+    print(opt.fun)
     
     return opt.x
 
 
 
-def inner_solve(w, r, IC_act, X_0, args, viol_tol=1e-8, bind_tol=1e-6, max_inner_iter=20):
+def inner_solve(w, r, IC_act, X_0, args, viol_tol=1e-8, bind_tol=1e-6, max_inner_iter=20, max_new_ic=10):
     "Solve Inner Loop"
     
-    J = args[-1]
-
     for _ in range(max_inner_iter):
 
         # ----- #
@@ -202,19 +202,24 @@ def inner_solve(w, r, IC_act, X_0, args, viol_tol=1e-8, bind_tol=1e-6, max_inner
         # Scan for IC Violation #
         # --------------------- #
         IC_full = rt.IC_Full(alloc, w, *args)
-        
-        row_min = IC_full.min(axis=1)
-        j_star  = IC_full.argmin(axis=1)
 
-        viols = np.zeros_like(IC_act, dtype=bool)
-        for i in range(J):
-            if row_min[i] < -viol_tol:
-                viols[i, j_star[i]] = True  
-        
-        if not viols.any():
+        mask_new = (IC_full < -viol_tol) & (~IC_act)
+
+        if not mask_new.any():
             break
 
-        IC_act = np.logical_or(IC_act, viols)
+        viol_vals = IC_full[mask_new]
+        i_idx, j_idx = np.where(mask_new)
+
+        order = np.argsort(viol_vals)
+
+        IC_N = min(max_new_ic, len(order))
+        chosen = order[:IC_N]
+
+        additions = np.zeros_like(IC_act, dtype=bool)
+        additions[i_idx[chosen], j_idx[chosen]] = True
+
+        IC_act = IC_act | additions
         X_0 = alloc.copy()
 
 
