@@ -170,7 +170,7 @@ def solve_planner(w, r, IC_act, X_0, args):
     eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
     ineq_cons = sp.optimize.NonlinearConstraint(ineq_fun, lb=0, ub=np.inf, jac=ineq_jac)
     
-    bounds = sp.optimize.Bounds(np.zeros(3 * J + 1), np.ones(3 * J + 1)*np.inf)
+    bounds = sp.optimize.Bounds(np.zeros(3 * J), np.ones(3 * J)*np.inf)
     
     
     # ----- #

@@ -209,7 +209,7 @@ class Economy:
     def Mirrlees_Lagr_θ(self, θ_lower, θ_upper, θ=0.25, damp=1/10, tol=1e-8, max_iter=100):
         "Solve Non-Linear Tax Problem with Threshold Rule"
             
-        X = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, np.array([self.K_sq])))
+        X = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq))
         x = self.var_κ * self.x_bar
         
         Y_0 = self.Y_sq / (1+self.g)
@@ -233,8 +233,9 @@ class Economy:
             # Solve Inner Loop #
             # ---------------- #
             X, IC_act = gpf.inner_solve(w, r, IC_act, X, args)
+            c_0 = X[:self.J]
             l = X[2*self.J:3*self.J]
-            K = X[-1]
+            K = Y_bar - np.sum(self.n * c_0)
             
             
             # -------------------- #
@@ -274,7 +275,7 @@ class Economy:
     def Mirrlees_Lagr_NT(self, damp=1/10, tol=1e-8, max_iter=100):
         "Solve Non-Linear Tax Problem without Threshold Rule"
             
-        X = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, np.array([self.K_sq])))
+        X = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq))
         x = self.var_κ * self.x_bar
         
         Y_0 = self.Y_sq / (1+self.g)
@@ -297,8 +298,9 @@ class Economy:
             # Solve Inner Loop #
             # ---------------- #
             X, IC_act = gpf.inner_solve(w, r, IC_act, X, args)
+            c_0 = X[:self.J]
             l = X[2*self.J:3*self.J]
-            K = X[-1]
+            K = Y_bar - np.sum(self.n * c_0)
             
             
             # -------------------- #

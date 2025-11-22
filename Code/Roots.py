@@ -253,7 +253,7 @@ def Mir_obj(X, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     
     W = np.sum(n * Val)
     
-    return -W
+    return - W
     
     
   
@@ -264,18 +264,16 @@ def Equal_Constr(X, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     c_0 = X[:J]
     c_1 = X[J:2*J]
     l = X[2*J:3*J]
-    K = X[-1]
     
     δ_hat = 1 + δ + g
-    
-    L = n * l
-    Y = r * K + np.sum(w * L)
     
     
     # ---------------------------------- #
     # Initial Period Resource Constraint #
     # ---------------------------------- #
-    RC_0 = np.sum(n * c_0) + K - Y_bar
+    K = Y_bar - np.sum(n * c_0)
+    L = n * l
+    Y = r * K + np.sum(w * L)
     
     
     # --------------------------------- #
@@ -284,7 +282,7 @@ def Equal_Constr(X, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     RC_1 = np.sum(n * c_1) - Y - (1-δ_hat) * K
     
     
-    return np.array([RC_0, RC_1]) 
+    return np.array([RC_1]) 
 
 
 
@@ -337,62 +335,7 @@ def IC_Full(X, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
 
 
 
-def Optimalθ_NL_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ):
-    "Root for Optimal Threshold Rule with Optimal Taxes"
-    
-    x = ((w / A_j) / ((1+θ) * r / A_k))**(1/ζ)
-    
-    
-    # ------------------------------------ #
-    # Compute Threshold Rule Perturbations #
-    # ------------------------------------ #
-    ΔH_ΔΕ = pr.δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ)
-    ΔH_Δθ = pr.δH_δθ(θ, J)
 
-    dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_Δθ
-    
-    dc_0 = dE[:J,0]
-    dl = dE[2*J:3*J,0]
-    dx = dE[3*J:,0]
-    
-    L = n * l
-    κ = y_0 - c_0
-    K = np.sum(n * κ)
-    
-    δlnl = dl / l
-    δlnκ = - dc_0 / κ
-    
-    w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    R = (1-τ_k)*(r-δ) - g
-    Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    
-    δlnw = pr.dlnw(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0)
-    δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0)
-    δlnR = (1-τ_k) * r * δlnr / R
-    
-    α_k = x**(ζ*(ν-1))
-    
-    if σ == 1:
-        θ_wedge = np.log(1+θ)
-    else:
-        θ_wedge = ((1+θ)**(1-σ) - 1) / (1 - σ)
-    
-    δY_δX = Y * (A_k * α_k / r)**(σ-1) * θ_wedge
-    
-    λ = c_1**(-var_θ) / np.sum(n * c_1**(-var_θ))
-    
-    
-    # -------------------- #
-    # Optimality Condition #
-    # -------------------- #
-    MC = -np.sum(δY_δX * dx)
-    cov = np.sum(n * (λ-1) * (Ψ * (1-ψ) * (w*l)**(1-ψ) * δlnw + (1-τ_k) * R * κ * δlnR))
-    Expect = np.sum(n * ((w*l - Ψ * (1-ψ) * (w*l)**(1-ψ)) * δlnl + τ_k * R * κ * δlnκ))
-    
-    δW = MC - cov - Expect
-    
-    return δW
 
 
 

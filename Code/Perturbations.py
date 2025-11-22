@@ -283,15 +283,12 @@ def δObj_δX(X, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     δW_δc_0 = n * c_0**(-var_θ)
     
     #   wrt to c_1
-    δW_δc_1 = n * (β / (1-β * (1+g)**(1-var_θ))) *  c_1**(-var_θ)
+    δW_δc_1 = n * (β / (1-β * (1+g)**(1-var_θ))) * c_1**(-var_θ)
     
     #   wrt to l
     δW_δl = - n * (β / (1-β)) * φ * l**(1/ε)
     
-    #   wrt to K
-    δW_δK = np.zeros(1)
-    
-    δW = np.concatenate((δW_δc_0, δW_δc_1, δW_δl, δW_δK))
+    δW = np.concatenate((δW_δc_0, δW_δc_1, δW_δl))
     
     return - δW
     
@@ -304,29 +301,11 @@ def δEC_δX(X, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     δ_hat = 1 + δ + g
     
     
-    # ------------------------------------------------- #
-    # Derivatives of Initial Period Resource Constraint #
-    # ------------------------------------------------- #
-    #   wrt to c_0
-    δRC_0_δc_0 = n.reshape((1,J))
-    
-    #   wrt to c_1
-    δRC_0_δc_1 = np.zeros((1,J))
-    
-    #   wrt to l
-    δRC_0_δl = np.zeros((1,J))
-    
-    #   wrt to K
-    δRC_0_δK = np.ones((1,1))
-    
-    δRC_0 = np.hstack((δRC_0_δc_0, δRC_0_δc_1, δRC_0_δl, δRC_0_δK))
-        
-    
     # ------------------------------------------------ #
     # Derivatives of Second Period Resource Constraint #
     # ------------------------------------------------ #
     #   wrt to c_0
-    δRC_1_δc_0 = np.zeros((1,J))
+    δRC_1_δc_0 = (1 + r - δ_hat) * n.reshape((1,J))
     
     #   wrt to c_1
     δRC_1_δc_1 = n.reshape((1,J))
@@ -334,13 +313,10 @@ def δEC_δX(X, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     #   wrt to l
     δRC_1_δl = - (w * n).reshape((1,J))
     
-    #   wrt to K
-    δRC_1_δK = - np.ones((1,1)) * (1 + r - δ_hat)
-    
-    δRC_1 = np.hstack((δRC_1_δc_0, δRC_1_δc_1, δRC_1_δl, δRC_1_δK))
+    δRC_1 = np.hstack((δRC_1_δc_0, δRC_1_δc_1, δRC_1_δl))
         
         
-    return np.vstack((δRC_0, δRC_1))
+    return δRC_1
     
     
  
@@ -388,11 +364,8 @@ def δIC_δX(X, w, IC_act, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
             δIC_δl[k, i] = - (β/(1-β)) * φ[i] * l[i]**(1/ε)
             δIC_δl[k, j] = (β/(1-β)) * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε)
             k += 1
-            
-    #   wrt to K
-    δIC_δK = np.zeros((IC_count,1))
     
-    δIC = np.hstack((δIC_δc_0, δIC_δc_1, δIC_δl, δIC_δK))
+    δIC = np.hstack((δIC_δc_0, δIC_δc_1, δIC_δl))
     
     return δIC
     
