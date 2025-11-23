@@ -32,6 +32,7 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     S_k = r * K / Y
     S_j = w * L / Y
     
+    
     # ------------------ #
     # Output Derivatives #
     # ------------------ #
@@ -46,6 +47,7 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     δlnY_δlnK = S_k
     δlnY_δlnL = S_j
     
+    
     # ---------------- #
     # Wage Derivatives #
     # ---------------- #
@@ -55,6 +57,7 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     δlnw_δlnK = (1/σ) * δlnY_δlnK * np.ones(J)
     δlnw_δlnL = (1/σ) * gpf.broadcast_row_to_matrix(δlnY_δlnL) - np.eye(J) / σ
     
+    
     # ---------------- #
     # Rent Derivatives #
     # ---------------- #
@@ -63,6 +66,7 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     δlnr_δX = (1/σ) * rel_k + (1/σ) * δlnY_δX
     δlnr_δlnK = (1/σ) * (δlnY_δlnK - 1)
     δlnr_δlnL = (1/σ) * δlnY_δlnL
+    
     
     # --------- #
     # Lump-Sum  #
@@ -134,6 +138,7 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     
     δHB = np.hstack((δHB_δc_0, δHB_δc_1, δHB_δl, δHB_δx))
     
+    
     # ---------------------------------------- #
     # Derivatives of Log Automation Thresholds #
     # ---------------------------------------- #
@@ -204,6 +209,7 @@ def dlnY(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0):
     δK = - np.sum(n * dc_0)
     δL = n * dl
         
+    
     # ----------------- #
     # Output Derivative #
     # ----------------- #
@@ -229,10 +235,12 @@ def dlnw(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0):
     L = n * l
     δL = n * dl
     
+    
     # ----------------- #
     # Output Derivative #
     # ----------------- #
     δlnY = dlnY(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0)
+
 
     # ---------------- #
     # Wage Derivatives #
@@ -252,10 +260,12 @@ def dlnr(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0):
     K = np.sum(n * (y_0 - c_0))
     δK = - np.sum(n * dc_0)
         
+    
     # ----------------- #
     # Output Derivative #
     # ----------------- #
     δlnY = dlnY(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0)
+
 
     # --------------- #
     # Rent Derivative #
@@ -275,6 +285,7 @@ def δObj_δX(X, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     c_0 = X[:J]
     c_1 = X[J:2*J]
     l = X[2*J:3*J]
+    
     
     # ---------------------- #
     # Derivatives of Welfare #
