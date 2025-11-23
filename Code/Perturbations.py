@@ -342,7 +342,7 @@ def δIC_δX(X, w, IC_act, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     for i in range(J):
         for j in IC_Comp_J[i]:
             δIC_δc_0[k, i] = c_0[i]**(-var_θ)
-            δIC_δc_0[k, j] = -c_0[j]**(-var_θ)
+            δIC_δc_0[k, j] += -c_0[j]**(-var_θ)
             k += 1
    
     #   wrt to c_1
@@ -352,7 +352,7 @@ def δIC_δX(X, w, IC_act, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     for i in range(J):
         for j in IC_Comp_J[i]:
             δIC_δc_1[k, i] = (β/(1-β*(1+g)**(1-var_θ))) * c_1[i]**(-var_θ)
-            δIC_δc_1[k, j] = -(β/(1-β*(1+g)**(1-var_θ))) * c_1[j]**(-var_θ)
+            δIC_δc_1[k, j] += -(β/(1-β*(1+g)**(1-var_θ))) * c_1[j]**(-var_θ)
             k += 1
     
     #   wrt to l
@@ -362,7 +362,7 @@ def δIC_δX(X, w, IC_act, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     for i in range(J):
         for j in IC_Comp_J[i]:
             δIC_δl[k, i] = - (β/(1-β)) * φ[i] * l[i]**(1/ε)
-            δIC_δl[k, j] = (β/(1-β)) * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε)
+            δIC_δl[k, j] += (β/(1-β)) * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε)
             k += 1
     
     δIC = np.hstack((δIC_δc_0, δIC_δc_1, δIC_δl))
