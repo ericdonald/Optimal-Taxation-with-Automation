@@ -360,7 +360,7 @@ def δIC_δX(X, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
             δIC_δc_1[i*J+j, j] += -(β/(1-β*(1+g)**(1-var_θ))) * c_1[j]**(-var_θ)
     
     #   wrt to l
-    δIC_δl = np.zeros((J,J))
+    δIC_δl = np.zeros((J**2,J))
     
     for i in range(J):
         for j in range(J):
