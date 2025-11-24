@@ -301,21 +301,15 @@ class Economy:
         w = self.w_j_sq
         r = self.r_sq
         
-        IC_full = rt.IC_Full(X, w, *args)
-        mask_new = (IC_full < -tol) 
+        MRS_order = np.argsort(self.c_0_sq**(self.var_θ) * (self.w_j_sq * self.l_j_sq)**(self.ψ + 1/self.ε))
 
-        viol_vals = IC_full[mask_new]
-        i_idx, j_idx = np.where(mask_new)
+        IC_act = np.zeros((self.J, self.J), dtype=bool)
+        for k in range(self.J-1):
+            i = MRS_order[k]
+            j = MRS_order[k+1]
+            IC_act[i, j] = True 
 
-        order = np.argsort(viol_vals)
-
-        IC_N = min(max_new_ic, len(order))
-        chosen = order[:IC_N]
-
-        IC_act = np.zeros_like(IC_full, dtype=bool)
-        IC_act[i_idx[chosen], j_idx[chosen]] = True
-
-        Δ = np.minimum(np.min(IC_full) * (1-tol), 0)
+        Δ = 0
         
         
         # ---------- #
