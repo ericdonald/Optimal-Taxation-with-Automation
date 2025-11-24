@@ -152,8 +152,8 @@ def broadcast_col_to_matrix(col):
 
 
 
-def solve_planner(w, r, IC_act, Δ, X_0, args):
-    "Solve Mirrlees for Fixed IC Set"
+def solve_planner(w, r, X_0, Δ, args):
+    "Solve Mirrlees for Fixed Penalty"
     
     J = args[-1]
     
@@ -164,11 +164,10 @@ def solve_planner(w, r, IC_act, Δ, X_0, args):
     eq_fun = lambda x: rt.Equal_Constr(x, w, r, *args)
     eq_jac = lambda x: pr.δEC_δX(x, w, r, *args)
     
-    ineq_fun = lambda x: rt.Inequal_Constr(x, w, IC_act, *args) - Δ
-    ineq_jac = lambda x: pr.δIC_δX(x, w, IC_act, *args)
+    obj_fun = lambda x: -(rt.Mir_obj(x, *args) - Δ * np.sum(np.minimum(rt.Inequal_Constr(x, w, *args),0)**2))
+    obj_jac = lambda x: -(pr.δObj_δX(x, *args) - 2 * Δ * (np.flatten(np.minimum(rt.Inequal_Constr(x, w, *args),0)).reshape((1,-1)) @ pr.δIC_δX(x, w, *args)))
     
     eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
-    ineq_cons = sp.optimize.NonlinearConstraint(ineq_fun, lb=0, ub=np.inf, jac=ineq_jac)
     
     bounds = sp.optimize.Bounds(np.ones(3 * J)*1e-8, np.ones(3 * J)*np.inf)
     
@@ -176,9 +175,8 @@ def solve_planner(w, r, IC_act, Δ, X_0, args):
     # ----- #
     # Solve #
     # ----- #
-    opt = cp.minimize_ipopt(rt.Mir_obj, X_0, jac=pr.δObj_δX,
-                            args=args, bounds=bounds,
-                            constraints=[eq_cons, ineq_cons])
+    opt = cp.minimize_ipopt(obj_fun, X_0, jac=obj_jac,
+                            bounds=bounds, constraints=[eq_cons])
     
     print(opt.message)
     print(opt.fun)
@@ -187,7 +185,7 @@ def solve_planner(w, r, IC_act, Δ, X_0, args):
 
 
 
-def inner_solve(w, r, IC_act, Δ, X_0, args, max_new_ic, viol_tol=1e-8, bind_tol=1e-6, max_inner_iter=20, Δ_damp=0.9):
+def inner_solve(w, r, X_0, args, viol_tol=1e-8, max_inner_iter=100, Δ=1e-10):
     "Solve Inner Loop"
     
     
@@ -196,40 +194,25 @@ def inner_solve(w, r, IC_act, Δ, X_0, args, max_new_ic, viol_tol=1e-8, bind_tol
         # ----- #
         # Solve #
         # ----- #
-        alloc = solve_planner(w, r, IC_act, Δ, X_0, args)
+        alloc = solve_planner(w, r, X_0, Δ, args)
 
 
         # --------------------- #
         # Scan for IC Violation #
         # --------------------- #
-        IC_full = rt.IC_Full(alloc, w, *args)
+        IC_full = rt.Inequal_Constr(alloc, w, *args)
 
-        mask_new = (IC_full < -viol_tol) & (~IC_act)
+        viols = (IC_full < -viol_tol)
 
-        if not mask_new.any():
+        if not viols.any():
             break
 
-        viol_vals = IC_full[mask_new]
-        i_idx, j_idx = np.where(mask_new)
 
-        order = np.argsort(viol_vals)
+        # -------------- #
+        # Update Penalty #
+        # -------------- #
+        Δ *= 10
+        
 
-        IC_N = min(max_new_ic, len(order))
-        chosen = order[:IC_N]
-
-        additions = np.zeros_like(IC_act, dtype=bool)
-        additions[i_idx[chosen], j_idx[chosen]] = True
-
-        IC_act = IC_act | additions
-        Δ = np.minimum(np.min(IC_full) * Δ_damp, 0)
-        X_0 = alloc.copy()
-
-
-    # --------------------------- #
-    # Save Binding IC at Solution #
-    # --------------------------- #
-    IC_full = rt.IC_Full(alloc, w, *args)
-    IC_act = (IC_full <= bind_tol)
-
-    return alloc, IC_act
+    return alloc
 

@@ -301,7 +301,7 @@ def δObj_δX(X, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     
     δW = np.concatenate((δW_δc_0, δW_δc_1, δW_δl))
     
-    return - δW
+    return δW
     
 
 
@@ -332,49 +332,40 @@ def δEC_δX(X, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     
  
 @njit
-def δIC_δX(X, w, IC_act, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
+def δIC_δX(X, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     "Jacobian of Inequality Constraints"
     
     c_0 = X[:J]
     c_1 = X[J:2*J]
     l = X[2*J:3*J]
     
-    IC_Comp_J = [np.where(IC_act[i] == 1)[0] for i in range(J)]
-    IC_count = int(IC_act.sum()) 
-    
-    
+   
     # ----------------- #
     # Derivatives of IC #
     # ----------------- #
     #   wrt to c_0
-    δIC_δc_0 = np.zeros((IC_count,J))
-    k = 0
+    δIC_δc_0 = np.zeros((J**2,J))
     
     for i in range(J):
-        for j in IC_Comp_J[i]:
-            δIC_δc_0[k, i] = c_0[i]**(-var_θ)
-            δIC_δc_0[k, j] += -c_0[j]**(-var_θ)
-            k += 1
+        for j in range(J):
+            δIC_δc_0[i*J+j, i] = c_0[i]**(-var_θ)
+            δIC_δc_0[i*J+j, j] += -c_0[j]**(-var_θ)
    
     #   wrt to c_1
-    δIC_δc_1 = np.zeros((IC_count,J))
-    k = 0
+    δIC_δc_1 = np.zeros((J**2,J))
     
     for i in range(J):
-        for j in IC_Comp_J[i]:
-            δIC_δc_1[k, i] = (β/(1-β*(1+g)**(1-var_θ))) * c_1[i]**(-var_θ)
-            δIC_δc_1[k, j] += -(β/(1-β*(1+g)**(1-var_θ))) * c_1[j]**(-var_θ)
-            k += 1
+        for j in range(J):
+            δIC_δc_1[i*J+j, i] = (β/(1-β*(1+g)**(1-var_θ))) * c_1[i]**(-var_θ)
+            δIC_δc_1[i*J+j, j] += -(β/(1-β*(1+g)**(1-var_θ))) * c_1[j]**(-var_θ)
     
     #   wrt to l
-    δIC_δl = np.zeros((IC_count,J))
-    k = 0
+    δIC_δl = np.zeros((J,J))
     
     for i in range(J):
-        for j in IC_Comp_J[i]:
-            δIC_δl[k, i] = - (β/(1-β)) * φ[i] * l[i]**(1/ε)
-            δIC_δl[k, j] += (β/(1-β)) * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε)
-            k += 1
+        for j in range(J):
+            δIC_δl[i*J+j, i] = - (β/(1-β)) * φ[i] * l[i]**(1/ε)
+            δIC_δl[i*J+j, j] += (β/(1-β)) * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε)
     
     δIC = np.hstack((δIC_δc_0, δIC_δc_1, δIC_δl))
     

@@ -206,7 +206,7 @@ class Economy:
     
     
     
-    def Mirrlees_Lagr_θ(self, θ_lower, θ_upper, θ=0.25, damp=1/10, tol=1e-8, max_iter=100, max_new_ic=1):
+    def Mirrlees_Lagr_θ(self, θ_lower, θ_upper, θ=0.25, damp=1/10, tol=1e-8, max_iter=100):
         "Solve Non-Linear Tax Problem with Threshold Rule"
             
         X = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq))
@@ -221,22 +221,6 @@ class Economy:
         w = self.w_j_sq
         r = self.r_sq
         
-        IC_full = rt.IC_Full(X, w, *args)
-        mask_new = (IC_full < -tol) 
-
-        viol_vals = IC_full[mask_new]
-        i_idx, j_idx = np.where(mask_new)
-
-        order = np.argsort(viol_vals)
-
-        IC_N = min(max_new_ic, len(order))
-        chosen = order[:IC_N]
-
-        IC_act = np.zeros_like(IC_full, dtype=bool)
-        IC_act[i_idx[chosen], j_idx[chosen]] = True
-
-        Δ = np.minimum(np.min(IC_full) * (1-tol), 0)
-        
         
         # ---------- #
         # Outer Loop #
@@ -246,7 +230,7 @@ class Economy:
             # ---------------- #
             # Solve Inner Loop #
             # ---------------- #
-            X, IC_act = gpf.inner_solve(w, r, IC_act, Δ, X, args, max_new_ic)
+            X = gpf.inner_solve(w, r, X, args)
             c_0 = X[:self.J]
             l = X[2*self.J:3*self.J]
             K = Y_bar - np.sum(self.n * c_0)
@@ -286,7 +270,7 @@ class Economy:
     
     
     
-    def Mirrlees_Lagr_NT(self, damp=1/10, tol=1e-8, max_iter=100, max_new_ic=1):
+    def Mirrlees_Lagr_NT(self, damp=1/10, tol=1e-8, max_iter=100):
         "Solve Non-Linear Tax Problem without Threshold Rule"
             
         X = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq))
@@ -301,16 +285,6 @@ class Economy:
         w = self.w_j_sq
         r = self.r_sq
         
-        MRS_order = np.argsort(self.c_0_sq**(self.var_θ) * (self.w_j_sq * self.l_j_sq)**(self.ψ + 1/self.ε))
-
-        IC_act = np.zeros((self.J, self.J), dtype=bool)
-        for k in range(self.J-1):
-            i = MRS_order[k]
-            j = MRS_order[k+1]
-            IC_act[i, j] = True 
-
-        Δ = 0
-        
         
         # ---------- #
         # Outer Loop #
@@ -320,7 +294,7 @@ class Economy:
             # ---------------- #
             # Solve Inner Loop #
             # ---------------- #
-            X, IC_act = gpf.inner_solve(w, r, IC_act, Δ, X, args, max_new_ic)
+            X = gpf.inner_solve(w, r, X, args)
             c_0 = X[:self.J]
             l = X[2*self.J:3*self.J]
             K = Y_bar - np.sum(self.n * c_0)

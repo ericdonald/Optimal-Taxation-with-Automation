@@ -253,7 +253,7 @@ def Mir_obj(X, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     
     W = np.sum(n * Val)
     
-    return - W
+    return W
     
     
   
@@ -287,35 +287,8 @@ def Equal_Constr(X, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
 
 
 @njit
-def Inequal_Constr(X, w, IC_act, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
-    "Local Incentive Compatibility Constraints"
-    
-    c_0 = X[:J]
-    c_1 = X[J:2*J]
-    l = X[2*J:3*J]
-    
-    Val = fn.V(c_0, c_1, l, β, var_θ, φ, ε, g)
-    
-    Val_con = Val + (β / (1-β)) * φ * l**(1 + 1/ε) / (1 + 1/ε)
-    
-    IC_Comp_J = [np.where(IC_act[i] == 1)[0] for i in range(J)]
-    IC_count = int(IC_act.sum()) 
-    
-    IC = np.zeros(IC_count)
-    k=0
-    
-    for i in range(J):
-        for j in IC_Comp_J[i]:
-            IC[k] = Val[i] - (Val_con[j] - (β / (1-β)) * φ[i] * (w[j] * l[j] / w[i])**(1 + 1/ε) / (1 + 1/ε))
-            k += 1
-        
-    return IC
-
-
-
-@njit
-def IC_Full(X, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
-    "Global Incentive Compatibility Constraints"
+def Inequal_Constr(X, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
+    "Incentive Compatibility Constraints"
     
     c_0 = X[:J]
     c_1 = X[J:2*J]
