@@ -165,9 +165,19 @@ def solve_planner(w, r, X_0, Δ, args):
     eq_jac = lambda x: pr.δEC_δX(x, w, r, *args)
     
     obj_fun = lambda x: -(rt.Mir_obj(x, *args) - Δ * np.sum(np.minimum(rt.Inequal_Constr(x, w, *args),0)**2))
-    obj_jac = lambda x: -(pr.δObj_δX(x, *args) - 2 * Δ * (np.minimum(rt.Inequal_Constr(x, w, *args).flatten(),0).reshape((1,-1)) @ pr.δIC_δX(x, w, *args)))
+
+    def obj_jac(x):
+        W_jac = pr.δObj_δX(x, *args)
+        IC_vec = rt.Inequal_Constr(x, w, *args).flatten()
+        viol   = np.minimum(IC_vec, 0.0)
+        IC_jac   = pr.δIC_δX(x, w, *args)
     
-    eq_cons = sp.optimize.LinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
+        weights = 2.0 * Δ * viol
+        grad_pen = weights @ IC_jac
+    
+        return -(W_jac - grad_pen)
+    
+    eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
     
     bounds = sp.optimize.Bounds(np.ones(3 * J)*1e-8, np.ones(3 * J)*np.inf)
     
