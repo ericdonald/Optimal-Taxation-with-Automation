@@ -165,9 +165,9 @@ def solve_planner(w, r, X_0, Δ, args):
     eq_jac = lambda x: pr.δEC_δX(x, w, r, *args)
     
     obj_fun = lambda x: -(rt.Mir_obj(x, *args) - Δ * np.sum(np.minimum(rt.Inequal_Constr(x, w, *args),0)**2))
-    obj_jac = lambda x: -(pr.δObj_δX(x, *args) - 2 * Δ * (np.flatten(np.minimum(rt.Inequal_Constr(x, w, *args),0)).reshape((1,-1)) @ pr.δIC_δX(x, w, *args)))
+    obj_jac = lambda x: -(pr.δObj_δX(x, *args) - 2 * Δ * (np.minimum(rt.Inequal_Constr(x, w, *args).flatten(),0).reshape((1,-1)) @ pr.δIC_δX(x, w, *args)))
     
-    eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
+    eq_cons = sp.optimize.LinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
     
     bounds = sp.optimize.Bounds(np.ones(3 * J)*1e-8, np.ones(3 * J)*np.inf)
     
@@ -185,7 +185,7 @@ def solve_planner(w, r, X_0, Δ, args):
 
 
 
-def inner_solve(w, r, X_0, args, viol_tol=1e-8, max_inner_iter=100, Δ=1e-10):
+def inner_solve(w, r, X_0, args, viol_tol=1e-8, max_inner_iter=100, Δ=1e-3):
     "Solve Inner Loop"
     
     
@@ -208,10 +208,11 @@ def inner_solve(w, r, X_0, args, viol_tol=1e-8, max_inner_iter=100, Δ=1e-10):
             break
 
 
-        # -------------- #
-        # Update Penalty #
-        # -------------- #
+        # ------ #
+        # Update #
+        # ------ #
         Δ *= 10
+        X_0 = alloc.copy()
         
 
     return alloc
