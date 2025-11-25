@@ -169,8 +169,8 @@ def solve_planner(w, r, X_0, Δ, args):
     def obj_jac(x):
         W_jac = pr.δObj_δX(x, *args)
         IC_vec = rt.Inequal_Constr(x, w, *args).flatten()
-        viol   = np.minimum(IC_vec, 0.0)
-        IC_jac   = pr.δIC_δX(x, w, *args)
+        viol = np.minimum(IC_vec, 0.0)
+        IC_jac = pr.δIC_δX(x, w, *args)
     
         weights = 2.0 * Δ * viol
         grad_pen = weights @ IC_jac
