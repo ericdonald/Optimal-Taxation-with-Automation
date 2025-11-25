@@ -227,11 +227,13 @@ class Economy:
         # ---------- #
         for _ in range(max_iter):
         
+            
             # ---------------- #
             # Solve Inner Loop #
             # ---------------- #
             X = gpf.inner_solve(w, r, X, args)
             c_0 = X[:self.J]
+            c_1 = X[self.J:2*self.J]
             l = X[2*self.J:3*self.J]
             K = Y_bar - np.sum(self.n * c_0)
             
@@ -263,8 +265,6 @@ class Economy:
             w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             
-        c_0 = X[:self.J]
-        c_1 = X[self.J:2*self.J]
         
         return (c_0, c_1, l, K, x, θ)
     
@@ -291,11 +291,13 @@ class Economy:
         # ---------- #
         for _ in range(max_iter):
         
+            
             # ---------------- #
             # Solve Inner Loop #
             # ---------------- #
             X = gpf.inner_solve(w, r, X, args)
             c_0 = X[:self.J]
+            c_1 = X[self.J:2*self.J]
             l = X[2*self.J:3*self.J]
             K = Y_bar - np.sum(self.n * c_0)
             
@@ -325,8 +327,6 @@ class Economy:
             w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             
-        c_0 = X[:self.J]
-        c_1 = X[self.J:2*self.J]
         
         return (c_0, c_1, l, K, x)
         

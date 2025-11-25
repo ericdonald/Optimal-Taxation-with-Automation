@@ -152,10 +152,13 @@ def broadcast_col_to_matrix(col):
 
 
 
-def solve_planner(w, r, X_0, Δ, args):
+def solve_planner(w, r, X_0, args):
     "Solve Mirrlees for Fixed Penalty"
     
     J = args[-1]
+    W0 = rt.Mir_obj(X_0, *args)
+    Pen0 = np.sum(np.minimum(rt.Inequal_Constr(X_0, w, *args), 0)**2)
+    Δ = np.abs(W0) / (Pen0 + 1e-12)
     
     
     # ------------------ #
@@ -166,6 +169,7 @@ def solve_planner(w, r, X_0, Δ, args):
     
     obj_fun = lambda x: -(rt.Mir_obj(x, *args) - Δ * np.sum(np.minimum(rt.Inequal_Constr(x, w, *args),0)**2))
 
+    @njit
     def obj_jac(x):
         W_jac = pr.δObj_δX(x, *args)
         IC_vec = rt.Inequal_Constr(x, w, *args).flatten()
@@ -179,49 +183,52 @@ def solve_planner(w, r, X_0, Δ, args):
     
     eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
     
-    bounds = sp.optimize.Bounds(np.ones(3 * J)*1e-8, np.ones(3 * J)*np.inf)
+    bounds = sp.optimize.Bounds(np.ones(3 * J), np.ones(3 * J)*1e4)
     
     
     # ----- #
     # Solve #
     # ----- #
     opt = cp.minimize_ipopt(obj_fun, X_0, jac=obj_jac,
-                            bounds=bounds, constraints=[eq_cons])
-    
-    print(opt.message)
-    print(opt.fun)
+                            bounds=bounds, constraints=[eq_cons],
+                            options={'max_iter':100})
     
     return opt.x
 
 
 
-def inner_solve(w, r, X_0, args, viol_tol=1e-8, max_inner_iter=100, Δ=1e-3):
+def inner_solve(w, r, X_0, args, max_inner_iter=100):
     "Solve Inner Loop"
     
     
     for _ in range(max_inner_iter):
 
+        
         # ----- #
         # Solve #
         # ----- #
-        alloc = solve_planner(w, r, X_0, Δ, args)
+        alloc = solve_planner(w, r, X_0, args)
 
 
         # --------------------- #
         # Scan for IC Violation #
         # --------------------- #
+        W = rt.Mir_obj(alloc, *args)
         IC_full = rt.Inequal_Constr(alloc, w, *args)
+        viol_tol = np.abs(W) / 1000
 
         viols = (IC_full < -viol_tol)
 
         if not viols.any():
             break
+        
+        print(W)
+        print(np.min(IC_full))
 
 
         # ------ #
         # Update #
         # ------ #
-        Δ *= 10
         X_0 = alloc.copy()
         
 
