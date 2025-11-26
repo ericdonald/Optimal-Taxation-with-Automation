@@ -153,12 +153,12 @@ def broadcast_col_to_matrix(col):
 
 
 def solve_planner(w, r, X_0, args):
-    "Solve Mirrlees for Fixed Penalty"
+    "Solve Mirrlees for Normalized Penalty"
     
     J = args[-1]
-    W0 = rt.Mir_obj(X_0, *args)
-    Pen0 = np.sum(np.minimum(rt.Inequal_Constr(X_0, w, *args), 0)**2)
-    Δ = np.abs(W0) / (Pen0 + 1e-12)
+    W_0 = rt.Mir_obj(X_0, *args)
+    Pen_0 = np.sum(np.minimum(rt.Inequal_Constr(X_0, w, *args), 0)**2)
+    Δ = np.abs(W_0) / (Pen_0 + 1e-12)
     
     
     # ------------------ #
@@ -167,7 +167,14 @@ def solve_planner(w, r, X_0, args):
     eq_fun = lambda x: rt.Equal_Constr(x, w, r, *args)
     eq_jac = lambda x: pr.δEC_δX(x, w, r, *args)
     
-    obj_fun = lambda x: -(rt.Mir_obj(x, *args) - Δ * np.sum(np.minimum(rt.Inequal_Constr(x, w, *args),0)**2))
+    @njit
+    def obj_fun(x):
+        W = rt.Mir_obj(x, *args)
+        IC_mat = rt.Inequal_Constr(x, w, *args)
+        viol = np.minimum(IC_mat, 0.0)
+        pen = np.sum(viol**2)
+    
+        return -(W - Δ * pen)
 
     @njit
     def obj_jac(x):
@@ -176,10 +183,10 @@ def solve_planner(w, r, X_0, args):
         viol = np.minimum(IC_vec, 0.0)
         IC_jac = pr.δIC_δX(x, w, *args)
     
-        weights = 2.0 * Δ * viol
+        weights = 2.0 * viol
         grad_pen = weights @ IC_jac
     
-        return -(W_jac - grad_pen)
+        return -(W_jac - Δ * grad_pen)
     
     eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
     
