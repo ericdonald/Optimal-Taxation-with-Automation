@@ -9,6 +9,7 @@ import numpy as np
 from numba import njit
 import Production_Functions as fn
 import Processing_Functions as gpf
+import Roots as rt
 
 
 
@@ -373,5 +374,18 @@ def δIC_δX(X, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     
     
 
+@njit
+def obj_jac(x, w, Δ, args):
+    "Penalized Objective Jacobian"
+    
+    W_jac = δObj_δX(x, *args)
+    IC_vec = rt.Inequal_Constr(x, w, *args).flatten()
+    viol = np.minimum(IC_vec, 0.0)
+    IC_jac = δIC_δX(x, w, *args)
+
+    weights = 2.0 * viol
+    grad_pen = weights @ IC_jac
+
+    return -(W_jac - Δ * grad_pen)
 
 

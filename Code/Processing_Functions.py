@@ -205,26 +205,8 @@ def solve_planner(w, r, X_0, args):
     eq_fun = lambda x: rt.Equal_Constr(x, w, r, *args)
     eq_jac = lambda x: pr.δEC_δX(x, w, r, *args)
     
-    @njit
-    def obj_fun(x):
-        W = rt.Mir_obj(x, *args)
-        IC_mat = rt.Inequal_Constr(x, w, *args)
-        viol = np.minimum(IC_mat, 0.0)
-        pen = np.sum(viol**2)
-    
-        return -(W - Δ * pen)
-
-    @njit
-    def obj_jac(x):
-        W_jac = pr.δObj_δX(x, *args)
-        IC_vec = rt.Inequal_Constr(x, w, *args).flatten()
-        viol = np.minimum(IC_vec, 0.0)
-        IC_jac = pr.δIC_δX(x, w, *args)
-    
-        weights = 2.0 * viol
-        grad_pen = weights @ IC_jac
-    
-        return -(W_jac - Δ * grad_pen)
+    obj_pen_fun = lambda x: rt.obj_fun(x, w, Δ, args)
+    obj_pen_jac = lambda x: pr.obj_jac(x, w, Δ, args)
     
     eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
     
@@ -234,7 +216,7 @@ def solve_planner(w, r, X_0, args):
     # ----- #
     # Solve #
     # ----- #
-    opt = cp.minimize_ipopt(obj_fun, X_0, jac=obj_jac,
+    opt = cp.minimize_ipopt(obj_pen_fun, X_0, jac=obj_pen_jac,
                             bounds=bounds, constraints=[eq_cons],
                             options={'max_iter':100})
     
