@@ -201,12 +201,13 @@ class Economy:
         qe.tic()
         θ = gpf.bisect_scalar(rt.Optimalθ_SQ_Root, θ_lower, θ_upper, args)
         qe.toc()
+        print("Status Quo θ Found")
         
         return θ
     
     
     
-    def Mirrlees_Lagr_NT(self, damp=1/10, tol=1e-8, max_iter=1000):
+    def Mirrlees_Lagr_NT(self, damp=1/5, tol=1e-8, max_iter=1000):
         "Solve Non-Linear Tax Problem without Threshold Rule"
             
         X = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq))
@@ -222,6 +223,7 @@ class Economy:
         r = self.r_sq
         
         
+        qe.tic()
         # ---------- #
         # Outer Loop #
         # ---------- #
@@ -266,6 +268,9 @@ class Economy:
             w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             
+            
+        qe.toc()
+        print("Mirrlees Capital Tax Solution Found")
         
         return (c_0, c_1, l, K, x)
         
