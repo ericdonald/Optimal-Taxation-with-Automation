@@ -152,6 +152,44 @@ def broadcast_col_to_matrix(col):
 
 
 
+def inner_solve(w, r, X_0, args, max_inner_iter=100):
+    "Solve Inner Loop"
+    
+    
+    for _ in range(max_inner_iter):
+
+        
+        # ----- #
+        # Solve #
+        # ----- #
+        alloc = solve_planner(w, r, X_0, args)
+
+
+        # --------------------- #
+        # Scan for IC Violation #
+        # --------------------- #
+        W = rt.Mir_obj(alloc, *args)
+        IC_full = rt.Inequal_Constr(alloc, w, *args)
+        viol_tol = np.abs(W) / 1000
+
+        viols = (IC_full < -viol_tol)
+        print(W)
+        print(np.min(IC_full))
+
+        if not viols.any():
+            break
+        
+
+        # ------ #
+        # Update #
+        # ------ #
+        X_0 = alloc.copy()
+        
+
+    return alloc
+
+
+
 def solve_planner(w, r, X_0, args):
     "Solve Mirrlees for Normalized Penalty"
     
@@ -204,39 +242,13 @@ def solve_planner(w, r, X_0, args):
 
 
 
-def inner_solve(w, r, X_0, args, max_inner_iter=100):
-    "Solve Inner Loop"
-    
-    
-    for _ in range(max_inner_iter):
-
-        
-        # ----- #
-        # Solve #
-        # ----- #
-        alloc = solve_planner(w, r, X_0, args)
 
 
-        # --------------------- #
-        # Scan for IC Violation #
-        # --------------------- #
-        W = rt.Mir_obj(alloc, *args)
-        IC_full = rt.Inequal_Constr(alloc, w, *args)
-        viol_tol = np.abs(W) / 1000
 
-        viols = (IC_full < -viol_tol)
-        print(W)
-        print(np.min(IC_full))
 
-        if not viols.any():
-            break
-        
 
-        # ------ #
-        # Update #
-        # ------ #
-        X_0 = alloc.copy()
-        
 
-    return alloc
+
+
+
 
