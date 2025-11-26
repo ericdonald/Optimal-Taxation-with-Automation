@@ -334,44 +334,39 @@ def δEC_δX(X, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
  
 @njit
 def δIC_δX(X, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
-    "Jacobian of Inequality Constraints"
+    "Jacobian of Penalty Inequality Constraints"
     
     c_0 = X[:J]
     c_1 = X[J:2*J]
     l = X[2*J:3*J]
     
+    IC_mat = rt.Inequal_Constr(X, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J)
+    viols = (IC_mat <= 0.0)
    
     # ----------------- #
     # Derivatives of IC #
     # ----------------- #
-    #   wrt to c_0
-    δIC_δc_0 = np.zeros((J**2,J))
+    grad = np.zeros(3*J)
     
     for i in range(J):
         for j in range(J):
-            δIC_δc_0[i*J+j, i] = c_0[i]**(-var_θ)
-            δIC_δc_0[i*J+j, j] += -c_0[j]**(-var_θ)
-   
-    #   wrt to c_1
-    δIC_δc_1 = np.zeros((J**2,J))
+            if viols[i,j] == True:
+                
+                #   wrt to c_0
+                grad[i] += 2 * IC_mat[i,j] * c_0[i]**(-var_θ)
+                grad[j] += 2 * IC_mat[i,j] * (-c_0[j]**(-var_θ))
+                
+                #   wrt to c_1
+                grad[J+i] += 2 * IC_mat[i,j] * (β/(1-β*(1+g)**(1-var_θ))) * c_1[i]**(-var_θ)
+                grad[J+j] += 2 * IC_mat[i,j] * (-β/(1-β*(1+g)**(1-var_θ))) * c_1[j]**(-var_θ)
     
-    for i in range(J):
-        for j in range(J):
-            δIC_δc_1[i*J+j, i] = (β/(1-β*(1+g)**(1-var_θ))) * c_1[i]**(-var_θ)
-            δIC_δc_1[i*J+j, j] += -(β/(1-β*(1+g)**(1-var_θ))) * c_1[j]**(-var_θ)
+                #   wrt to l
+                grad[2*J+i] += 2 * IC_mat[i,j] * (-β/(1-β)) * φ[i] * l[i]**(1/ε)
+                grad[2*J+j] += 2 * IC_mat[i,j] * (β/(1-β)) * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε)
+                
     
-    #   wrt to l
-    δIC_δl = np.zeros((J**2,J))
-    
-    for i in range(J):
-        for j in range(J):
-            δIC_δl[i*J+j, i] = - (β/(1-β)) * φ[i] * l[i]**(1/ε)
-            δIC_δl[i*J+j, j] += (β/(1-β)) * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε)
-    
-    δIC = np.hstack((δIC_δc_0, δIC_δc_1, δIC_δl))
-    
-    return δIC
-    
+    return grad
+
     
 
 @njit
@@ -379,13 +374,8 @@ def obj_jac(x, w, Δ, args):
     "Penalized Objective Jacobian"
     
     W_jac = δObj_δX(x, *args)
-    IC_vec = rt.Inequal_Constr(x, w, *args).flatten()
-    viol = np.minimum(IC_vec, 0.0)
-    IC_jac = δIC_δX(x, w, *args)
+    grad_pen_IC = δIC_δX(x, w, *args)
 
-    weights = 2.0 * viol
-    grad_pen = weights @ IC_jac
-
-    return -(W_jac - Δ * grad_pen)
+    return -(W_jac - Δ * grad_pen_IC)
 
 
