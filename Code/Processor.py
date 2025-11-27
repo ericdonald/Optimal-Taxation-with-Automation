@@ -588,7 +588,7 @@ class Processor:
         K_NT = Y_bar - np.sum(self.E.n * c_0_NT)
         Y_NT = fn.Output(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
-        R_tilde_NT = (c_1_NT[0]/ c_0_NT[0])**(self.E.var_θ) * (1 - self.E.β) / self.E.β
+        R_tilde_NT = (c_1_NT[0]/ c_0_NT[0])**(self.E.var_θ) * (1 - self.E.β*(1+self.E.g)**(1-self.E.var_θ)) / self.E.β
         r_NT = fn.Rents(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         τ_K_NT = 1 - (R_tilde_NT + self.E.g) / (r_NT - self.E.δ)
         

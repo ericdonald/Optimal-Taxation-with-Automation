@@ -207,7 +207,7 @@ class Economy:
     
     
     
-    def Mirrlees_Lagr_NT(self, damp=1/5, tol=1e-4, max_iter=10000):
+    def Mirrlees_Lagr_NT(self, damp=1/5, tol=1e-5, max_iter=10000):
         "Solve Non-Linear Tax Problem without Threshold Rule"
             
         X = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq))
@@ -258,7 +258,7 @@ class Economy:
             # Check Convergence and Update #
             # ---------------------------- #
             error_x = np.max(np.abs(x - x_new))
-            print(error_x)
+            #print(error_x)
             
             if error_x < tol:
                 break
