@@ -94,8 +94,8 @@ class Economy:
         WS = gpf.compute_decile_shares(SCF_df, 'Wealth')
         
         Θ_cal = sp.optimize.root(rt.WealthShapeRoot, 1.88,
-                      args=(WS, YS),
-                      method='lm')
+                                  args=(WS, YS),
+                                  method='lm')
         
         self.Θ = Θ_cal.x[0]
         

@@ -70,7 +70,7 @@ def compute_decile_shares(df, value_col, weight_col='Weight', n_groups=10):
     df_sorted['decile'] = pd.cut(
         df_sorted['cum_weight'],
         bins=cut_points,
-        labels=False,  # 0 .. n_groups-1
+        labels=False,  
         include_lowest=True
     )
     df_sorted.at[df_sorted.index[-1], 'decile'] = 9
@@ -152,13 +152,11 @@ def broadcast_col_to_matrix(col):
 
 
 
-def inner_solve(w, r, X_0, args, max_inner_iter=100):
+def inner_solve(w, r, X_0, args, max_inner_iter=100, viol_frac=1/1000):
     "Solve Inner Loop"
-    
     
     for _ in range(max_inner_iter):
 
-        
         # ----- #
         # Solve #
         # ----- #
@@ -170,7 +168,7 @@ def inner_solve(w, r, X_0, args, max_inner_iter=100):
         # --------------------- #
         W = rt.Mir_obj(alloc, *args)
         IC_full = rt.Inequal_Constr(alloc, w, *args)
-        viol_tol = np.abs(W) / 1000
+        viol_tol = np.abs(W) * viol_frac
 
         viols = (IC_full < -viol_tol)
         print(W)
@@ -191,7 +189,7 @@ def inner_solve(w, r, X_0, args, max_inner_iter=100):
 
 
 def solve_planner(w, r, X_0, args):
-    "Solve Mirrlees for Normalized Penalty"
+    "Solve Mirrlees with Normalized Penalty"
     
     J = args[-1]
     W_0 = rt.Mir_obj(X_0, *args)
