@@ -218,8 +218,8 @@ def Optimalθ_SQ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, 
     # Optimality Condition #
     # -------------------- #
     MC = -np.sum(δY_δX * dx)
-    cov = np.sum(n * (λ-1) * (Ψ * (1-ψ) * (w*l)**(1-ψ) * δlnw + (1-τ_k) * R * κ * δlnR))
-    Expect = np.sum(n * ((w*l - Ψ * (1-ψ) * (w*l)**(1-ψ)) * δlnl + τ_k * R * κ * δlnκ))
+    cov = np.sum(n * (λ-1) * (Ψ * (1-ψ) * (w*l)**(1-ψ) * δlnw + R * κ * δlnR))
+    Expect = np.sum(n * ((w*l - Ψ * (1-ψ) * (w*l)**(1-ψ)) * δlnl + τ_k * (r-δ) * κ * δlnκ))
     
     δW = MC - cov - Expect
     
@@ -322,7 +322,7 @@ def obj_fun(x, w, Δ, args):
 
 
 
-def Optimalθ_NL_Root(θ, X, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
+def Optimalθ_NL_Root(θ, X, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J, x_bar, ζ, ν, σ):
     "Root for Optimal Threshold Rule with Nonlinear Taxes"
     
     # ------------------- #
@@ -334,6 +334,7 @@ def Optimalθ_NL_Root(θ, X, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ,
     
     L = n * l
     K = Y_bar - np.sum(n * c_0)
+    κ = Y_bar - c_0
     
     
     # ------------------------------------ #
@@ -348,21 +349,15 @@ def Optimalθ_NL_Root(θ, X, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ,
     dl = dE[2*J:3*J,0]
     dx = dE[3*J:,0]
     
-    L = n * l
-    κ = y_0 - c_0
-    K = np.sum(n * κ)
-    
     δlnl = dl / l
     δlnκ = - dc_0 / κ
     
-    w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    R = (1-τ_k)*(r-δ) - g
+    R = r - δ - g
     Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     
-    δlnw = pr.dlnw(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0)
-    δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0)
-    δlnR = (1-τ_k) * r * δlnr / R
+    δlnw = pr.dlnw(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, Y_bar)
+    δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, Y_bar)
+    δlnR = r * δlnr / R
     
     α_k = x**(ζ*(ν-1))
     
