@@ -33,7 +33,7 @@ def ConCalRoot(CSQ, J, Y, K, G, n, w_j, l_j, y_j0, r, δ, g, τ_k, Ψ, ψ, var_�
     c_j0 = CSQ[:J]
     β = CSQ[-1]
     
-    R = (1-τ_k) * (r - δ) - g
+    R_tilde = (1-τ_k) * (r - δ) - g
     beta_tilde = β / (1 - β * (1+g)**(1-var_θ))
     D_1 = G * Y
     
@@ -41,13 +41,13 @@ def ConCalRoot(CSQ, J, Y, K, G, n, w_j, l_j, y_j0, r, δ, g, τ_k, Ψ, ψ, var_�
     # -------------------- #
     # Find c_j1 with Euler #
     # -------------------- #
-    c_j1 = c_j0 * (R * beta_tilde)**(1 / var_θ)
+    c_j1 = c_j0 * (R_tilde * beta_tilde)**(1 / var_θ)
     
     
     # ---------------- #
     # Consumption Root #
     # ---------------- #
-    κ_j1 = (c_j1 - Ψ * (w_j * l_j)**(1-ψ) - D_1) / R
+    κ_j1 = (c_j1 - Ψ * (w_j * l_j)**(1-ψ) - D_1) / R_tilde
     
     RHS_c0 = y_j0 - κ_j1
     Root_c0 = c_j0 - RHS_c0
@@ -123,9 +123,11 @@ def Eqbm_Root(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     
     w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    R = (1-τ_k)*(r-δ) - g
+    R_tilde = (1-τ_k)*(r-δ) - g
     
     D = np.sum(n * (w * l - Ψ * (w * l)**(1-ψ))) + τ_k * (r - δ) * K
+    
+    MRS_c = fn.cap_sup(c_0, c_1, β, var_θ, ε, g)
     
     
     # ---------------- #
@@ -137,13 +139,13 @@ def Eqbm_Root(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     # ------------------ #
     # Log Euler Equation #
     # ------------------ #
-    ln_EE = var_θ * np.log(c_1) - var_θ * np.log(c_0) - (np.log(R) + np.log(β/(1-β)))
+    ln_EE = np.log(MRS_c) - np.log(R_tilde)
     
     
     # ----------------- #
     # Budget Constraint #
     # ----------------- #
-    BC = R * c_0 + c_1 - (R * y_0 + Ψ * (w*l)**(1-ψ) + D)
+    BC = R_tilde * c_0 + c_1 - (R_tilde * y_0 + Ψ * (w*l)**(1-ψ) + D)
     
     
     # ------------------------ #
@@ -195,12 +197,12 @@ def Optimalθ_SQ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, 
     
     w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    R = (1-τ_k)*(r-δ) - g
+    R = r - δ - g
     Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     
     δlnw = pr.dlnw(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0)
     δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0)
-    δlnR = (1-τ_k) * r * δlnr / R
+    δlnR = r * δlnr / R
     
     α_k = x**(ζ*(ν-1))
     
@@ -211,6 +213,8 @@ def Optimalθ_SQ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, 
     
     δY_δX = Y * (A_k * α_k / r)**(σ-1) * θ_wedge
     
+    MRS_l = fn.lab_sup(c_1, l, β, var_θ, φ, ε, g)
+    MRS_c = fn.cap_sup(c_0, c_1, β, var_θ, ε, g)
     λ = c_1**(-var_θ) / np.sum(n * c_1**(-var_θ))
     
     
@@ -218,8 +222,8 @@ def Optimalθ_SQ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, 
     # Optimality Condition #
     # -------------------- #
     MC = -np.sum(δY_δX * dx)
-    cov = np.sum(n * (λ-1) * (Ψ * (1-ψ) * (w*l)**(1-ψ) * δlnw + R * κ * δlnR))
-    Expect = np.sum(n * ((w*l - Ψ * (1-ψ) * (w*l)**(1-ψ)) * δlnl + τ_k * (r-δ) * κ * δlnκ))
+    cov = np.sum(n * (λ-1) * (MRS_l * l * δlnw + MRS_c * κ * δlnR))
+    Expect = np.sum(n * ((w - MRS_l) * l * δlnl + (R - MRS_c) * κ * δlnκ))
     
     δW = MC - cov - Expect
     
@@ -325,9 +329,9 @@ def obj_fun(x, w, Δ, args):
 def Optimalθ_NL_Root(θ, X, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J, x_bar, ζ, ν, σ):
     "Root for Optimal Threshold Rule with Nonlinear Taxes"
     
-    # ------------------- #
-    # Back Out Allocation #
-    # ------------------- #
+    # ----------------- #
+    # Unpack Allocation #
+    # ----------------- #
     c_0 = X[:J]
     c_1 = X[J:2*J]
     l = X[2*J:3*J]
@@ -368,6 +372,8 @@ def Optimalθ_NL_Root(θ, X, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ,
     
     δY_δX = Y * (A_k * α_k / r)**(σ-1) * θ_wedge
     
+    MRS_l = fn.lab_sup(c_1, l, β, var_θ, φ, ε, g)
+    MRS_c = fn.cap_sup(c_0, c_1, β, var_θ, ε, g)
     λ = c_1**(-var_θ) / np.sum(n * c_1**(-var_θ))
     
     
@@ -375,8 +381,8 @@ def Optimalθ_NL_Root(θ, X, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ,
     # Optimality Condition #
     # -------------------- #
     MC = -np.sum(δY_δX * dx)
-    cov = np.sum(n * (λ-1) * (Ψ * (1-ψ) * (w*l)**(1-ψ) * δlnw + (1-τ_k) * R * κ * δlnR))
-    Expect = np.sum(n * ((w*l - Ψ * (1-ψ) * (w*l)**(1-ψ)) * δlnl + τ_k * R * κ * δlnκ))
+    cov = np.sum(n * (λ-1) * (MRS_l * l * δlnw + MRS_c * κ * δlnR))
+    Expect = np.sum(n * ((w - MRS_l) * l * δlnl + (R - MRS_c) * κ * δlnκ))
     
     δW = MC - cov - Expect
     

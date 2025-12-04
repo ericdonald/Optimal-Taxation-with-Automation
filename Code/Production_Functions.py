@@ -108,13 +108,24 @@ def V(c_0, c_1, l, β, var_θ, φ, ε, g):
 
 
 
+@njit
+def lab_sup(c_1, l, β, var_θ, φ, ε, g):
+    "Marginal Rate of Substitution of Labor"
+
+    h_prime = φ * l**(1/ε) * (β / (1-β))
+    inv_MU = c_1**(var_θ) / (β / (1-β*(1+g)**(1-var_θ)))
+    
+    return h_prime * inv_MU
 
 
+@njit
+def cap_sup(c_0, c_1, β, var_θ, ε, g):
+    "Marginal Rate of Substitution of Capital"
 
-
-
-
-
+    MU_0 = c_0**(-var_θ)
+    MU_1 = c_1**(-var_θ) * (β / (1-β*(1+g)**(1-var_θ)))
+    
+    return MU_0 / MU_1
 
 
 
