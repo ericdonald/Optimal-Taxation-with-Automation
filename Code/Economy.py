@@ -294,6 +294,7 @@ class Economy:
         r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
         
         
+        qe.tic()
         # ---------- #
         # Outer Loop #
         # ---------- #
@@ -342,6 +343,9 @@ class Economy:
             w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             
+        
+        qe.toc()
+        print("Mirrlees Threshold Rule Solution Found")
         
         return (c_0, c_1, l, K, x, θ)    
         
