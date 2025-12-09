@@ -371,7 +371,7 @@ def δIC_δX(X, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
 
 @njit
 def obj_jac(x, w, Δ, args):
-    "Penalized Objective Jacobian"
+    "Jacobian of Penalized Objective"
     
     W_jac = δObj_δX(x, *args)
     grad_pen_IC = δIC_δX(x, w, *args)
