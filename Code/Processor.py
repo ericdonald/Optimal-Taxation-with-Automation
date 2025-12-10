@@ -632,6 +632,7 @@ class Processor:
         
         Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
         
+        
         # ---------------------------- #
         # Capital Tax Mirrlees Optimum #
         # ---------------------------- #
