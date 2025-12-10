@@ -322,7 +322,8 @@ class Economy:
             # -------------------- #
             # Solve for Thresholds #
             # -------------------- #
-            θ_new = gpf.bisect_scalar(rt.Optimalθ_NL_Root, θ_lower, θ_upper, args)
+            θ_args = (E, x, w, r, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J, self.x_bar, self.ζ, self.ν, self.σ)
+            θ_new = gpf.bisect_scalar(rt.Optimalθ_NL_Root, θ_lower, θ_upper, θ_args)
             x_new = ((w / self.A_j) / ((1+θ_new) * r / self.A_k))**(1/self.ζ)
             
             
