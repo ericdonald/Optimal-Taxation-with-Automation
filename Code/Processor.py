@@ -474,17 +474,19 @@ class Processor:
         κ = self.E.y_0 - c_0
         K = np.sum(self.E.n * κ)
         
-        w = fn.Wages(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         r = fn.Rents(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
-        R = (1-self.E.τ_k)*(r-self.E.δ) - self.E.g
+        R = r - self.E.δ - self.E.g
         Y = fn.Output(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
         δlnw = pr.dlnw(dc_0, dl, dx, c_0, l, x, θ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
         δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x, θ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
-        δlnR = (1-self.E.τ_k) * r * δlnr / R
-                
+        δlnR = r * δlnr / R
+        
+        MRS_l = fn.lab_sup(c_1, l, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g)
+        MRS_c = fn.cap_sup(c_0, c_1, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
+        
         λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
-        δI = (self.E.Ψ * (1-self.E.ψ) * (w*l)**(1-self.E.ψ) * δlnw + (1-self.E.τ_k) * R * κ * δlnR) / Y
+        δI = (MRS_l * l * δlnw + MRS_c * κ * δlnR) / Y
         
         cov = np.sum(self.E.n * (λ-1) * δI)
         
@@ -502,14 +504,17 @@ class Processor:
         dx_sq = dE_sq[3*self.E.J:,0]
         
         κ_sq = self.E.y_0 - self.E.c_0_sq
-        R_sq = (1-self.E.τ_k)*(self.E.r_sq-self.E.δ) - self.E.g
+        R_sq = self.E.r_sq - self.E.δ - self.E.g
         
         δlnw_sq = pr.dlnw(dc_0_sq, dl_sq, dx_sq, self.E.c_0_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar, 0, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
         δlnr_sq = pr.dlnr(dc_0_sq, dl_sq, dx_sq, self.E.c_0_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar, 0, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
-        δlnR_sq = (1-self.E.τ_k) * self.E.r_sq * δlnr_sq / R_sq
+        δlnR_sq = self.E.r_sq * δlnr_sq / R_sq
+        
+        MRS_l_sq = fn.lab_sup(self.E.c_1_sq, self.E.l_j_sq, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g)
+        MRS_c_sq = fn.cap_sup(self.E.c_1_sq, self.E.c_1_sq, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
                 
         λ_sq = self.E.c_1_sq**(-self.E.var_θ) / np.sum(self.E.n * self.E.c_1_sq**(-self.E.var_θ))
-        δI_sq = (self.E.Ψ * (1-self.E.ψ) * (self.E.w_j_sq*self.E.l_j_sq)**(1-self.E.ψ) * δlnw_sq + (1-self.E.τ_k) * R_sq * κ_sq * δlnR_sq) / self.E.Y_sq
+        δI_sq = (MRS_l_sq * self.E.l_j_sq * δlnw_sq + MRS_c_sq * κ_sq * δlnR_sq) / self.E.Y_sq
         
         cov_sq = np.sum(self.E.n * (λ_sq-1) * δI_sq)
         
@@ -532,7 +537,6 @@ class Processor:
         StatusQuo_Results.add('Optimal Status Quo DCOV', gpf.clean_round(ΔoptCOV, 1))
         StatusQuo_Results.add('Optimal Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv, 1))
 
-        
         
         # ----------------- #
         # Covariance Figure #
