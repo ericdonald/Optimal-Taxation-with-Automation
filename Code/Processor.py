@@ -575,8 +575,8 @@ class Processor:
         # Solve for Two Planner Allocations #
         # --------------------------------- #
         (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr_NT()
-        X_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
-        (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr_θ(X_NT, x_NT, -0.25, 0.5)
+        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
+        (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr_θ(E_NT, x_NT, -0.25, 0.5)
         
         Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
         

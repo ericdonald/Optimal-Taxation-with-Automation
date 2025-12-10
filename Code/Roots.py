@@ -246,12 +246,12 @@ def CERoot(CE, c_0prime, c_1prime, lprime, c_0, c_1, l, n, β, var_θ, φ, ε, g
 
 
 @njit
-def Mir_obj(X, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
+def Mir_obj(E, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     "Mirrlees Objective"
     
-    c_0 = X[:J]
-    c_1 = X[J:2*J]
-    l = X[2*J:3*J]
+    c_0 = E[:J]
+    c_1 = E[J:2*J]
+    l = E[2*J:3*J]
     
     Val = fn.V(c_0, c_1, l, β, var_θ, φ, ε, g)
     
@@ -262,12 +262,12 @@ def Mir_obj(X, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     
   
 @njit
-def Equal_Constr(X, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
+def Equal_Constr(E, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     "Equality Constraints"
     
-    c_0 = X[:J]
-    c_1 = X[J:2*J]
-    l = X[2*J:3*J]
+    c_0 = E[:J]
+    c_1 = E[J:2*J]
+    l = E[2*J:3*J]
     
     δ_hat = 1 + δ + g
     
@@ -291,12 +291,12 @@ def Equal_Constr(X, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
 
 
 @njit
-def Inequal_Constr(X, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
+def Inequal_Constr(E, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     "Incentive Compatibility Constraints"
     
-    c_0 = X[:J]
-    c_1 = X[J:2*J]
-    l = X[2*J:3*J]
+    c_0 = E[:J]
+    c_1 = E[J:2*J]
+    l = E[2*J:3*J]
     
     Val = fn.V(c_0, c_1, l, β, var_θ, φ, ε, g)
     
@@ -313,11 +313,11 @@ def Inequal_Constr(X, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
 
 
 @njit
-def obj_fun(x, w, Δ, args):
+def obj_fun(E, w, Δ, args):
     "Penalized Objective Function"
     
-    W = Mir_obj(x, *args)
-    IC_mat = Inequal_Constr(x, w, *args)
+    W = Mir_obj(E, *args)
+    IC_mat = Inequal_Constr(E, w, *args)
     
     viol = np.minimum(IC_mat, 0.0)
     pen = np.sum(viol**2)
@@ -326,15 +326,15 @@ def obj_fun(x, w, Δ, args):
 
 
 
-def Optimalθ_NL_Root(θ, X, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J, x_bar, ζ, ν, σ):
+def Optimalθ_NL_Root(θ, E, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J, x_bar, ζ, ν, σ):
     "Root for Optimal Threshold Rule with Nonlinear Taxes"
     
     # ----------------- #
     # Unpack Allocation #
     # ----------------- #
-    c_0 = X[:J]
-    c_1 = X[J:2*J]
-    l = X[2*J:3*J]
+    c_0 = E[:J]
+    c_1 = E[J:2*J]
+    l = E[2*J:3*J]
     
     L = n * l
     K = Y_bar - np.sum(n * c_0)
@@ -344,7 +344,7 @@ def Optimalθ_NL_Root(θ, X, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ,
     # ------------------------------------ #
     # Compute Threshold Rule Perturbations #
     # ------------------------------------ #
-    ΔH_ΔΕ = pr.δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ)
+    ΔH_ΔΕ = pr.δH_δclx_NL(θ, E, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J, x_bar, ζ, ν, σ)
     ΔH_Δθ = pr.δH_δθ(θ, J)
 
     dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_Δθ

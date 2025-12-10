@@ -152,7 +152,7 @@ def broadcast_col_to_matrix(col):
 
 
 
-def inner_solve(w, r, X_0, args, max_inner_iter=100, viol_frac=1/1000):
+def inner_solve(w, r, E_0, args, max_inner_iter=100, viol_frac=1/1000):
     "Solve Inner Loop"
     
     for _ in range(max_inner_iter):
@@ -160,7 +160,7 @@ def inner_solve(w, r, X_0, args, max_inner_iter=100, viol_frac=1/1000):
         # ----- #
         # Solve #
         # ----- #
-        alloc = solve_planner(w, r, X_0, args)
+        alloc = solve_planner(w, r, E_0, args)
 
 
         # --------------------- #
@@ -181,19 +181,19 @@ def inner_solve(w, r, X_0, args, max_inner_iter=100, viol_frac=1/1000):
         # ------ #
         # Update #
         # ------ #
-        X_0 = alloc.copy()
+        E_0 = alloc.copy()
         
 
     return alloc
 
 
 
-def solve_planner(w, r, X_0, args):
+def solve_planner(w, r, E_0, args):
     "Solve Mirrlees with Normalized Penalty"
     
     J = args[-1]
-    W_0 = rt.Mir_obj(X_0, *args)
-    Pen_0 = np.sum(np.minimum(rt.Inequal_Constr(X_0, w, *args), 0)**2)
+    W_0 = rt.Mir_obj(E_0, *args)
+    Pen_0 = np.sum(np.minimum(rt.Inequal_Constr(E_0, w, *args), 0)**2)
     Δ = np.abs(W_0) / (Pen_0 + 1e-12)
     
     
@@ -214,7 +214,7 @@ def solve_planner(w, r, X_0, args):
     # ----- #
     # Solve #
     # ----- #
-    opt = cp.minimize_ipopt(obj_pen_fun, X_0, jac=obj_pen_jac,
+    opt = cp.minimize_ipopt(obj_pen_fun, E_0, jac=obj_pen_jac,
                             bounds=bounds, constraints=[eq_cons],
                             options={'max_iter':100})
     
