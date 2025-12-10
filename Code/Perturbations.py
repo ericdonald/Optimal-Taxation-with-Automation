@@ -69,15 +69,19 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     δlnr_δlnL = (1/σ) * δlnY_δlnL
     
     
-    # -------- #
-    # Lump-Sum #
-    # -------- #
-    δD_δX = (n * (w * l - Ψ * (1-ψ) * (w * l)**(1-ψ))).reshape((1,J)) @ δlnw_δX + τ_k * r * K * δlnr_δX
-    δD_δK = np.sum(n * (w * l - Ψ * (1-ψ) * (w * l)**(1-ψ)) * δlnw_δlnK) / K + τ_k * r * δlnr_δlnK + τ_k * (r - δ)
-    δD_δL = (w * l - Ψ * (1-ψ) * (w * l)**(1-ψ)) / L + (((n * (w * l - Ψ * (1-ψ) * (w * l)**(1-ψ))).reshape((1,J)) @ δlnw_δlnL) / L
-                                                            + τ_k * r * K * δlnr_δlnL / L)
+    # ------------------------ #
+    # Tax Function Derivatives #
+    # ------------------------ #
+    keep_l = fn.Heath_keep(w, l, Ψ, ψ)
+    τ_l = 1 - keep_l
+    y_l = w * l
+    
+    δD_δl = - n * τ_l * w - ((n * τ_l * y_l).reshape((1,J)) @ δlnw_δlnL) / l + τ_k * r * K * δlnr_δlnL / l
+    δD_δK = np.sum(n * τ_l * y_l * δlnw_δlnK) / K + τ_k * r * δlnr_δlnK + τ_k * (r - δ)
+    δD_δX = (n * τ_l * y_l).reshape((1,J)) @ δlnw_δX + τ_k * r * K * δlnr_δX
+    
+    δD_δl = δD_δl.reshape(J)
     δD_δX = δD_δX.reshape(J)
-    δD_δL = δD_δL.reshape(J)
     
     
     # ----------------------------------------- #
@@ -90,7 +94,7 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     δlnLS_δc_1 = gpf.make_diag(1/c_1) * var_θ
     
     #   wrt to l
-    δlnLS_δl = gpf.make_diag(1/l) * (1/ε + ψ) - (1-ψ) * δlnw_δlnL * gpf.broadcast_row_to_matrix(n / L)
+    δlnLS_δl = gpf.make_diag(1/l) * (1/ε + ψ) - (1-ψ) * δlnw_δlnL * gpf.broadcast_row_to_matrix(1 / l)
     
     #   wrt to x
     δlnLS_δx = - (1-ψ) * δlnw_δX
@@ -108,7 +112,7 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     δlnEE_δc_1 = gpf.make_diag(1/c_1) * var_θ
     
     #   wrt to l
-    δlnEE_δl = - ((1-τ_k) * r / R) * gpf.broadcast_row_to_matrix(δlnr_δlnL * n / L)
+    δlnEE_δl = - ((1-τ_k) * r / R) * gpf.broadcast_row_to_matrix(δlnr_δlnL / l)
     
     #   wrt to x
     δlnEE_δx = - ((1-τ_k) * r / R) * gpf.broadcast_row_to_matrix(δlnr_δX)
@@ -121,20 +125,20 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     # ------------------------------- #
     #   wrt to c_0
     δHB_δc_0 = np.eye(J)*R + (gpf.broadcast_col_to_matrix(c_0 - y_0) * (1-τ_k) * r * δlnr_δlnK / K 
-                              - gpf.broadcast_col_to_matrix(Ψ * (1-ψ) * (w * l)**(1-ψ) * δlnw_δlnK) / K
+                              - gpf.broadcast_col_to_matrix(keep_l * y_l * δlnw_δlnK) / K
                               - δD_δK) * gpf.broadcast_row_to_matrix(-n)
     
     #   wrt to c_1
     δHB_δc_1 = np.eye(J)
     
     #   wrt to l
-    δHB_δl = -gpf.make_diag(Ψ * (1-ψ) * (w * l)**(1-ψ) / l) + (gpf.broadcast_col_to_matrix(c_0 - y_0) * (1-τ_k) * r * gpf.broadcast_row_to_matrix(δlnr_δlnL / L)
-                                                           - gpf.broadcast_col_to_matrix(Ψ * (1-ψ) * (w * l)**(1-ψ)) * δlnw_δlnL * gpf.broadcast_row_to_matrix(1 / L)
-                                                           - gpf.broadcast_row_to_matrix(δD_δL) * gpf.broadcast_row_to_matrix(n))
+    δHB_δl = -gpf.make_diag(keep_l * w) + (gpf.broadcast_col_to_matrix(c_0 - y_0) * (1-τ_k) * r * gpf.broadcast_row_to_matrix(δlnr_δlnL / l)
+                                                           - gpf.broadcast_col_to_matrix(keep_l * y_l) * δlnw_δlnL * gpf.broadcast_row_to_matrix(1 / l)
+                                                           - gpf.broadcast_row_to_matrix(δD_δl))
     
     #   wrt to x
     δHB_δx = (gpf.broadcast_col_to_matrix(c_0 - y_0) * (1-τ_k) * r * gpf.broadcast_row_to_matrix(δlnr_δX)
-                  - gpf.broadcast_col_to_matrix(Ψ * (1-ψ) * (w * l)**(1-ψ)) * δlnw_δX
+                  - gpf.broadcast_col_to_matrix(keep_l * y_l) * δlnw_δX
                   - gpf.broadcast_row_to_matrix(δD_δX))
     
     δHB = np.hstack((δHB_δc_0, δHB_δc_1, δHB_δl, δHB_δx))
@@ -150,7 +154,7 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     δlnAT_δc_1 = np.zeros((J,J))
     
     #   wrt to l
-    δlnAT_δl = - δlnw_δlnL * gpf.broadcast_row_to_matrix(n / L) + gpf.broadcast_row_to_matrix(δlnr_δlnL * n / L)
+    δlnAT_δl = - δlnw_δlnL * gpf.broadcast_row_to_matrix(1 / l) + gpf.broadcast_row_to_matrix(δlnr_δlnL / l)
     
     #   wrt to x
     δlnAT_δx = gpf.make_diag(ζ/x) - δlnw_δX + gpf.broadcast_row_to_matrix(δlnr_δX)
@@ -448,8 +452,8 @@ def δH_δclx_NL(θ, E, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, 
     δD_δK = - np.sum(n * τ_l * y_l * δlnw_δlnK) / K
     δD_δX = - (n * τ_l * y_l).reshape((1,J)) @ δlnw_δX
     
-    δD_δX = δD_δX.reshape(J)
     δD_δl = δD_δl.reshape(J)
+    δD_δX = δD_δX.reshape(J)
     
     
     # ----------------------------------------- #
@@ -462,7 +466,7 @@ def δH_δclx_NL(θ, E, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, 
     δlnLS_δc_1 = gpf.make_diag(1/c_1) * var_θ
     
     #   wrt to l
-    δlnLS_δl = gpf.make_diag(1/l) * (1/ε + dτ_dy * y_l / keep_l) + (dτ_dy * y_l / keep_l - 1) * δlnw_δlnL * gpf.broadcast_row_to_matrix(n / L)
+    δlnLS_δl = gpf.make_diag(1/l) * (1/ε + dτ_dy * y_l / keep_l) + (dτ_dy * y_l / keep_l - 1) * δlnw_δlnL * gpf.broadcast_row_to_matrix(1 / l)
     
     #   wrt to x
     δlnLS_δx = (dτ_dy * y_l / keep_l - 1) * δlnw_δX
@@ -480,7 +484,7 @@ def δH_δclx_NL(θ, E, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, 
     δlnEE_δc_1 = gpf.make_diag(1/c_1) * var_θ
     
     #   wrt to l
-    δlnEE_δl = - (r / R) * gpf.broadcast_row_to_matrix(δlnr_δlnL * n / L)
+    δlnEE_δl = - (r / R) * gpf.broadcast_row_to_matrix(δlnr_δlnL / l)
     
     #   wrt to x
     δlnEE_δx = - (r / R) * gpf.broadcast_row_to_matrix(δlnr_δX)
@@ -531,3 +535,14 @@ def δH_δclx_NL(θ, E, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, 
     
     
     return np.vstack((δlnLS, δlnEE, δHB, δlnAT))
+
+
+
+
+
+
+
+
+
+
+

@@ -129,6 +129,11 @@ def cap_sup(c_0, c_1, β, var_θ, ε, g):
 
 
 
+@njit
+def Heath_keep(w, l, Ψ, ψ):
+    "Heathcote Tax Function Keep Rate"
+    
+    return Ψ * (1-ψ) * (w * l)**(-ψ)
 
 
 

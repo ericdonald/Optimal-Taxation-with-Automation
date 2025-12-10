@@ -127,13 +127,15 @@ def Eqbm_Root(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     
     D = np.sum(n * (w * l - Ψ * (w * l)**(1-ψ))) + τ_k * (r - δ) * K
     
+    MRS_l = fn.lab_sup(c_1, l, β, var_θ, φ, ε, g)
     MRS_c = fn.cap_sup(c_0, c_1, β, var_θ, ε, g)
+    keep_l = fn.Heath_keep(w, l, Ψ, ψ)
     
     
     # ---------------- #
     # Log Labor Supply #
     # ---------------- #
-    ln_LS = np.log(φ) + (ψ + 1/ε) * np.log(l) + var_θ * np.log(c_1) - (np.log(Ψ) + np.log(1-ψ) + (1-ψ) * np.log(w))
+    ln_LS = np.log(MRS_l) - np.log(keep_l) - np.log(w)
     
     
     # ------------------ #

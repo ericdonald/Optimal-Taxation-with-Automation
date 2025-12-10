@@ -160,7 +160,8 @@ class Economy:
         
         self.c_1_sq = self.c_0_sq * (R * self.β / (1-self.β))**(1/self.var_θ)
         
-        self.φ = (self.Ψ * (1-self.ψ) * (self.w_j_sq)**(1-self.ψ)) / (self.l_j_sq**(self.ψ + 1/self.ε) * self.c_1_sq**(self.var_θ))
+        keep_l = fn.Heath_keep(self.w_j_sq, self.l_j_sq, self.Ψ, self.ψ)
+        self.φ = (keep_l * self.w_j_sq) / (self.l_j_sq**(1/self.ε) * self.c_1_sq**(self.var_θ))
         
 
         # ---------------------------------- #
