@@ -127,8 +127,8 @@ def Eqbm_Root(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     
     D = np.sum(n * (w * l - Ψ * (w * l)**(1-ψ))) + τ_k * (r - δ) * K
     
-    MRS_l = fn.lab_sup(c_1, l, β, var_θ, φ, ε, g)
-    MRS_c = fn.cap_sup(c_0, c_1, β, var_θ, ε, g)
+    MRS_l = fn.lab_MRS(c_1, l, β, var_θ, φ, ε, g)
+    MRS_c = fn.cap_MRS(c_0, c_1, β, var_θ, ε, g)
     keep_l = fn.Heath_keep(w, l, Ψ, ψ)
     
     
@@ -215,8 +215,8 @@ def Optimalθ_SQ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, 
     
     δY_δX = Y * (A_k * α_k / r)**(σ-1) * θ_wedge
     
-    MRS_l = fn.lab_sup(c_1, l, β, var_θ, φ, ε, g)
-    MRS_c = fn.cap_sup(c_0, c_1, β, var_θ, ε, g)
+    MRS_l = fn.lab_MRS(c_1, l, β, var_θ, φ, ε, g)
+    MRS_c = fn.cap_MRS(c_0, c_1, β, var_θ, ε, g)
     λ = c_1**(-var_θ) / np.sum(n * c_1**(-var_θ))
     
     
@@ -374,8 +374,8 @@ def Optimalθ_NL_Root(θ, E, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ,
     
     δY_δX = Y * (A_k * α_k / r)**(σ-1) * θ_wedge
     
-    MRS_l = fn.lab_sup(c_1, l, β, var_θ, φ, ε, g)
-    MRS_c = fn.cap_sup(c_0, c_1, β, var_θ, ε, g)
+    MRS_l = fn.lab_MRS(c_1, l, β, var_θ, φ, ε, g)
+    MRS_c = fn.cap_MRS(c_0, c_1, β, var_θ, ε, g)
     λ = c_1**(-var_θ) / np.sum(n * c_1**(-var_θ))
     
     

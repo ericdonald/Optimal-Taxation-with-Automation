@@ -208,7 +208,7 @@ class Economy:
     
     
     
-    def Mirrlees_Lagr_NT(self, damp=1/5, tol=1e-5, max_iter=10000):
+    def Mirrlees_Lagr_NT(self, damp=1/5, tol=1e-4, max_iter=10000):
         "Solve Non-Linear Tax Problem without Threshold Rule"
             
         E = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq))
@@ -277,7 +277,7 @@ class Economy:
         
         
         
-    def Mirrlees_Lagr_θ(self, E, x, θ_lower, θ_upper, θ=0.25, damp=1/10, tol=1e-8, max_iter=1000):
+    def Mirrlees_Lagr_θ(self, E, x, θ_lower, θ_upper, θ=0.25, damp=1/5, tol=1e-4, max_iter=1000):
         "Solve Non-Linear Tax Problem with Threshold Rule"
                     
         Y_0 = self.Y_sq / (1+self.g)

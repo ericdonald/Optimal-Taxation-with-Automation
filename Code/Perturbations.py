@@ -439,7 +439,7 @@ def δH_δclx_NL(θ, E, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, 
     # ------------------------ #
     # Tax Function Derivatives #
     # ------------------------ #
-    MRS_l = fn.lab_sup(c_1, l, β, var_θ, φ, ε, g)
+    MRS_l = fn.lab_MRS(c_1, l, β, var_θ, φ, ε, g)
     keep_l = MRS_l / w
     τ_l = 1 - keep_l
     y_l = w * l

@@ -482,8 +482,8 @@ class Processor:
         δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x, θ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
         δlnR = r * δlnr / R
         
-        MRS_l = fn.lab_sup(c_1, l, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g)
-        MRS_c = fn.cap_sup(c_0, c_1, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
+        MRS_l = fn.lab_MRS(c_1, l, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g)
+        MRS_c = fn.cap_MRS(c_0, c_1, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
         
         λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
         δI = (MRS_l * l * δlnw + MRS_c * κ * δlnR) / Y
@@ -510,8 +510,8 @@ class Processor:
         δlnr_sq = pr.dlnr(dc_0_sq, dl_sq, dx_sq, self.E.c_0_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar, 0, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
         δlnR_sq = self.E.r_sq * δlnr_sq / R_sq
         
-        MRS_l_sq = fn.lab_sup(self.E.c_1_sq, self.E.l_j_sq, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g)
-        MRS_c_sq = fn.cap_sup(self.E.c_1_sq, self.E.c_1_sq, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
+        MRS_l_sq = fn.lab_MRS(self.E.c_1_sq, self.E.l_j_sq, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g)
+        MRS_c_sq = fn.cap_MRS(self.E.c_1_sq, self.E.c_1_sq, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
                 
         λ_sq = self.E.c_1_sq**(-self.E.var_θ) / np.sum(self.E.n * self.E.c_1_sq**(-self.E.var_θ))
         δI_sq = (MRS_l_sq * self.E.l_j_sq * δlnw_sq + MRS_c_sq * κ_sq * δlnR_sq) / self.E.Y_sq
@@ -567,7 +567,8 @@ class Processor:
         """""
         Optimal Threshold Rule for Non-Linear Taxes
         
-        Output: Results/Tables/Mirrlees_Results.csv
+        Output: Results/Figures/Mirrlees_Covariance.csv
+                Results/Tables/Mirrlees_Results.csv
         """""
         
         Mirrlees_Results = gpf.ResultsTable()
@@ -581,32 +582,90 @@ class Processor:
         # Solve for Two Planner Allocations #
         # --------------------------------- #
         if first == 1:
-            (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr_NT()
-            E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
+            tup_NT = self.E.Mirrlees_Lagr_NT()
             
             with open(f'{self.Directory}/Results/E_NT.pkl', 'wb') as file:
-                pickle.dump(E_NT, file)
+                pickle.dump(tup_NT, file)
     
         else:
             with open(f'{self.Directory}/Results/E_NT.pkl', 'rb') as file:
-                E_NT = pickle.load(file)
+                tup_NT = pickle.load(file)
+                (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = tup_NT
         
+        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
         (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr_θ(E_NT, x_NT, -0.25, 0.5)
+        E = np.concatenate((c_0, c_1, l))
         
-        Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
         
+        # -------------------------- #
+        # Threshold Mirrlees Optimum #
+        # -------------------------- #        
         L = self.E.n * l
+        κ = Y_bar - c_0
         K = Y_bar - np.sum(self.E.n * c_0)
         Y = fn.Output(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
+        w = fn.Wages(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
+        r = fn.Rents(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
+        R = r - self.E.δ - self.E.g
+        
+        ΔH_ΔΕ = pr.δH_δclx_NL(θ, E, x, w, r, self.E.n, Y_bar, self.E.δ, self.E.g, self.E.A_j, self.E.A_k, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.J, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
+        ΔH_Δθ = pr.δH_δθ(θ, self.E.J)
+        
+        dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_Δθ
+        
+        dc_0 = dE[:self.E.J,0]
+        dl = dE[2*self.E.J:3*self.E.J,0]
+        dx = dE[3*self.E.J:,0]
+        
+        δlnw = pr.dlnw(dc_0, dl, dx, c_0, l, x, θ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
+        δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x, θ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
+        δlnR = r * δlnr / R
+        
+        MRS_l = fn.lab_sup(c_1, l, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g)
+        MRS_c = fn.cap_sup(c_0, c_1, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
+        
+        λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
+        δI = (MRS_l * l * δlnw + MRS_c * κ * δlnR) / Y
+        
+        cov = np.sum(self.E.n * (λ-1) * δI)
+        
+        Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
+        
+        # ---------------------------- #
+        # Capital Tax Mirrlees Optimum #
+        # ---------------------------- #
         L_NT = self.E.n * l_NT
+        κ_NT = Y_bar - c_0_NT
         K_NT = Y_bar - np.sum(self.E.n * c_0_NT)
         Y_NT = fn.Output(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
-        R_tilde_NT = (c_1_NT[0]/ c_0_NT[0])**(self.E.var_θ) * (1 - self.E.β*(1+self.E.g)**(1-self.E.var_θ)) / self.E.β
+        w_NT = fn.Wages(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         r_NT = fn.Rents(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
-        τ_K_NT = 1 - (R_tilde_NT + self.E.g) / (r_NT - self.E.δ)
+        R_NT = r_NT - self.E.δ - self.E.g
         
+        ΔH_ΔΕ_NT = pr.δH_δclx_NL(0, E_NT, x_NT, w_NT, r_NT, self.E.n, Y_bar, self.E.δ, self.E.g, self.E.A_j, self.E.A_k, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.J, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
+        ΔH_Δθ_NT = pr.δH_δθ(0, self.E.J)
+        
+        dE_NT = - np.linalg.inv(ΔH_ΔΕ_NT) @ ΔH_Δθ_NT
+        
+        dc_0_NT = dE_NT[:self.E.J,0]
+        dl_NT = dE_NT[2*self.E.J:3*self.E.J,0]
+        dx_NT = dE_NT[3*self.E.J:,0]
+        
+        δlnw_NT = pr.dlnw(dc_0_NT, dl_NT, dx_NT, c_0_NT, l_NT, x_NT, 0, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
+        δlnr_NT = pr.dlnr(dc_0_NT, dl_NT, dx_NT, c_0_NT, l_NT, x_NT, 0, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
+        δlnR_NT = r_NT * δlnr_NT / R_NT
+        
+        MRS_l_NT = fn.lab_sup(c_1_NT, l_NT, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g)
+        MRS_c_NT = fn.cap_sup(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
+        
+        λ_NT = c_1_NT**(-self.E.var_θ) / np.sum(self.E.n * c_1_NT**(-self.E.var_θ))
+        δI_NT = (MRS_l_NT * l_NT * δlnw_NT + MRS_c_NT * κ_NT * δlnR_NT) / Y_NT
+        
+        cov_NT = np.sum(self.E.n * (λ_NT-1) * δI_NT)
+        
+        τ_K_NT = 1 - (MRS_c_NT[0] + self.E.g) / (r_NT - self.E.δ)
         Mirrlees_Results.add('Optimal Mirrlees Capital Tax NT', gpf.clean_round(τ_K_NT*100, 1))
         
         
@@ -615,6 +674,7 @@ class Processor:
         # ---------------- #
         ΔoptK = (np.log(K) - np.log(K_NT)) * 100
         ΔoptY = (np.log(Y) - np.log(Y_NT)) * 100
+        ΔoptCOV = (np.log(cov) - np.log(cov_NT)) * 100
         
         CE = sp.optimize.root(rt.CERoot, 1,
                       args=(c_0, c_1, l, c_0_NT, c_1_NT, l_NT, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
@@ -624,9 +684,30 @@ class Processor:
         
         Mirrlees_Results.add('Optimal Mirrlees DCapital', gpf.clean_round(ΔoptK, 1))
         Mirrlees_Results.add('Optimal Mirrlees DOutput', gpf.clean_round(ΔoptY, 1))
+        Mirrlees_Results.add('Optimal Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 1))
         Mirrlees_Results.add('Optimal Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 1))
-
         
+        
+        # ----------------- #
+        # Covariance Figure #
+        # ----------------- #
+        X_opt = np.hstack((np.ones((self.E.J,1)), δI.reshape((-1,1))))
+        X_NT = np.hstack((np.ones((self.E.J,1)), δI_NT.reshape((-1,1))))
+        W = np.diag(self.E.n)
+        
+        β_opt = np.linalg.inv(X_opt.T @ W @ X_opt) @ X_opt.T @ W @ λ.reshape((-1,1))
+        β_NT = np.linalg.inv(X_NT.T @ W @ X_NT) @ X_NT.T @ W @ λ_NT.reshape((-1,1))
+        
+        λ_hat = X_opt @ β_opt
+        λ_hat_NT = X_NT @ β_NT
+        
+        DF_Cov_NT = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), δI.reshape((-1,1)), λ.reshape((-1,1)), λ_hat, δI_NT.reshape((-1,1)), λ_NT.reshape((-1,1)), λ_hat_NT)), 
+                             columns=['Weight', 'dI Optimal', 'lambda Optimal', 'lambda hat Optimal', 'dI Capital Tax', 'lambda Capital Tax', 'lambda hat Capital Tax'])
+        DF_Cov_NT.to_csv(f'{self.Directory}/Results/Figures/Mirrlees_Covariance.csv', index=False)
+        
+        Mirrlees_Results.add('Optimal Regression Coef', gpf.clean_round(β_opt[1,0], 2))
+        Mirrlees_Results.add('Capital Tax Regression Coef', gpf.clean_round(β_NT[1,0], 2))
+
         
         Mirrlees_Results.to_csv(f'{self.Directory}/Results/Tables/Mirrlees_Results.csv')
         

@@ -109,7 +109,7 @@ def V(c_0, c_1, l, β, var_θ, φ, ε, g):
 
 
 @njit
-def lab_sup(c_1, l, β, var_θ, φ, ε, g):
+def lab_MRS(c_1, l, β, var_θ, φ, ε, g):
     "Marginal Rate of Substitution of Labor"
 
     h_prime = φ * l**(1/ε) * (β / (1-β))
@@ -119,7 +119,7 @@ def lab_sup(c_1, l, β, var_θ, φ, ε, g):
 
 
 @njit
-def cap_sup(c_0, c_1, β, var_θ, ε, g):
+def cap_MRS(c_0, c_1, β, var_θ, ε, g):
     "Marginal Rate of Substitution of Capital"
 
     MU_0 = c_0**(-var_θ)
