@@ -12,6 +12,8 @@ from ipumspy import IpumsApiClient, MicrodataExtract
 import scipy as sp
 from pathlib import Path
 import sys
+import pickle
+
 import importlib.metadata as md
 import Roots as rt
 import Production_Functions as fn
@@ -557,7 +559,7 @@ class Processor:
         
         
         
-    def Mirrlees_Optimum(self):
+    def Mirrlees_Optimum(self, first=0):
         """""
         Optimal Threshold Rule for Non-Linear Taxes
         
@@ -574,8 +576,17 @@ class Processor:
         # --------------------------------- #
         # Solve for Two Planner Allocations #
         # --------------------------------- #
-        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr_NT()
-        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
+        if first == 1:
+            (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr_NT()
+            E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
+            
+            with open(f'{self.Directory}/Results/E_NT.pkl', 'wb') as file:
+                pickle.dump(E_NT, file)
+    
+        else:
+            with open(f'{self.Directory}/Results/E_NT.pkl', 'rb') as file:
+                E_NT = pickle.load(file)
+        
         (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr_θ(E_NT, x_NT, -0.25, 0.5)
         
         Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
