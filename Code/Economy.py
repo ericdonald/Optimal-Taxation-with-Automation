@@ -1,22 +1,18 @@
 """""""""""
 Economy Module
 
-Last Modified: Eric Donald 5/25
-
-Notes:
+Notes: This file defines a class for the economy of "Optimal Taxation with Automation".
     
-Output:
 """""""""""
 
 import numpy as np
 import pandas as pd
 import scipy as sp
-import numba as nb
 import quantecon as qe
-import cyipopt as cp
+from pathlib import Path
 import Roots as rt
-import Functions as fn
-import Perturbations as pr
+import Production_Functions as fn
+import Processing_Functions as gpf
 
 
 
@@ -25,10 +21,12 @@ class Economy:
     def __init__(self, J):
         "Initialize Economy Object"
         
-        self.Directory = '/projectnb/econdept/ericdon/Optimal Taxation with Automation'
+        self.Directory = Path(__file__).resolve().parent.parent
         
         
-        'Define Externally Calibrated Parameters'
+        # --------------------------------------- #
+        # Define Externally Calibrated Parameters #
+        # --------------------------------------- #
         self.J = J #Number of Occupations
         self.var_θ = 1 #Marginal Utility Curvature
         self.ε = 0.75 #Frisch Elasticity
@@ -36,7 +34,9 @@ class Economy:
         self.δ = 0.07 #Depreciation Rate
         
 
-        'Define Calibration Targets'
+        # -------------------------- #
+        # Define Calibration Targets #
+        # -------------------------- #
         self.COR = 3.5 #Capital-Output Ratio
         self.S_k = 0.4 #Capital Income Share
         self.Y_sq = 100 #Status Quo Output
@@ -49,7 +49,9 @@ class Economy:
         self.Σ_k = 1.25 #Aggregate Elasticity of Substitution
         
         
-        'Define Internally Calibrated Parameters'
+        # --------------------------------------- #
+        # Define Internally Calibrated Parameters #
+        # --------------------------------------- #
         self.Θ = 0 #Wealth Share Convexity
         self.K_sq = self.COR * self.Y_sq #Status Quo Capital
         self.r_sq = self.S_k / self.COR #Status Quo Rent
@@ -77,24 +79,30 @@ class Economy:
     def Calibrate(self):
         "Calibrate Parameters and Status Quo Allocation"
         
-        'Load Data'
+        # --------- #
+        # Load Data #
+        # --------- #
         SCF_df = pd.read_pickle(f'{self.Directory}/Clean Data/SCF_2016.pkl')
         ACS16_df = pd.read_pickle(f'{self.Directory}/Clean Data/ACS16.pkl')
         Webb_df = pd.read_pickle(f'{self.Directory}/Clean Data/Webb.pkl')
 
 
-        'Wealth Distribution Convexity'
-        YS = fn.compute_decile_shares(SCF_df, 'Labor Income')
-        WS = fn.compute_decile_shares(SCF_df, 'Wealth')
+        # ----------------------------- #
+        # Wealth Distribution Convexity #
+        # ----------------------------- #
+        YS = gpf.compute_decile_shares(SCF_df, 'Labor Income')
+        WS = gpf.compute_decile_shares(SCF_df, 'Wealth')
         
         Θ_cal = sp.optimize.root(rt.WealthShapeRoot, 1.88,
-                      args=(WS, YS),
-                      method='lm')
+                                  args=(WS, YS),
+                                  method='lm')
         
         self.Θ = Θ_cal.x[0]
         
         
-        'Labor Market'
+        # ------------ #
+        # Labor Market #
+        # ------------ #
         ACS16_df['wL'] = ACS16_df['w'] * ACS16_df['L']
         ACS16_df['S'] = (1-self.S_k) * ACS16_df['wL'] / ACS16_df['wL'].sum()
         
@@ -113,7 +121,9 @@ class Economy:
         self.χ = (Webb_df['pct_software'].to_numpy() + Webb_df['pct_robot'].to_numpy()) / 2
         
         
-        'Consumption & Labor Disutility'
+        # ------------------------------ #
+        # Consumption & Labor Disutility #
+        # ------------------------------ #
         self.w_j_sq = self.S_j_sq * self.Y_sq / self.L_j_sq
         
         Y_0 = self.Y_sq / (1+self.g)
@@ -150,16 +160,19 @@ class Economy:
         
         self.c_1_sq = self.c_0_sq * (R * self.β / (1-self.β))**(1/self.var_θ)
         
-        self.φ = (self.Ψ * (1-self.ψ) * (self.w_j_sq)**(1-self.ψ)) / (self.l_j_sq**(self.ψ + 1/self.ε) * self.c_1_sq**(self.var_θ))
+        keep_l = fn.Heath_keep(self.w_j_sq, self.l_j_sq, self.Ψ, self.ψ)
+        self.φ = (keep_l * self.w_j_sq) / (self.l_j_sq**(1/self.ε) * self.c_1_sq**(self.var_θ))
         
 
-        'Task-Level Productivity Parameters'
+        # ---------------------------------- #
+        # Task-Level Productivity Parameters #
+        # ---------------------------------- #
         args = (self.var_κ, self.Σ_k, self.χ, self.x_bar, self.σ, self.S_k, self.S_j_sq, self.J)
         
         a = 0
         b = -np.log(1000) / 100 #Lower bound for ζ of 1/1000
         
-        Γ = fn.bisect_scalar(rt.GammaRoot, a, b, args)
+        Γ = gpf.bisect_scalar(rt.GammaRoot, a, b, args)
  
         self.Γ = Γ 
         self.ζ = np.exp(self.Γ * self.χ)
@@ -187,118 +200,159 @@ class Economy:
         args = (E_sq, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.J, self.n, self.y_0, self.Ψ, self.ψ, self.β, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ)
         
         qe.tic()
-        θ = fn.bisect_scalar(rt.Optimalθ_Root, θ_lower, θ_upper, args)
+        θ = gpf.bisect_scalar(rt.Optimalθ_SQ_Root, θ_lower, θ_upper, args)
         qe.toc()
+        print("Status Quo θ Found")
         
         return θ
     
     
     
-    def Mirrlees_Lagr_θ(self):
-        "Solve Non-Linear Tax Problem with Threshold Rule"
-            
-        X_g = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, self.var_κ * self.x_bar, np.array([self.K_sq, 0.25])))
-        
-        Y_0 = self.Y_sq / (1+self.g)
-        K_0 = self.K_sq / (1+self.g)
-        Y_bar = Y_0 + (1-self.δ) * K_0
-        
-        MRS_order = self.c_0_sq**(self.var_θ) * (self.w_j_sq * self.l_j_sq)**(self.ψ + 1/self.ε)
-        IC_Comp_J_py = fn.compute_comp_J(MRS_order, 0.1)
-        IC_count = sum(len(j) for j in IC_Comp_J_py)
-        
-        IC_Comp_J = nb.typed.List.empty_list(nb.types.ListType(nb.types.int64))
-        for j in IC_Comp_J_py:
-            sub = nb.typed.List.empty_list(nb.types.int64)
-            for idx in j:
-                sub.append(idx)
-            IC_Comp_J.append(sub)
-            
-        common_args = (self.J, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.β, self.var_θ, self.φ, self.ε, IC_Comp_J, IC_count, 1)
-        
-        eq_fun = lambda x: rt.Equal_Constr(x, *common_args)
-        eq_jac = lambda x: pr.δEC_δX(x, *common_args)
-        
-        ineq_fun = lambda x: rt.Inequal_Constr(x, *common_args)
-        ineq_jac = lambda x: pr.δIC_δX(x, *common_args)
-        
-        eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
-        ineq_cons = sp.optimize.NonlinearConstraint(ineq_fun, lb=0, ub=np.inf, jac=ineq_jac)
-        
-        bounds = sp.optimize.Bounds(np.zeros(4 * self.J + 2), np.concatenate((np.ones(3 * self.J)*np.inf, np.ones(self.J)*self.x_bar, np.ones(2)*np.inf)))
-        
-        qe.tic()    
-        opt = cp.minimize_ipopt(rt.Mir_obj, X_g, jac=pr.δObj_δX,
-                                args=common_args, bounds=bounds,
-                                constraints=[eq_cons, ineq_cons], options={'maxiter': 1000, 'disp': True})
-        qe.toc()
-        
-        IC = rt.IC_Full(opt.x, self.J, self.n, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.β, self.var_θ, self.φ, self.ε)
-        print(f'IC: {np.min(IC)}')
-        
-        c_0 = opt.x[:self.J]
-        c_1 = opt.x[self.J:2*self.J]
-        l = opt.x[2*self.J:3*self.J]
-        x = opt.x[3*self.J:4*self.J]
-        K = opt.x[-2]
-        θ = opt.x[-1]
-        
-        return (c_0, c_1, l, x, K, θ)
-    
-    
-    
-    def Mirrlees_Lagr_NT(self):
+    def Mirrlees_Lagr_NT(self, damp=1/5, tol=1e-4, max_iter=10000):
         "Solve Non-Linear Tax Problem without Threshold Rule"
             
-        X_g = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, self.var_κ * self.x_bar, np.array([self.K_sq])))
+        E = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq))
+        x = self.var_κ * self.x_bar
         
         Y_0 = self.Y_sq / (1+self.g)
         K_0 = self.K_sq / (1+self.g)
         Y_bar = Y_0 + (1-self.δ) * K_0
         
-        MRS_order = self.c_0_sq**(self.var_θ) * (self.w_j_sq * self.l_j_sq)**(self.ψ + 1/self.ε)
-        IC_Comp_J_py = fn.compute_comp_J(MRS_order, 0.1)
-        IC_count = sum(len(j) for j in IC_Comp_J_py)
+        args = (self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J)
         
-        IC_Comp_J = nb.typed.List.empty_list(nb.types.ListType(nb.types.int64))
-        for j in IC_Comp_J_py:
-            sub = nb.typed.List.empty_list(nb.types.int64)
-            for idx in j:
-                sub.append(idx)
-            IC_Comp_J.append(sub)
+        w = self.w_j_sq
+        r = self.r_sq
+        
+        
+        qe.tic()
+        # ---------- #
+        # Outer Loop #
+        # ---------- #
+        for _ in range(max_iter):
+        
             
-        common_args = (self.J, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.β, self.var_θ, self.φ, self.ε, IC_Comp_J, IC_count, 0)
-        
-        eq_fun = lambda x: rt.Equal_Constr(x, *common_args)
-        eq_jac = lambda x: pr.δEC_δX(x, *common_args)
-        
-        ineq_fun = lambda x: rt.Inequal_Constr(x, *common_args)
-        ineq_jac = lambda x: pr.δIC_δX(x, *common_args)
-        
-        eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
-        ineq_cons = sp.optimize.NonlinearConstraint(ineq_fun, lb=0, ub=np.inf, jac=ineq_jac)
-        
-        bounds = sp.optimize.Bounds(np.zeros(4 * self.J + 1), np.concatenate((np.ones(3 * self.J)*np.inf, np.ones(self.J)*self.x_bar, np.ones(1)*np.inf)))
-        
-        qe.tic()    
-        opt = cp.minimize_ipopt(rt.Mir_obj, X_g, jac=pr.δObj_δX,
-                                args=common_args, bounds=bounds,
-                                constraints=[eq_cons, ineq_cons], options={'maxiter': 1000, 'disp': True})
+            # ---------------- #
+            # Solve Inner Loop #
+            # ---------------- #
+            E = gpf.inner_solve(w, r, E, args)
+            c_0 = E[:self.J]
+            c_1 = E[self.J:2*self.J]
+            l = E[2*self.J:3*self.J]
+            K = Y_bar - np.sum(self.n * c_0)
+            
+            
+            # -------------------- #
+            # Update Factor Prices #
+            # -------------------- #
+            L = self.n * l
+            w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            
+            
+            # -------------------- #
+            # Solve for Thresholds #
+            # -------------------- #
+            x_new = ((w / self.A_j) / (r / self.A_k))**(1/self.ζ)
+            
+            
+            # ---------------------------- #
+            # Check Convergence and Update #
+            # ---------------------------- #
+            error_x = np.max(np.abs(x - x_new))
+            #print(error_x)
+            
+            if error_x < tol:
+                break
+            
+            x = x * (1-damp) + x_new * damp
+            
+            w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            
+            
         qe.toc()
+        print("Mirrlees Capital Tax Solution Found")
         
-        IC = rt.IC_Full(opt.x, self.J, self.n, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.β, self.var_θ, self.φ, self.ε)
-        print(f'IC_NT: {np.min(IC)}')
-        
-        c_0 = opt.x[:self.J]
-        c_1 = opt.x[self.J:2*self.J]
-        l = opt.x[2*self.J:3*self.J]
-        x = opt.x[3*self.J:4*self.J]
-        K = opt.x[-1]
-        
-        return (c_0, c_1, l, x, K)
+        return (c_0, c_1, l, K, x)
         
         
         
+    def Mirrlees_Lagr_θ(self, E, x, θ_lower, θ_upper, θ=0.25, damp=1/5, tol=1e-4, max_iter=1000):
+        "Solve Non-Linear Tax Problem with Threshold Rule"
+                    
+        Y_0 = self.Y_sq / (1+self.g)
+        K_0 = self.K_sq / (1+self.g)
+        Y_bar = Y_0 + (1-self.δ) * K_0
+        
+        args = (self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J)
+        
+        c_0 = E[:self.J]
+        l = E[2*self.J:3*self.J]
+        K = Y_bar - np.sum(self.n * c_0)
+        L = self.n * l
+        
+        w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+        r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+        
+        
+        qe.tic()
+        # ---------- #
+        # Outer Loop #
+        # ---------- #
+        for _ in range(max_iter):
+        
+            
+            # ---------------- #
+            # Solve Inner Loop #
+            # ---------------- #
+            E = gpf.inner_solve(w, r, E, args)
+            c_0 = E[:self.J]
+            c_1 = E[self.J:2*self.J]
+            l = E[2*self.J:3*self.J]
+            K = Y_bar - np.sum(self.n * c_0)
+            
+            
+            # -------------------- #
+            # Update Factor Prices #
+            # -------------------- #
+            L = self.n * l
+            w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            
+            
+            # -------------------- #
+            # Solve for Thresholds #
+            # -------------------- #
+            θ_args = (E, x, w, r, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J, self.x_bar, self.ζ, self.ν, self.σ)
+            θ_new = gpf.bisect_scalar(rt.Optimalθ_NL_Root, θ_lower, θ_upper, θ_args)
+            x_new = ((w / self.A_j) / ((1+θ_new) * r / self.A_k))**(1/self.ζ)
+            
+            
+            # ---------------------------- #
+            # Check Convergence and Update #
+            # ---------------------------- #
+            error_x = np.max(np.abs(x - x_new))
+            #print(error_x)
+            error_θ = np.abs(θ - θ_new)
+            #print(error_θ)
+            
+            if error_θ < tol and error_x < tol:
+                break
+            
+            θ = θ * (1-damp) + θ_new * damp
+            x = x * (1-damp) + x_new * damp
+            
+            w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            
+        
+        qe.toc()
+        print("Mirrlees Threshold Rule Solution Found")
+        
+        return (c_0, c_1, l, K, x, θ)    
         
         
         
+    def AI_economy(self, g_k):
+        "Solve for Post-AI Economy"
+

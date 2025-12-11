@@ -1,24 +1,7 @@
 """""""""""
 Processor Module
 
-Last Modified: Eric Donald 5/25
-
-Notes:
-    
-Output: Clean Data/FRED_CPI.pkl
-        Clean Data/SCF_2016.pkl
-        Clean Data/OCC_Crosswalk.pkl
-        Clean Data/Census80.pkl
-        Clean Data/ACS16.pkl
-        Clean Data/Webb.pkl
-        Clean Data/CapbyOcc_ES_2d.pkl
-        Results/Figures/Wealth_Convexity.csv
-        Results/Tables/Calibrate_Results.csv
-        Results/Figures/CapbyOcc_ES_2d.csv
-        Results/Tables/Validation_Results.csv
-        Results/Figures/StatusQuo_Covariance.csv
-        Results/Tables/StatusQuo_Results.csv
-        Results/Tables/Mirrlees_Results.csv
+Notes: This file defines a class for processing the economy of "Optimal Taxation with Automation".
         
 """""""""""
 
@@ -27,9 +10,15 @@ import requests as api
 import numpy as np
 from ipumspy import IpumsApiClient, MicrodataExtract
 import scipy as sp
+from pathlib import Path
+import sys
+import pickle
+
+import importlib.metadata as md
 import Roots as rt
-import Functions as fn
+import Production_Functions as fn
 import Perturbations as pr
+import Processing_Functions as gpf
 
 
 
@@ -38,21 +27,40 @@ class Processor:
     def __init__(self, E):
         "Initialize Processor Object"
         
-        'Load in the Economy Object'
         self.E = E
-        self.Directory = '/projectnb/econdept/ericdon/Optimal Taxation with Automation'
-        self.FRED_API = 'e992d0545959081369e14ec7b5015b0a'
-        self.IPUMS_API = '59cba10d8a5da536fc06b59dec5c582a5a7040adb74c065089682684'
+        self.Directory = Path(__file__).resolve().parent.parent
+        
+        keys_path = self.Directory / ".keys"
+        keys = {}
+        with open(keys_path) as f:
+            for line in f:
+                if "=" in line:
+                    k, v = line.strip().split("=", 1)
+                    keys[k.strip()] = v.strip()
+        
+        self.FRED_API = keys.get("FRED_API")
+        self.IPUMS_API = keys.get("IPUMS_API")
                 
         
         
     def Cleaner(self, ipums_extract=0):
-        "Clean Data"
-   
-        'FRED Data'
+        """""
+        Clean Data
         
-        'CPI'
-        FRED = api.get(f'https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&frequency=a&observation_start=1980-01-01&observation_end=2016-01-01&api_key={self.FRED_API}&file_type=json')
+        Output: Clean Data/FRED_CPI.pkl
+                Clean Data/SCF_2016.pkl
+                Clean Data/OCC_Crosswalk.pkl
+                Clean Data/Census80.pkl
+                Clean Data/ACS16.pkl
+                Clean Data/Webb.pkl
+                Clean Data/CapbyOcc_ES_2d.pkl
+        """""
+   
+        
+        # -------- #
+        # FRED CPI #
+        # -------- #
+        FRED = api.get(f'https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&frequency=a&api_key={self.FRED_API}&file_type=json')
         data = FRED.json()['observations']
         filtered_data = [{'date': entry['date'], 'value': entry['value']} for entry in data]
         CPI_df = pd.DataFrame(filtered_data)
@@ -65,14 +73,18 @@ class Processor:
         CPI_df.to_pickle(f'{self.Directory}/Clean Data/FRED_CPI.pkl')
         
         
-        'SCF'
+        # --- #
+        # SCF #
+        # --- #
         SCF_df = pd.read_csv(f'{self.Directory}/Raw Data/SCF_2016.csv', usecols=['WGT', 'NETWORTH', 'WAGEINC'])
         SCF_df.rename(columns={'WGT': 'Weight', 'NETWORTH': 'Wealth', 'WAGEINC': 'Labor Income'}, inplace=True)
         
         SCF_df.to_pickle(f'{self.Directory}/Clean Data/SCF_2016.pkl')
         
         
-        'IPUMS'
+        # ----- #
+        # IPUMS #
+        # ----- #
         if ipums_extract==1:
             ipums = IpumsApiClient(self.IPUMS_API)
             extract = MicrodataExtract(
@@ -118,7 +130,9 @@ class Processor:
         IPUMS_df = IPUMS_df.apply(pd.to_numeric, errors='coerce')
 
         
-        'Census & ACS'
+        # ------------ #
+        # Census & ACS #
+        # ------------ #
         Crosswalk_df = pd.read_stata(f'{self.Directory}/Raw Data/onet_to_occ1990dd.dta')
         Crosswalk_df = Crosswalk_df[['occ1990dd', 'occ']]
         Crosswalk_df = Crosswalk_df.drop_duplicates()
@@ -195,7 +209,9 @@ class Processor:
         
         ACS16_df.to_pickle(f'{self.Directory}/Clean Data/ACS16.pkl')
         
-        'Webb'
+        # ---- #
+        # Webb #
+        # ---- #
         Webb_df = pd.read_csv(f'{self.Directory}/Raw Data/Webb.csv')
         Webb_df = Webb_df.drop('lswt2010', axis=1)
                 
@@ -208,7 +224,9 @@ class Processor:
         
         Webb_df.to_pickle(f'{self.Directory}/Clean Data/Webb.pkl')
         
-        'Capital by Occupation'
+        # --------------------- #
+        # Capital by Occupation #
+        # --------------------- #
         CapbyOcc_ES_2d_df = pd.read_csv(f'{self.Directory}/Raw Data/CapbyOcc_ES_2d.csv')
         
         CapbyOcc_ES_2d_df.rename(columns={'occp': 'occ1990dd_2d_title',
@@ -220,26 +238,29 @@ class Processor:
         
 
     def Calibrate(self):
-        "Calibrate Parameters and Status Quo Allocation"
+        """""
+        Calibrate Parameters and Status Quo Allocation
+        
+        Output: Results/Figures/Wealth_Convexity.csv
+                Results/Tables/Calibrate_Results.csv
+        """""
         
         self.E.Calibrate()
-        Calibrate_Results = {'Variable':[], 'Value':[]}
+        Calibrate_Results = gpf.ResultsTable()
         
-        Calibrate_Results['Variable'].append('Status Quo Labor Tax Scale')
-        Calibrate_Results['Value'].append(fn.clean_round(self.E.Ψ, 2))
-        Calibrate_Results['Variable'].append('Automation Exposure Effect')
-        Calibrate_Results['Value'].append(fn.clean_round(self.E.Γ, 3))
-        Calibrate_Results['Variable'].append('Household Discount Factor')
-        Calibrate_Results['Value'].append(fn.clean_round(self.E.β, 2))
+        Calibrate_Results.add('Status Quo Labor Tax Scale', gpf.clean_round(self.E.Ψ, 2))
+        Calibrate_Results.add('Automation Exposure Effect', gpf.clean_round(self.E.Γ, 3))
+        Calibrate_Results.add('Household Discount Factor', gpf.clean_round(self.E.β, 2))
         
-        'Wealth Convexity Graph'
-        Calibrate_Results['Variable'].append('Wealth Convexity')
-        Calibrate_Results['Value'].append(fn.clean_round(self.E.Θ, 2))
+        # ---------------------- #
+        # Wealth Convexity Graph #
+        # ---------------------- #
+        Calibrate_Results.add('Wealth Convexity', gpf.clean_round(self.E.Θ, 2))
         
         SCF_df = pd.read_pickle(f'{self.Directory}/Clean Data/SCF_2016.pkl')
         
-        YS = fn.compute_decile_shares(SCF_df, 'Labor Income').reshape((-1,1))
-        WS = fn.compute_decile_shares(SCF_df, 'Wealth').reshape((-1,1))
+        YS = gpf.compute_decile_shares(SCF_df, 'Labor Income').reshape((-1,1))
+        WS = gpf.compute_decile_shares(SCF_df, 'Wealth').reshape((-1,1))
         WS_hat = ( YS**self.E.Θ ) / ( sum(YS**self.E.Θ) ).reshape((-1,1))
         Deciles = np.arange(1,11).reshape((-1,1))
         
@@ -247,10 +268,11 @@ class Processor:
                              columns=['Deciles', 'Income Shares', 'Wealth Shares', 'Predicted Wealth Shares'])
         DF_WC.to_csv(f'{self.Directory}/Results/Figures/Wealth_Convexity.csv', index=False)
         
-        Calibrate_Results['Variable'].append('Top Wealth Share')
-        Calibrate_Results['Value'].append(fn.clean_round(WS[-1,0]*100, 1))
+        Calibrate_Results.add('Top Wealth Share', gpf.clean_round(WS[-1,0]*100, 1))
         
-        'Marginal Effect of Task Displacement'
+        # ------------------------------------ #
+        # Marginal Effect of Task Displacement #
+        # ------------------------------------ #
         x_j = self.E.var_κ * self.E.x_bar
         rel_l = fn.relα(x_j, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0)
         
@@ -259,33 +281,41 @@ class Processor:
         
         β_auto = np.sum(self.E.L_j_sq * β_j) / N
         
-        Calibrate_Results['Variable'].append('Task Displacement Effect')
-        Calibrate_Results['Value'].append(fn.clean_round(β_auto, 2))
+        Calibrate_Results.add('Task Displacement Effect', gpf.clean_round(β_auto, 2))
         
-        '50th Percentile Effect'
+        # ---------------------- #
+        # 50th Percentile Effect #
+        # ---------------------- #
         ζ_50 = fn.zeta(self.E.Γ, 50)
         Fif = 1 / ζ_50
         
-        Calibrate_Results['Variable'].append('50th Percentile Effect')
-        Calibrate_Results['Value'].append(fn.clean_round(Fif, 2))
+        Calibrate_Results.add('50th Percentile Effect', gpf.clean_round(Fif, 2))
         
-        Calibrate_Results_df = pd.DataFrame(Calibrate_Results)
-        Calibrate_Results_df.to_csv(f'{self.Directory}/Results/Tables/Calibrate_Results.csv', index=False)
+        Calibrate_Results.to_csv(f'{self.Directory}/Results/Tables/Calibrate_Results.csv')
         
         
         
     def Validation(self):
-        "Validation Exercises"
+        """""
+        Validation Exercises
         
-        Validation_Results = {'Variable':[], 'Value':[]}
+        Output: Results/Figures/CapbyOcc_ES_2d.csv
+                Results/Tables/Validation_Results.csv
+        """""
         
-        'Load Data'
+        Validation_Results = gpf.ResultsTable()
+        
+        # --------- #
+        # Load Data #
+        # --------- #
         Census80_df = pd.read_pickle(f'{self.Directory}/Clean Data/Census80.pkl')
         ACS16_df = pd.read_pickle(f'{self.Directory}/Clean Data/ACS16.pkl')
         CapbyOcc_ES_2d_df = pd.read_pickle(f'{self.Directory}/Clean Data/CapbyOcc_ES_2d.pkl')
 
         
-        '1980-2016 Log Changes'
+        # --------------------- #
+        # 1980-2016 Log Changes #
+        # --------------------- #
         w_80 = Census80_df['w'].to_numpy()
         w_16 = ACS16_df['w'].to_numpy()
         L_16 = ACS16_df['L'].to_numpy()
@@ -293,7 +323,9 @@ class Processor:
         dln_w_j = np.log(w_16) - np.log(w_80)
 
                 
-        'Automation Regression Fit'
+        # ------------------------- #
+        # Automation Regression Fit #
+        # ------------------------- #
         N = np.sum(L_16)
         weight = L_16 / N
         
@@ -315,11 +347,12 @@ class Processor:
         
         R_squared = 1 - SSR / Var_dlnw
         
-        Validation_Results['Variable'].append('Regression Fit')
-        Validation_Results['Value'].append(fn.clean_round(R_squared*100, 1))
+        Validation_Results.add('Regression Fit', gpf.clean_round(R_squared*100, 1))
         
         
-        'Occupation-Level Elasticities of Subsitution'
+        # -------------------------------------------- #
+        # Occupation-Level Elasticities of Subsitution #
+        # -------------------------------------------- #
         CapbyOcc_df = ACS16_df[['occ1990dd']]
         
         conditions = [
@@ -378,12 +411,9 @@ class Processor:
         
         Sigma_hat = (X_1 @ β_1).reshape(-1)
         
-        Validation_Results['Variable'].append('Occ Regression Intercept')
-        Validation_Results['Value'].append(fn.clean_round(β_0[0,0], 2))
-        Validation_Results['Variable'].append('Occ Regression Slope')
-        Validation_Results['Value'].append(fn.clean_round(β_0[1,0], 2))
-        Validation_Results['Variable'].append('Occ Regression Coef')
-        Validation_Results['Value'].append(fn.clean_round(β_1[0,0], 2))
+        Validation_Results.add('Occ Regression Intercept', gpf.clean_round(β_0[0,0], 2))
+        Validation_Results.add('Occ Regression Slope', gpf.clean_round(β_0[1,0], 2))
+        Validation_Results.add('Occ Regression Coef', gpf.clean_round(β_1[0,0], 2))
         
         CapbyOcc_ES_2d_df['Sigma_2d'] = Sigma_model
         CapbyOcc_ES_2d_df['Sigma_2d_hat'] = Sigma_hat
@@ -392,25 +422,28 @@ class Processor:
         
         CapbyOcc_ES_2d_df.to_csv(f'{self.Directory}/Results/Figures/CapbyOcc_ES_2d.csv', index=False)
         
-        
-        Validation_Results_df = pd.DataFrame(Validation_Results)
-        Validation_Results_df.to_csv(f'{self.Directory}/Results/Tables/Validation_Results.csv', index=False)
+        Validation_Results.to_csv(f'{self.Directory}/Results/Tables/Validation_Results.csv')
         
         
         
     def StatusQuo_Optimum(self):
-        "Optimal Threshold Rule for Status Quo Taxes"
+        """""
+        Optimal Threshold Rule for Status Quo Taxes
         
-        StatusQuo_Results = {'Variable':[], 'Value':[]}
+        Output: Results/Figures/StatusQuo_Covariance.csv
+                Results/Tables/StatusQuo_Results.csv
+        """""
+        
+        StatusQuo_Results = gpf.ResultsTable()
         
         θ = self.E.StatusQuo_θ(0,1/3)
         
-        StatusQuo_Results['Variable'].append('Optimal Status Quo Threshold Rule')
-        StatusQuo_Results['Value'].append(fn.clean_round(θ*100, 1))
+        StatusQuo_Results.add('Optimal Status Quo Threshold Rule', gpf.clean_round(θ*100, 1))
         
         
-        'Derive Equilibria'
-        
+        # ----------------- #
+        # Derive Equilibria #
+        # ----------------- #
         E_sq = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
         
         Eqbm = sp.optimize.root(rt.Eqbm_Root, E_sq,
@@ -425,159 +458,200 @@ class Processor:
         x = E[3*self.E.J:]
         
         
-        'Optimal Perturbations'
-        ΔH_ΔΕ = pr.δH_δclx(E, θ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0, self.E.Ψ, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ)
-        ΔH_Δθ = pr.δH_δθ(θ, self.E.J)
-
-        dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_Δθ
-        
-        dc_0 = dE[:self.E.J,0]
-        dl = dE[2*self.E.J:3*self.E.J,0]
-        dx = dE[3*self.E.J:,0]
-        
+        # ------------------ #
+        # Optimal Allocation #
+        # ------------------ #
         L = self.E.n * l
         κ = self.E.y_0 - c_0
         K = np.sum(self.E.n * κ)
-        
-        w = fn.Wages(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
-        r = fn.Rents(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
-        R = (1-self.E.τ_k)*(r-self.E.δ) - self.E.g
         Y = fn.Output(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
-        δlnw = pr.dlnw(dc_0, dl, dx, c_0, l, x, θ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
-        δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x, θ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
-        δlnR = (1-self.E.τ_k) * r * δlnr / R
-                
         λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
-        δI = (self.E.Ψ * (1-self.E.ψ) * (w*l)**(1-self.E.ψ) * δlnw + (1-self.E.τ_k) * R * κ * δlnR) / Y
+        A_expos = x / self.E.ζ
+        cov = np.sum(self.E.n * (λ-1) * A_expos)
         
-        cov = np.sum(self.E.n * (λ-1) * δI)
         
-        
-        'Optimal Perturbations'
-        ΔH_ΔΕ_sq = pr.δH_δclx(E_sq, 0, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0, self.E.Ψ, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ)
-        ΔH_Δθ_sq = pr.δH_δθ(0, self.E.J)
-
-        dE_sq = - np.linalg.inv(ΔH_ΔΕ_sq) @ ΔH_Δθ_sq
-        
-        dc_0_sq = dE_sq[:self.E.J,0]
-        dl_sq = dE_sq[2*self.E.J:3*self.E.J,0]
-        dx_sq = dE_sq[3*self.E.J:,0]
-        
-        κ_sq = self.E.y_0 - self.E.c_0_sq
-        R_sq = (1-self.E.τ_k)*(self.E.r_sq-self.E.δ) - self.E.g
-        
-        δlnw_sq = pr.dlnw(dc_0_sq, dl_sq, dx_sq, self.E.c_0_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar, 0, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
-        δlnr_sq = pr.dlnr(dc_0_sq, dl_sq, dx_sq, self.E.c_0_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar, 0, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
-        δlnR_sq = (1-self.E.τ_k) * self.E.r_sq * δlnr_sq / R_sq
-                
+        # --------------------- #
+        # Status Quo Allocation #
+        # --------------------- #
         λ_sq = self.E.c_1_sq**(-self.E.var_θ) / np.sum(self.E.n * self.E.c_1_sq**(-self.E.var_θ))
-        δI_sq = (self.E.Ψ * (1-self.E.ψ) * (self.E.w_j_sq*self.E.l_j_sq)**(1-self.E.ψ) * δlnw_sq + (1-self.E.τ_k) * R_sq * κ_sq * δlnR_sq) / self.E.Y_sq
+        A_expos_sq = self.E.var_κ * self.E.x_bar / self.E.ζ
+        cov_sq = np.sum(self.E.n * (λ_sq-1) * A_expos_sq)
         
-        cov_sq = np.sum(self.E.n * (λ_sq-1) * δI_sq)
         
-        
-        'Comparison Table'
-        ΔoptK = (np.log(K) - np.log(self.E.K_sq)) * 100
-        ΔoptY = (np.log(Y) - np.log(self.E.Y_sq)) * 100
-        ΔoptCOV = (np.log(cov) - np.log(cov_sq)) * 100
+        # ---------------- #
+        # Comparison Table #
+        # ---------------- #
+        ΔoptK = (K - self.E.K_sq) * 100 / self.E.K_sq
+        ΔoptY = (Y - self.E.Y_sq) * 100 / self.E.Y_sq
+        ΔoptCOV = (cov - cov_sq) * 100 / cov_sq
         
         CE = sp.optimize.root(rt.CERoot, 1,
-                      args=(c_0, c_1, l, self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε),
+                      args=(c_0, c_1, l, self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
                       method='lm')
         
         ConEquiv = (CE.x[0] - 1) * 100
         
-        StatusQuo_Results['Variable'].append('Optimal Status Quo DCapital')
-        StatusQuo_Results['Value'].append(fn.clean_round(ΔoptK, 1))
-        StatusQuo_Results['Variable'].append('Optimal Status Quo DOutput')
-        StatusQuo_Results['Value'].append(fn.clean_round(ΔoptY, 1))
-        StatusQuo_Results['Variable'].append('Optimal Status Quo DCOV')
-        StatusQuo_Results['Value'].append(fn.clean_round(ΔoptCOV, 1))
-        StatusQuo_Results['Variable'].append('Optimal Status Quo Consumption Equivalence')
-        StatusQuo_Results['Value'].append(fn.clean_round(ConEquiv, 1))
+        StatusQuo_Results.add('Optimal Status Quo DCapital', gpf.clean_round(ΔoptK, 1))
+        StatusQuo_Results.add('Optimal Status Quo DOutput', gpf.clean_round(ΔoptY, 1))
+        StatusQuo_Results.add('Optimal Status Quo DCOV', gpf.clean_round(ΔoptCOV, 1))
+        StatusQuo_Results.add('Optimal Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv, 1))
+
         
-        
-        'Covariance Figure'
-        X_opt = np.hstack((np.ones((self.E.J,1)), δI.reshape((-1,1))))
-        X_sq = np.hstack((np.ones((self.E.J,1)), δI_sq.reshape((-1,1))))
-        W = np.diag(self.E.n)
-        
-        β_opt = np.linalg.inv(X_opt.T @ W @ X_opt) @ X_opt.T @ W @ λ.reshape((-1,1))
-        β_sq = np.linalg.inv(X_sq.T @ W @ X_sq) @ X_sq.T @ W @ λ_sq.reshape((-1,1))
-        
-        λ_hat = X_opt @ β_opt
-        λ_hat_sq = X_sq @ β_sq
-        
-        DF_Cov_sq = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), δI.reshape((-1,1)), λ.reshape((-1,1)), λ_hat, δI_sq.reshape((-1,1)), λ_sq.reshape((-1,1)), λ_hat_sq)), 
-                             columns=['Weight', 'dI Optimal', 'lambda Optimal', 'lambda hat Optimal', 'dI Status Quo', 'lambda Status Quo', 'lambda hat Status Quo'])
+        # ----------------- #
+        # Covariance Figure #
+        # ----------------- #
+        DF_Cov_sq = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), A_expos.reshape((-1,1)), λ.reshape((-1,1)), A_expos_sq.reshape((-1,1)), λ_sq.reshape((-1,1)))), 
+                             columns=['Weight', 'Automation Exposure Optimal', 'lambda Optimal',  'Automation Exposure Status Quo', 'lambda Status Quo'])
+        DF_Cov_sq = DF_Cov_sq.sort_values("Weight", ascending=False)
         DF_Cov_sq.to_csv(f'{self.Directory}/Results/Figures/StatusQuo_Covariance.csv', index=False)
         
-        StatusQuo_Results['Variable'].append('Optimal Regression Coef')
-        StatusQuo_Results['Value'].append(fn.clean_round(β_opt[1,0], 2))
-        StatusQuo_Results['Variable'].append('Status Quo Regression Coef')
-        StatusQuo_Results['Value'].append(fn.clean_round(β_sq[1,0], 2))
         
-        
-        StatusQuo_Results_df = pd.DataFrame(StatusQuo_Results)
-        StatusQuo_Results_df.to_csv(f'{self.Directory}/Results/Tables/StatusQuo_Results.csv', index=False)
+        StatusQuo_Results.to_csv(f'{self.Directory}/Results/Tables/StatusQuo_Results.csv')
         
         
         
-    def Mirrlees_Optimum(self):
-        "Optimal Threshold Rule for Non-Linear Taxes"
+    def Mirrlees_Optimum(self, first1=0, first2=0):
+        """""
+        Optimal Threshold Rule for Non-Linear Taxes
         
-        Mirrlees_Results = {'Variable':[], 'Value':[]}
+        Output: Results/Figures/Mirrlees_Covariance.csv
+                Results/Tables/Mirrlees_Results.csv
+        """""
+        
+        Mirrlees_Results = gpf.ResultsTable()
         
         Y_0 = self.E.Y_sq / (1+self.E.g)
         K_0 = self.E.K_sq / (1+self.E.g)
         Y_bar = Y_0 + (1-self.E.δ) * K_0
         
         
-        'Solve for Two Planner Allocations'
-        (c_0, c_1, l, x, K, θ) = self.E.Mirrlees_Lagr_θ()
-        (c_0_NT, c_1_NT, l_NT, x_NT, K_NT) = self.E.Mirrlees_Lagr_NT()
+        # --------------------------------- #
+        # Solve for Two Planner Allocations #
+        # --------------------------------- #
+        if first1 == 1:
+            tup_NT = self.E.Mirrlees_Lagr_NT()
+            
+            with open(f'{self.Directory}/Results/E_NT.pkl', 'wb') as file:
+                pickle.dump(tup_NT, file)
+                (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = tup_NT
+    
+        else:
+            with open(f'{self.Directory}/Results/E_NT.pkl', 'rb') as file:
+                tup_NT = pickle.load(file)
+                (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = tup_NT
+        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
         
-        Mirrlees_Results['Variable'].append('Optimal Mirrlees Threshold Rule')
-        Mirrlees_Results['Value'].append(fn.clean_round(θ*100, 1))
+        if first2 == 1:
+            tup = self.E.Mirrlees_Lagr_θ(E_NT, x_NT, -0.25, 0.5)
+            
+            with open(f'{self.Directory}/Results/E_theta.pkl', 'wb') as file:
+                pickle.dump(tup, file)
+                (c_0, c_1, l, K, x, θ) = tup
+    
+        else:
+            with open(f'{self.Directory}/Results/E_theta.pkl', 'rb') as file:
+                tup = pickle.load(file)
+                (c_0, c_1, l, K, x, θ) = tup
         
+        
+        # -------------------------- #
+        # Threshold Mirrlees Optimum #
+        # -------------------------- #        
         L = self.E.n * l
         K = Y_bar - np.sum(self.E.n * c_0)
         Y = fn.Output(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
+        λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
+        A_expos = x / self.E.ζ
+        cov = np.sum(self.E.n * (λ-1) * A_expos)
+        
+        Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
+        
+        
+        # ---------------------------- #
+        # Capital Tax Mirrlees Optimum #
+        # ---------------------------- #
         L_NT = self.E.n * l_NT
         K_NT = Y_bar - np.sum(self.E.n * c_0_NT)
         Y_NT = fn.Output(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
-        R_tilde_NT = (c_1_NT[0]/ c_0_NT[0])**(self.E.var_θ) * (1 - self.E.β) / self.E.β
+        λ_NT = c_1_NT**(-self.E.var_θ) / np.sum(self.E.n * c_1_NT**(-self.E.var_θ))
+        A_expos_NT = x_NT / self.E.ζ
+        cov_NT = np.sum(self.E.n * (λ_NT-1) * A_expos_NT)
+        
+        MRS_c_NT = fn.cap_MRS(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
         r_NT = fn.Rents(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
-        τ_K_NT = 1 - (R_tilde_NT + self.E.g) / (r_NT - self.E.δ)
-        
-        Mirrlees_Results['Variable'].append('Optimal Mirrlees Capital Tax NT')
-        Mirrlees_Results['Value'].append(fn.clean_round(τ_K_NT*100, 1))
+        τ_K_NT = np.sum(self.E.n * (1 - (MRS_c_NT + self.E.g) / (r_NT - self.E.δ)))
+        Mirrlees_Results.add('Optimal Mirrlees Capital Tax NT', gpf.clean_round(τ_K_NT*100, 1))
         
         
-        'Comparison Table'
-        ΔoptK = (np.log(K) - np.log(K_NT)) * 100
-        ΔoptY = (np.log(Y) - np.log(Y_NT)) * 100
+        # ---------------- #
+        # Comparison Table #
+        # ---------------- #
+        ΔoptK = (K - K_NT) * 100 / K_NT
+        ΔoptY = (Y - Y_NT) * 100 / Y_NT
+        ΔoptCOV = (cov - cov_NT) * 100 / cov_NT
         
         CE = sp.optimize.root(rt.CERoot, 1,
-                      args=(c_0, c_1, l, c_0_NT, c_1_NT, l_NT, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε),
+                      args=(c_0, c_1, l, c_0_NT, c_1_NT, l_NT, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
                       method='lm')
         
         ConEquiv = (CE.x[0] - 1) * 100
         
-        Mirrlees_Results['Variable'].append('Optimal Mirrlees DCapital')
-        Mirrlees_Results['Value'].append(fn.clean_round(ΔoptK, 1))
-        Mirrlees_Results['Variable'].append('Optimal Mirrlees DOutput')
-        Mirrlees_Results['Value'].append(fn.clean_round(ΔoptY, 1))
-        Mirrlees_Results['Variable'].append('Optimal Mirrlees Consumption Equivalence')
-        Mirrlees_Results['Value'].append(fn.clean_round(ConEquiv, 1))
+        Mirrlees_Results.add('Optimal Mirrlees DCapital', gpf.clean_round(ΔoptK, 1))
+        Mirrlees_Results.add('Optimal Mirrlees DOutput', gpf.clean_round(ΔoptY, 1))
+        Mirrlees_Results.add('Optimal Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 1))
+        Mirrlees_Results.add('Optimal Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 1))
         
         
-        Mirrlees_Results_df = pd.DataFrame(Mirrlees_Results)
-        Mirrlees_Results_df.to_csv(f'{self.Directory}/Results/Tables/Mirrlees_Results.csv', index=False)
+        # ----------------- #
+        # Covariance Figure #
+        # ----------------- #
+        DF_Cov_NT = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), A_expos.reshape((-1,1)), λ.reshape((-1,1)), A_expos_NT.reshape((-1,1)), λ_NT.reshape((-1,1)))), 
+                             columns=['Weight', 'Automation Exposure Optimal', 'lambda Optimal', 'Automation Exposure Capital Tax', 'lambda Capital Tax'])
+        DF_Cov_NT = DF_Cov_NT.sort_values("Weight", ascending=False)
+        DF_Cov_NT.to_csv(f'{self.Directory}/Results/Figures/Mirrlees_Covariance.csv', index=False)
+        
+
+        Mirrlees_Results.to_csv(f'{self.Directory}/Results/Tables/Mirrlees_Results.csv')
+        
+    
+    def AI_experiment(self):
+        """""
+        Optimal Threshold Rule for AI Scenarios
+        
+        Output: 
+        """""
         
         
-            
+        
+    def write_package_versions(self, packages):
+        """""
+        Table of Package Versions
+    
+        Output: Results/core_versions.txt
+        """""
+        
+        filename=f'{self.Directory}/Results/core_versions.txt'
+        
+        # ---------------- #
+        # Collect Packages #
+        # ---------------- #
+        rows = []
+        for pkg in packages:
+            ver = md.version(pkg)
+            rows.append((pkg, ver))
+    
+    
+        # ----------- #
+        # Write Table #
+        # ----------- #
+        print(sys.version)
+        
+        with open(filename, "w") as f:
+            f.write("| Package | Version |\n")
+            f.write("|---------|---------|\n")
+            for pkg, ver in rows:
+                f.write(f"| {pkg} | {ver} |\n")
             

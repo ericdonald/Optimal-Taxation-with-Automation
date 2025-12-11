@@ -1,17 +1,14 @@
 """""""""""
 Roots
 
-Last Modified: Eric Donald 5/25
+Notes: Functions that define the various roots of the economy.
 
-Notes:
-    
-Output:
 """""""""""
 
 import numpy as np
 import scipy as sp
 from numba import njit
-import Functions as fn
+import Production_Functions as fn
 import Perturbations as pr
 
 
@@ -28,25 +25,37 @@ def WealthShapeRoot(Θ, WS, YS):
 
 
 def ConCalRoot(CSQ, J, Y, K, G, n, w_j, l_j, y_j0, r, δ, g, τ_k, Ψ, ψ, var_θ):
-    "Consumption, Tax Scale, and Investment Price Root"
+    "Consumption and Discount Factor Root"
     
-    'Unpack Variables'
+    # ---------------- #
+    # Unpack Variables #
+    # ---------------- #
     c_j0 = CSQ[:J]
     β = CSQ[-1]
     
-    R = (1-τ_k) * (r - δ) - g
+    R_tilde = (1-τ_k) * (r - δ) - g
+    beta_tilde = β / (1 - β * (1+g)**(1-var_θ))
     D_1 = G * Y
     
-    'Find c_j1 with Euler'
-    c_j1 = c_j0 * (R * β / (1-β))**(1 / var_θ)
     
-    'Consumption Root'
-    κ_j1 = (c_j1 - Ψ * (w_j * l_j)**(1-ψ) - D_1) / R
+    # -------------------- #
+    # Find c_j1 with Euler #
+    # -------------------- #
+    c_j1 = c_j0 * (R_tilde * beta_tilde)**(1 / var_θ)
+    
+    
+    # ---------------- #
+    # Consumption Root #
+    # ---------------- #
+    κ_j1 = (c_j1 - Ψ * (w_j * l_j)**(1-ψ) - D_1) / R_tilde
     
     RHS_c0 = y_j0 - κ_j1
     Root_c0 = c_j0 - RHS_c0
     
-    'Investment Root'
+    
+    # -------------------- #
+    # Discount Factor Root #
+    # -------------------- #
     RHS_β = np.sum(n * (y_j0 - c_j0))
     Root_β = np.array([K - RHS_β])
     
@@ -114,21 +123,36 @@ def Eqbm_Root(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     
     w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    R = (1-τ_k)*(r-δ) - g
+    R_tilde = (1-τ_k)*(r-δ) - g
     
     D = np.sum(n * (w * l - Ψ * (w * l)**(1-ψ))) + τ_k * (r - δ) * K
     
+    MRS_l = fn.lab_MRS(c_1, l, β, var_θ, φ, ε, g)
+    MRS_c = fn.cap_MRS(c_0, c_1, β, var_θ, ε, g)
+    keep_l = fn.Heath_keep(w, l, Ψ, ψ)
     
-    'Log Labor Supply'
-    ln_LS = np.log(φ) + (ψ + 1/ε) * np.log(l) + var_θ * np.log(c_1) - (np.log(Ψ) + np.log(1-ψ) + (1-ψ) * np.log(w))
     
-    'Log Euler Equation'
-    ln_EE = var_θ * np.log(c_1) - var_θ * np.log(c_0) - (np.log(R) + np.log(β/(1-β)))
+    # ---------------- #
+    # Log Labor Supply #
+    # ---------------- #
+    ln_LS = np.log(MRS_l) - np.log(keep_l) - np.log(w)
     
-    'Budget Constraint'
-    BC = R * c_0 + c_1 - (R * y_0 + Ψ * (w*l)**(1-ψ) + D)
     
-    'Log Automation Threshold'
+    # ------------------ #
+    # Log Euler Equation #
+    # ------------------ #
+    ln_EE = np.log(MRS_c) - np.log(R_tilde)
+    
+    
+    # ----------------- #
+    # Budget Constraint #
+    # ----------------- #
+    BC = R_tilde * c_0 + c_1 - (R_tilde * y_0 + Ψ * (w*l)**(1-ψ) + D)
+    
+    
+    # ------------------------ #
+    # Log Automation Threshold #
+    # ------------------------ #
     ln_AT = ζ * np.log(x) - ((np.log(w) - np.log(A_j)) - (np.log(1+θ) + np.log(r) - np.log(A_k)))
 
 
@@ -136,10 +160,12 @@ def Eqbm_Root(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
 
 
 
-def Optimalθ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ):
+def Optimalθ_SQ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ):
     "Root for Optimal Threshold Rule with Status Quo Taxes"
     
-    'Solve for Equilibrium Allocation'
+    # -------------------------------- #
+    # Solve for Equilibrium Allocation #
+    # -------------------------------- #
     Eqbm = sp.optimize.root(Eqbm_Root, E_sq,
                   args=(θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ),
                   jac=pr.δH_δclx)
@@ -151,7 +177,10 @@ def Optimalθ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β,
     l = E[2*J:3*J]
     x = E[3*J:]
     
-    'Compute Threshold Rule Perturbations'
+    
+    # ------------------------------------ #
+    # Compute Threshold Rule Perturbations #
+    # ------------------------------------ #
     ΔH_ΔΕ = pr.δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ)
     ΔH_Δθ = pr.δH_δθ(θ, J)
 
@@ -170,12 +199,12 @@ def Optimalθ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β,
     
     w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    R = (1-τ_k)*(r-δ) - g
+    R = r - δ - g
     Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     
     δlnw = pr.dlnw(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0)
     δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0)
-    δlnR = (1-τ_k) * r * δlnr / R
+    δlnR = r * δlnr / R
     
     α_k = x**(ζ*(ν-1))
     
@@ -186,12 +215,17 @@ def Optimalθ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β,
     
     δY_δX = Y * (A_k * α_k / r)**(σ-1) * θ_wedge
     
+    MRS_l = fn.lab_MRS(c_1, l, β, var_θ, φ, ε, g)
+    MRS_c = fn.cap_MRS(c_0, c_1, β, var_θ, ε, g)
     λ = c_1**(-var_θ) / np.sum(n * c_1**(-var_θ))
     
-    'Optimality Condition'
+    
+    # -------------------- #
+    # Optimality Condition #
+    # -------------------- #
     MC = -np.sum(δY_δX * dx)
-    cov = np.sum(n * (λ-1) * (Ψ * (1-ψ) * (w*l)**(1-ψ) * δlnw + (1-τ_k) * R * κ * δlnR))
-    Expect = np.sum(n * ((w*l - Ψ * (1-ψ) * (w*l)**(1-ψ)) * δlnl + τ_k * R * κ * δlnκ))
+    cov = np.sum(n * (λ-1) * (MRS_l * l * δlnw + MRS_c * κ * δlnR))
+    Expect = np.sum(n * ((w - MRS_l) * l * δlnl + (R - MRS_c) * κ * δlnκ))
     
     δW = MC - cov - Expect
     
@@ -200,11 +234,11 @@ def Optimalθ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β,
 
 
 @njit
-def CERoot(CE, c_0prime, c_1prime, lprime, c_0, c_1, l, n, β, var_θ, φ, ε):
+def CERoot(CE, c_0prime, c_1prime, lprime, c_0, c_1, l, n, β, var_θ, φ, ε, g):
     "Consumption Equivalence Root"
     
-    Val_CE = fn.V(CE * c_0, CE * c_1, l, β, var_θ, φ, ε)
-    Val_prime = fn.V(c_0prime, c_1prime, lprime, β, var_θ, φ, ε)
+    Val_CE = fn.V(CE * c_0, CE * c_1, l, β, var_θ, φ, ε, g)
+    Val_prime = fn.V(c_0prime, c_1prime, lprime, β, var_θ, φ, ε, g)
     
     W_CE = np.sum(n * Val_CE)
     W_prime = np.sum(n * Val_prime)
@@ -214,97 +248,59 @@ def CERoot(CE, c_0prime, c_1prime, lprime, c_0, c_1, l, n, β, var_θ, φ, ε):
 
 
 @njit
-def Mir_obj(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ, ε, IC_Comp_J, IC_count, TR):
+def Mir_obj(E, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     "Mirrlees Objective"
     
-    c_0 = X[:J]
-    c_1 = X[J:2*J]
-    l = X[2*J:3*J]
+    c_0 = E[:J]
+    c_1 = E[J:2*J]
+    l = E[2*J:3*J]
     
-    Val = fn.V(c_0, c_1, l, β, var_θ, φ, ε)
+    Val = fn.V(c_0, c_1, l, β, var_θ, φ, ε, g)
     
     W = np.sum(n * Val)
     
-    return -W
+    return W
     
     
   
 @njit
-def Equal_Constr(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ, ε, IC_Comp_J, IC_count, TR):
+def Equal_Constr(E, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     "Equality Constraints"
     
-    c_0 = X[:J]
-    c_1 = X[J:2*J]
-    l = X[2*J:3*J]
-    x = X[3*J:4*J]
-    K = X[4*J]
-    
-    if TR==1:
-        θ = X[-1]
-    else:
-        θ = 0
+    c_0 = E[:J]
+    c_1 = E[J:2*J]
+    l = E[2*J:3*J]
     
     δ_hat = 1 + δ + g
     
+    
+    # ---------------------------------- #
+    # Initial Period Resource Constraint #
+    # ---------------------------------- #
+    K = Y_bar - np.sum(n * c_0)
     L = n * l
-    w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
+    Y = r * K + np.sum(w * L)
     
-    'Initial Period Resource Constraint'
-    RC_0 = np.sum(n * c_0) + K - Y_bar
     
-    'Second Period Resource Constraint'
+    # --------------------------------- #
+    # Second Period Resource Constraint #
+    # --------------------------------- #
     RC_1 = np.sum(n * c_1) - Y - (1-δ_hat) * K
     
-    'Log Automation Threshold'
-    ln_AT = ζ * np.log(x) - ((np.log(w) - np.log(A_j)) - (np.log(1+θ) + np.log(r) - np.log(A_k)))
     
-    return np.concatenate((np.array([RC_0, RC_1]), ln_AT)) 
+    return np.array([RC_1]) 
 
 
 
 @njit
-def Inequal_Constr(X, J, n, Y_bar, δ, g, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ, ε, IC_Comp_J, IC_count, TR):
-    "Local Incentive Compatibility Constraints"
+def Inequal_Constr(E, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
+    "Incentive Compatibility Constraints"
     
-    c_0 = X[:J]
-    c_1 = X[J:2*J]
-    l = X[2*J:3*J]
-    x = X[3*J:4*J]
-    K = X[4*J]
+    c_0 = E[:J]
+    c_1 = E[J:2*J]
+    l = E[2*J:3*J]
     
-    L = n * l
-    w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    Val = fn.V(c_0, c_1, l, β, var_θ, φ, ε)
-    
-    Val_con = Val + (β / (1-β)) * φ * l**(1 + 1/ε) / (1 + 1/ε)
-    
-    IC = np.zeros(IC_count)
-    k=0
-    
-    for i in range(J):
-        for j in IC_Comp_J[i]:
-            IC[k] = Val[i] - (Val_con[j] - (β / (1-β)) * φ[i] * (w[j] * l[j] / w[i])**(1 + 1/ε) / (1 + 1/ε))
-            k += 1
-        
-    return IC 
-
-
-
-@njit
-def IC_Full(X, J, n, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ, ε):
-    "All Incentive Compatibility Constraints"
-    
-    c_0 = X[:J]
-    c_1 = X[J:2*J]
-    l = X[2*J:3*J]
-    x = X[3*J:4*J]
-    K = X[4*J]
-    
-    L = n * l
-    w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    Val = fn.V(c_0, c_1, l, β, var_θ, φ, ε)
+    Val = fn.V(c_0, c_1, l, β, var_θ, φ, ε, g)
     
     Val_con = Val + (β / (1-β)) * φ * l**(1 + 1/ε) / (1 + 1/ε)
     
@@ -318,11 +314,81 @@ def IC_Full(X, J, n, A_j, A_k, x_bar, ζ, ν, σ, β, var_θ, φ, ε):
 
 
 
+@njit
+def obj_fun(E, w, Δ, args):
+    "Penalized Objective Function"
+    
+    W = Mir_obj(E, *args)
+    IC_mat = Inequal_Constr(E, w, *args)
+    
+    viol = np.minimum(IC_mat, 0.0)
+    pen = np.sum(viol**2)
+
+    return -(W - Δ * pen)
 
 
 
+def Optimalθ_NL_Root(θ, E, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J, x_bar, ζ, ν, σ):
+    "Root for Optimal Threshold Rule with Nonlinear Taxes"
+    
+    # ----------------- #
+    # Unpack Allocation #
+    # ----------------- #
+    c_0 = E[:J]
+    c_1 = E[J:2*J]
+    l = E[2*J:3*J]
+    
+    L = n * l
+    K = Y_bar - np.sum(n * c_0)
+    κ = Y_bar - c_0
+    
+    
+    # ------------------------------------ #
+    # Compute Threshold Rule Perturbations #
+    # ------------------------------------ #
+    ΔH_ΔΕ = pr.δH_δclx_NL(θ, E, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J, x_bar, ζ, ν, σ)
+    ΔH_Δθ = pr.δH_δθ(θ, J)
 
-
+    dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_Δθ
+    
+    dc_0 = dE[:J,0]
+    dl = dE[2*J:3*J,0]
+    dx = dE[3*J:,0]
+    
+    δlnl = dl / l
+    δlnκ = - dc_0 / κ
+    
+    R = r - δ - g
+    Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
+    
+    δlnw = pr.dlnw(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, Y_bar)
+    δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, Y_bar)
+    δlnR = r * δlnr / R
+    
+    α_k = x**(ζ*(ν-1))
+    
+    if σ == 1:
+        θ_wedge = np.log(1+θ)
+    else:
+        θ_wedge = ((1+θ)**(1-σ) - 1) / (1 - σ)
+    
+    δY_δX = Y * (A_k * α_k / r)**(σ-1) * θ_wedge
+    
+    MRS_l = fn.lab_MRS(c_1, l, β, var_θ, φ, ε, g)
+    MRS_c = fn.cap_MRS(c_0, c_1, β, var_θ, ε, g)
+    λ = c_1**(-var_θ) / np.sum(n * c_1**(-var_θ))
+    
+    
+    # -------------------- #
+    # Optimality Condition #
+    # -------------------- #
+    MC = -np.sum(δY_δX * dx)
+    cov = np.sum(n * (λ-1) * (MRS_l * l * δlnw + MRS_c * κ * δlnR))
+    Expect = np.sum(n * ((w - MRS_l) * l * δlnl + (R - MRS_c) * κ * δlnκ))
+    
+    δW = MC - cov - Expect
+    
+    return δW
 
 
 
