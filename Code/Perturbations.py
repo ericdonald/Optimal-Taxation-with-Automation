@@ -384,7 +384,6 @@ def obj_jac(E, w, Δ, args):
 
 
 
-@njit
 def δH_δclx_NL(θ, E, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J, x_bar, ζ, ν, σ):
     "Jacobian of H wrt Mirrlees Allocation"
     
