@@ -458,73 +458,31 @@ class Processor:
         x = E[3*self.E.J:]
         
         
-        # --------------------- #
-        # Optimal Perturbations #
-        # --------------------- #
-        ΔH_ΔΕ = pr.δH_δclx(E, θ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0, self.E.Ψ, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ)
-        ΔH_Δθ = pr.δH_δθ(θ, self.E.J)
-
-        dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_Δθ
-        
-        dc_0 = dE[:self.E.J,0]
-        dl = dE[2*self.E.J:3*self.E.J,0]
-        dx = dE[3*self.E.J:,0]
-        
+        # ------------------ #
+        # Optimal Allocation #
+        # ------------------ #
         L = self.E.n * l
         κ = self.E.y_0 - c_0
         K = np.sum(self.E.n * κ)
-        
-        r = fn.Rents(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
-        R = r - self.E.δ - self.E.g
         Y = fn.Output(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
-        δlnw = pr.dlnw(dc_0, dl, dx, c_0, l, x, θ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
-        δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x, θ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
-        δlnR = r * δlnr / R
-        
-        MRS_l = fn.lab_MRS(c_1, l, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g)
-        MRS_c = fn.cap_MRS(c_0, c_1, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
-        
-        λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
-        δI = (MRS_l * l * δlnw + MRS_c * κ * δlnR) / Y
-        
-        cov = np.sum(self.E.n * (λ-1) * δI)
+        λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))        
+        cov = np.sum(self.E.n * (λ-1) * self.E.ζ*(-1))
         
         
-        # ------------------------ #
-        # Status Quo Perturbations #
-        # ------------------------ #
-        ΔH_ΔΕ_sq = pr.δH_δclx(E_sq, 0, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0, self.E.Ψ, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ)
-        ΔH_Δθ_sq = pr.δH_δθ(0, self.E.J)
-
-        dE_sq = - np.linalg.inv(ΔH_ΔΕ_sq) @ ΔH_Δθ_sq
-        
-        dc_0_sq = dE_sq[:self.E.J,0]
-        dl_sq = dE_sq[2*self.E.J:3*self.E.J,0]
-        dx_sq = dE_sq[3*self.E.J:,0]
-        
-        κ_sq = self.E.y_0 - self.E.c_0_sq
-        R_sq = self.E.r_sq - self.E.δ - self.E.g
-        
-        δlnw_sq = pr.dlnw(dc_0_sq, dl_sq, dx_sq, self.E.c_0_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar, 0, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
-        δlnr_sq = pr.dlnr(dc_0_sq, dl_sq, dx_sq, self.E.c_0_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar, 0, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
-        δlnR_sq = self.E.r_sq * δlnr_sq / R_sq
-        
-        MRS_l_sq = fn.lab_MRS(self.E.c_1_sq, self.E.l_j_sq, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g)
-        MRS_c_sq = fn.cap_MRS(self.E.c_1_sq, self.E.c_1_sq, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
-                
+        # --------------------- #
+        # Status Quo Allocation #
+        # --------------------- #
         λ_sq = self.E.c_1_sq**(-self.E.var_θ) / np.sum(self.E.n * self.E.c_1_sq**(-self.E.var_θ))
-        δI_sq = (MRS_l_sq * self.E.l_j_sq * δlnw_sq + MRS_c_sq * κ_sq * δlnR_sq) / self.E.Y_sq
-        
-        cov_sq = np.sum(self.E.n * (λ_sq-1) * δI_sq)
+        cov_sq = np.sum(self.E.n * (λ_sq-1) * self.E.ζ*(-1))
         
         
         # ---------------- #
         # Comparison Table #
         # ---------------- #
-        ΔoptK = (np.log(K) - np.log(self.E.K_sq)) * 100
-        ΔoptY = (np.log(Y) - np.log(self.E.Y_sq)) * 100
-        ΔoptCOV = (np.log(cov) - np.log(cov_sq)) * 100
+        ΔoptK = (K - self.E.K_sq) * 100 / self.E.K_sq
+        ΔoptY = (Y - self.E.Y_sq) * 100 / self.E.Y_sq
+        ΔoptCOV = (cov - cov_sq) * 100 / cov_sq
         
         CE = sp.optimize.root(rt.CERoot, 1,
                       args=(c_0, c_1, l, self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
@@ -541,18 +499,17 @@ class Processor:
         # ----------------- #
         # Covariance Figure #
         # ----------------- #
-        X_opt = np.hstack((np.ones((self.E.J,1)), δI.reshape((-1,1))))
-        X_sq = np.hstack((np.ones((self.E.J,1)), δI_sq.reshape((-1,1))))
+        X_ζ = np.hstack((np.ones((self.E.J,1)), self.E.ζ*(-1).reshape((-1,1))))
         W = np.diag(self.E.n)
         
-        β_opt = np.linalg.inv(X_opt.T @ W @ X_opt) @ X_opt.T @ W @ λ.reshape((-1,1))
-        β_sq = np.linalg.inv(X_sq.T @ W @ X_sq) @ X_sq.T @ W @ λ_sq.reshape((-1,1))
+        β_opt = np.linalg.inv(X_ζ.T @ W @ X_ζ) @ X_ζ.T @ W @ λ.reshape((-1,1))
+        β_sq = np.linalg.inv(X_ζ.T @ W @ X_ζ) @ X_ζ.T @ W @ λ_sq.reshape((-1,1))
         
-        λ_hat = X_opt @ β_opt
-        λ_hat_sq = X_sq @ β_sq
+        λ_hat = X_ζ @ β_opt
+        λ_hat_sq = X_ζ @ β_sq
         
-        DF_Cov_sq = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), δI.reshape((-1,1)), λ.reshape((-1,1)), λ_hat, δI_sq.reshape((-1,1)), λ_sq.reshape((-1,1)), λ_hat_sq)), 
-                             columns=['Weight', 'dI Optimal', 'lambda Optimal', 'lambda hat Optimal', 'dI Status Quo', 'lambda Status Quo', 'lambda hat Status Quo'])
+        DF_Cov_sq = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), self.E.ζ*(-1).reshape((-1,1)), λ.reshape((-1,1)), λ_hat, λ_sq.reshape((-1,1)), λ_hat_sq)), 
+                             columns=['Weight', 'Automation Exposure', 'lambda Optimal', 'lambda hat Optimal',  'lambda Status Quo', 'lambda hat Status Quo'])
         DF_Cov_sq.to_csv(f'{self.Directory}/Results/Figures/StatusQuo_Covariance.csv', index=False)
         
         StatusQuo_Results.add('Optimal Regression Coef', gpf.clean_round(β_opt[1,0], 2))
@@ -605,41 +562,17 @@ class Processor:
             with open(f'{self.Directory}/Results/E_theta.pkl', 'rb') as file:
                 tup = pickle.load(file)
                 (c_0, c_1, l, K, x, θ) = tup
-        E = np.concatenate((c_0, c_1, l))
         
         
         # -------------------------- #
         # Threshold Mirrlees Optimum #
         # -------------------------- #        
         L = self.E.n * l
-        κ = Y_bar - c_0
         K = Y_bar - np.sum(self.E.n * c_0)
         Y = fn.Output(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
-        w = fn.Wages(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
-        r = fn.Rents(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
-        R = r - self.E.δ - self.E.g
-        
-        ΔH_ΔΕ = pr.δH_δclx_NL(θ, E, x, w, r, self.E.n, Y_bar, self.E.δ, self.E.g, self.E.A_j, self.E.A_k, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.J, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
-        ΔH_Δθ = pr.δH_δθ(θ, self.E.J)
-        
-        dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_Δθ
-        
-        dc_0 = dE[:self.E.J,0]
-        dl = dE[2*self.E.J:3*self.E.J,0]
-        dx = dE[3*self.E.J:,0]
-        
-        δlnw = pr.dlnw(dc_0, dl, dx, c_0, l, x, θ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
-        δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x, θ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
-        δlnR = r * δlnr / R
-        
-        MRS_l = fn.lab_MRS(c_1, l, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g)
-        MRS_c = fn.cap_MRS(c_0, c_1, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
-        
         λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
-        δI = (MRS_l * l * δlnw + MRS_c * κ * δlnR) / Y
-        
-        cov = np.sum(self.E.n * (λ-1) * δI)
+        cov = np.sum(self.E.n * (λ-1) * self.E.ζ*(-1))
         
         Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
         
@@ -648,45 +581,24 @@ class Processor:
         # Capital Tax Mirrlees Optimum #
         # ---------------------------- #
         L_NT = self.E.n * l_NT
-        κ_NT = Y_bar - c_0_NT
         K_NT = Y_bar - np.sum(self.E.n * c_0_NT)
         Y_NT = fn.Output(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
-        w_NT = fn.Wages(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
-        r_NT = fn.Rents(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
-        R_NT = r_NT - self.E.δ - self.E.g
-        
-        ΔH_ΔΕ_NT = pr.δH_δclx_NL(0, E_NT, x_NT, w_NT, r_NT, self.E.n, Y_bar, self.E.δ, self.E.g, self.E.A_j, self.E.A_k, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.J, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
-        ΔH_Δθ_NT = pr.δH_δθ(0, self.E.J)
-        
-        dE_NT = - np.linalg.inv(ΔH_ΔΕ_NT) @ ΔH_Δθ_NT
-        
-        dc_0_NT = dE_NT[:self.E.J,0]
-        dl_NT = dE_NT[2*self.E.J:3*self.E.J,0]
-        dx_NT = dE_NT[3*self.E.J:,0]
-        
-        δlnw_NT = pr.dlnw(dc_0_NT, dl_NT, dx_NT, c_0_NT, l_NT, x_NT, 0, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
-        δlnr_NT = pr.dlnr(dc_0_NT, dl_NT, dx_NT, c_0_NT, l_NT, x_NT, 0, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
-        δlnR_NT = r_NT * δlnr_NT / R_NT
-        
-        MRS_l_NT = fn.lab_MRS(c_1_NT, l_NT, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g)
-        MRS_c_NT = fn.cap_MRS(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
-        
         λ_NT = c_1_NT**(-self.E.var_θ) / np.sum(self.E.n * c_1_NT**(-self.E.var_θ))
-        δI_NT = (MRS_l_NT * l_NT * δlnw_NT + MRS_c_NT * κ_NT * δlnR_NT) / Y_NT
+        cov_NT = np.sum(self.E.n * (λ_NT-1) * self.E.ζ*(-1))
         
-        cov_NT = np.sum(self.E.n * (λ_NT-1) * δI_NT)
-        
-        τ_K_NT = 1 - (MRS_c_NT[0] + self.E.g) / (r_NT - self.E.δ)
+        MRS_c_NT = fn.cap_MRS(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
+        r_NT = fn.Rents(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
+        τ_K_NT = np.sum(self.E.n * (1 - (MRS_c_NT + self.E.g) / (r_NT - self.E.δ)))
         Mirrlees_Results.add('Optimal Mirrlees Capital Tax NT', gpf.clean_round(τ_K_NT*100, 1))
         
         
         # ---------------- #
         # Comparison Table #
         # ---------------- #
-        ΔoptK = (np.log(K) - np.log(K_NT)) * 100
-        ΔoptY = (np.log(Y) - np.log(Y_NT)) * 100
-        ΔoptCOV = (np.log(cov) - np.log(cov_NT)) * 100
+        ΔoptK = (K - K_NT) * 100 / K_NT
+        ΔoptY = (Y - Y_NT) * 100 / Y_NT
+        ΔoptCOV = (cov - cov_NT) * 100 / cov_NT
         
         CE = sp.optimize.root(rt.CERoot, 1,
                       args=(c_0, c_1, l, c_0_NT, c_1_NT, l_NT, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
@@ -703,18 +615,17 @@ class Processor:
         # ----------------- #
         # Covariance Figure #
         # ----------------- #
-        X_opt = np.hstack((np.ones((self.E.J,1)), δI.reshape((-1,1))))
-        X_NT = np.hstack((np.ones((self.E.J,1)), δI_NT.reshape((-1,1))))
+        X_ζ = np.hstack((np.ones((self.E.J,1)), self.E.ζ*(-1).reshape((-1,1))))
         W = np.diag(self.E.n)
         
-        β_opt = np.linalg.inv(X_opt.T @ W @ X_opt) @ X_opt.T @ W @ λ.reshape((-1,1))
-        β_NT = np.linalg.inv(X_NT.T @ W @ X_NT) @ X_NT.T @ W @ λ_NT.reshape((-1,1))
+        β_opt = np.linalg.inv(X_ζ.T @ W @ X_ζ) @ X_ζ.T @ W @ λ.reshape((-1,1))
+        β_NT = np.linalg.inv(X_ζ.T @ W @ X_ζ) @ X_ζ.T @ W @ λ_NT.reshape((-1,1))
         
-        λ_hat = X_opt @ β_opt
-        λ_hat_NT = X_NT @ β_NT
+        λ_hat = X_ζ @ β_opt
+        λ_hat_NT = X_ζ @ β_NT
         
-        DF_Cov_NT = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), δI.reshape((-1,1)), λ.reshape((-1,1)), λ_hat, δI_NT.reshape((-1,1)), λ_NT.reshape((-1,1)), λ_hat_NT)), 
-                             columns=['Weight', 'dI Optimal', 'lambda Optimal', 'lambda hat Optimal', 'dI Capital Tax', 'lambda Capital Tax', 'lambda hat Capital Tax'])
+        DF_Cov_NT = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), self.E.ζ*(-1).reshape((-1,1)), λ.reshape((-1,1)), λ_hat, λ_NT.reshape((-1,1)), λ_hat_NT)), 
+                             columns=['Weight', 'Automation Exposure', 'lambda Optimal', 'lambda hat Optimal', 'lambda Capital Tax', 'lambda hat Capital Tax'])
         DF_Cov_NT.to_csv(f'{self.Directory}/Results/Figures/Mirrlees_Covariance.csv', index=False)
         
         Mirrlees_Results.add('Optimal Regression Coef', gpf.clean_round(β_opt[1,0], 2))
