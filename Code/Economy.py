@@ -390,9 +390,12 @@ class Economy:
         
         for g in range(50):
             A_k_AI = A_k_AI_base * (1 + AI_growth[g])
-            A_j_AI = A_j_AI_base * (1 + AI_growth[g])
+            A_j_AI = A_j_AI_base * (1 + AI_growth[g] * LAT_frac)
             
-            args = (E_sq, A_j_AI, A_k_AI, self.x_bar, ζ_AI, ν_AI, self.σ, self.J, self.n, self.y_0, self.Ψ, self.ψ, self.β, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ)
+            g_y = self.S_k * AI_growth[g] + (1-self.S_k) * AI_growth[g] * LAT_frac
+            Ψ_AI = self.Ψ * (1+g_y)**(-self.ψ)
+            
+            args = (E_sq, A_j_AI, A_k_AI, self.x_bar, ζ_AI, ν_AI, self.σ, self.J, self.n, self.y_0, Ψ_AI, self.ψ, self.β, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ)
             
             θ_AI[g] = gpf.bisect_scalar(rt.Optimalθ_SQ_Root, 0, 1, args)
         

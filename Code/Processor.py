@@ -615,7 +615,7 @@ class Processor:
         Mirrlees_Results.to_csv(f'{self.Directory}/Results/Tables/Mirrlees_Results.csv')
         
     
-    def AI_experiment(self):
+    def AI_Experiment(self):
         """""
         Optimal Threshold Rule for AI Scenarios
         
