@@ -623,8 +623,8 @@ class Processor:
         δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x, θ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
         δlnR = r * δlnr / R
         
-        MRS_l = fn.lab_sup(c_1, l, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g)
-        MRS_c = fn.cap_sup(c_0, c_1, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
+        MRS_l = fn.lab_MRS(c_1, l, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g)
+        MRS_c = fn.cap_MRS(c_0, c_1, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
         
         λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
         δI = (MRS_l * l * δlnw + MRS_c * κ * δlnR) / Y
@@ -659,8 +659,8 @@ class Processor:
         δlnr_NT = pr.dlnr(dc_0_NT, dl_NT, dx_NT, c_0_NT, l_NT, x_NT, 0, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0)
         δlnR_NT = r_NT * δlnr_NT / R_NT
         
-        MRS_l_NT = fn.lab_sup(c_1_NT, l_NT, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g)
-        MRS_c_NT = fn.cap_sup(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
+        MRS_l_NT = fn.lab_MRS(c_1_NT, l_NT, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g)
+        MRS_c_NT = fn.cap_MRS(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
         
         λ_NT = c_1_NT**(-self.E.var_θ) / np.sum(self.E.n * c_1_NT**(-self.E.var_θ))
         δI_NT = (MRS_l_NT * l_NT * δlnw_NT + MRS_c_NT * κ_NT * δlnR_NT) / Y_NT
