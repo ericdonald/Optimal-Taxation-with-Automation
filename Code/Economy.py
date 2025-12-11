@@ -332,9 +332,9 @@ class Economy:
             # Check Convergence and Update #
             # ---------------------------- #
             error_x = np.max(np.abs(x - x_new))
-            print(error_x)
+            #print(error_x)
             error_θ = np.abs(θ - θ_new)
-            print(error_θ)
+            #print(error_θ)
             
             if error_θ < tol and error_x < tol:
                 break

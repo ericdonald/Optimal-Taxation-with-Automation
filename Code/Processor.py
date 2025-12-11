@@ -563,7 +563,7 @@ class Processor:
         
         
         
-    def Mirrlees_Optimum(self, first=0):
+    def Mirrlees_Optimum(self, first1=0, first2=0):
         """""
         Optimal Threshold Rule for Non-Linear Taxes
         
@@ -581,7 +581,7 @@ class Processor:
         # --------------------------------- #
         # Solve for Two Planner Allocations #
         # --------------------------------- #
-        if first == 1:
+        if first1 == 1:
             tup_NT = self.E.Mirrlees_Lagr_NT()
             
             with open(f'{self.Directory}/Results/E_NT.pkl', 'wb') as file:
@@ -592,9 +592,19 @@ class Processor:
             with open(f'{self.Directory}/Results/E_NT.pkl', 'rb') as file:
                 tup_NT = pickle.load(file)
                 (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = tup_NT
-        
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
-        (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr_θ(E_NT, x_NT, -0.25, 0.5)
+        
+        if first2 == 1:
+            tup = self.E.Mirrlees_Lagr_θ(E_NT, x_NT, -0.25, 0.5)
+            
+            with open(f'{self.Directory}/Results/E_theta.pkl', 'wb') as file:
+                pickle.dump(tup, file)
+                (c_0, c_1, l, K, x, θ) = tup
+    
+        else:
+            with open(f'{self.Directory}/Results/E_theta.pkl', 'rb') as file:
+                tup = pickle.load(file)
+                (c_0, c_1, l, K, x, θ) = tup
         E = np.concatenate((c_0, c_1, l))
         
         
