@@ -499,7 +499,7 @@ class Processor:
         # ----------------- #
         # Covariance Figure #
         # ----------------- #
-        X_ζ = np.hstack((np.ones((self.E.J,1)), self.E.ζ*(-1).reshape((-1,1))))
+        X_ζ = np.hstack((np.ones((self.E.J,1)), (self.E.ζ*(-1)).reshape((-1,1))))
         W = np.diag(self.E.n)
         
         β_opt = np.linalg.inv(X_ζ.T @ W @ X_ζ) @ X_ζ.T @ W @ λ.reshape((-1,1))
@@ -508,7 +508,7 @@ class Processor:
         λ_hat = X_ζ @ β_opt
         λ_hat_sq = X_ζ @ β_sq
         
-        DF_Cov_sq = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), self.E.ζ*(-1).reshape((-1,1)), λ.reshape((-1,1)), λ_hat, λ_sq.reshape((-1,1)), λ_hat_sq)), 
+        DF_Cov_sq = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), (self.E.ζ*(-1)).reshape((-1,1)), λ.reshape((-1,1)), λ_hat, λ_sq.reshape((-1,1)), λ_hat_sq)), 
                              columns=['Weight', 'Automation Exposure', 'lambda Optimal', 'lambda hat Optimal',  'lambda Status Quo', 'lambda hat Status Quo'])
         DF_Cov_sq.to_csv(f'{self.Directory}/Results/Figures/StatusQuo_Covariance.csv', index=False)
         
@@ -615,7 +615,7 @@ class Processor:
         # ----------------- #
         # Covariance Figure #
         # ----------------- #
-        X_ζ = np.hstack((np.ones((self.E.J,1)), self.E.ζ*(-1).reshape((-1,1))))
+        X_ζ = np.hstack((np.ones((self.E.J,1)), (self.E.ζ*(-1)).reshape((-1,1))))
         W = np.diag(self.E.n)
         
         β_opt = np.linalg.inv(X_ζ.T @ W @ X_ζ) @ X_ζ.T @ W @ λ.reshape((-1,1))
@@ -624,7 +624,7 @@ class Processor:
         λ_hat = X_ζ @ β_opt
         λ_hat_NT = X_ζ @ β_NT
         
-        DF_Cov_NT = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), self.E.ζ*(-1).reshape((-1,1)), λ.reshape((-1,1)), λ_hat, λ_NT.reshape((-1,1)), λ_hat_NT)), 
+        DF_Cov_NT = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), (self.E.ζ*(-1)).reshape((-1,1)), λ.reshape((-1,1)), λ_hat, λ_NT.reshape((-1,1)), λ_hat_NT)), 
                              columns=['Weight', 'Automation Exposure', 'lambda Optimal', 'lambda hat Optimal', 'lambda Capital Tax', 'lambda hat Capital Tax'])
         DF_Cov_NT.to_csv(f'{self.Directory}/Results/Figures/Mirrlees_Covariance.csv', index=False)
         
