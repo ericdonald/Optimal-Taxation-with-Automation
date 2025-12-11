@@ -586,6 +586,7 @@ class Processor:
             
             with open(f'{self.Directory}/Results/E_NT.pkl', 'wb') as file:
                 pickle.dump(tup_NT, file)
+                (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = tup_NT
     
         else:
             with open(f'{self.Directory}/Results/E_NT.pkl', 'rb') as file:
