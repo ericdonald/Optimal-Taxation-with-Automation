@@ -616,6 +616,14 @@ class Processor:
 
         Mirrlees_Results.to_csv(f'{self.Directory}/Results/Tables/Mirrlees_Results.csv')
         
+    
+    def AI_experiment(self):
+        """""
+        Optimal Threshold Rule for AI Scenarios
+        
+        Output: 
+        """""
+        
         
         
     def write_package_versions(self, packages):
@@ -626,7 +634,6 @@ class Processor:
         """""
         
         filename=f'{self.Directory}/Results/core_versions.txt'
-        
         
         # ---------------- #
         # Collect Packages #

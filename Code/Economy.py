@@ -352,3 +352,7 @@ class Economy:
         return (c_0, c_1, l, K, x, θ)    
         
         
+        
+    def AI_economy(self, g_k):
+        "Solve for Post-AI Economy"
+
