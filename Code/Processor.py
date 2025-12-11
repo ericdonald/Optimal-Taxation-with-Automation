@@ -466,15 +466,17 @@ class Processor:
         K = np.sum(self.E.n * κ)
         Y = fn.Output(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
-        λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))        
-        cov = np.sum(self.E.n * (λ-1) * self.E.ζ**(-1))
+        λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
+        A_expos = x / self.E.ζ
+        cov = np.sum(self.E.n * (λ-1) * A_expos)
         
         
         # --------------------- #
         # Status Quo Allocation #
         # --------------------- #
         λ_sq = self.E.c_1_sq**(-self.E.var_θ) / np.sum(self.E.n * self.E.c_1_sq**(-self.E.var_θ))
-        cov_sq = np.sum(self.E.n * (λ_sq-1) * self.E.ζ**(-1))
+        A_expos_sq = self.E.var_κ * self.E.x_bar / self.E.ζ
+        cov_sq = np.sum(self.E.n * (λ_sq-1) * A_expos_sq)
         
         
         # ---------------- #
@@ -499,17 +501,18 @@ class Processor:
         # ----------------- #
         # Covariance Figure #
         # ----------------- #
-        X_ζ = np.hstack((np.ones((self.E.J,1)), (self.E.ζ**(-1)).reshape((-1,1))))
+        X_opt = np.hstack((np.ones((self.E.J,1)), A_expos.reshape((-1,1))))
+        X_sq = np.hstack((np.ones((self.E.J,1)), A_expos_sq.reshape((-1,1))))
         W = np.diag(self.E.n)
         
-        β_opt = np.linalg.inv(X_ζ.T @ W @ X_ζ) @ X_ζ.T @ W @ λ.reshape((-1,1))
-        β_sq = np.linalg.inv(X_ζ.T @ W @ X_ζ) @ X_ζ.T @ W @ λ_sq.reshape((-1,1))
+        β_opt = np.linalg.inv(X_opt.T @ W @ X_opt) @ X_opt.T @ W @ λ.reshape((-1,1))
+        β_sq = np.linalg.inv(X_sq.T @ W @ X_sq) @ X_sq.T @ W @ λ_sq.reshape((-1,1))
         
-        λ_hat = X_ζ @ β_opt
-        λ_hat_sq = X_ζ @ β_sq
+        λ_hat = X_opt @ β_opt
+        λ_hat_sq = X_sq @ β_sq
         
-        DF_Cov_sq = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), (self.E.ζ**(-1)).reshape((-1,1)), λ.reshape((-1,1)), λ_hat, λ_sq.reshape((-1,1)), λ_hat_sq)), 
-                             columns=['Weight', 'Automation Exposure', 'lambda Optimal', 'lambda hat Optimal',  'lambda Status Quo', 'lambda hat Status Quo'])
+        DF_Cov_sq = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), A_expos.reshape((-1,1)), λ.reshape((-1,1)), λ_hat, A_expos_sq.reshape((-1,1)), λ_sq.reshape((-1,1)), λ_hat_sq)), 
+                             columns=['Weight', 'Automation Exposure Optimal', 'lambda Optimal', 'lambda hat Optimal', 'Automation Exposure Status Quo', 'lambda Status Quo', 'lambda hat Status Quo'])
         DF_Cov_sq.to_csv(f'{self.Directory}/Results/Figures/StatusQuo_Covariance.csv', index=False)
         
         StatusQuo_Results.add('Optimal Regression Coef', gpf.clean_round(β_opt[1,0], 2))
@@ -572,7 +575,8 @@ class Processor:
         Y = fn.Output(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
         λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
-        cov = np.sum(self.E.n * (λ-1) * self.E.ζ**(-1))
+        A_expos = x / self.E.ζ
+        cov = np.sum(self.E.n * (λ-1) * A_expos)
         
         Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
         
@@ -585,7 +589,8 @@ class Processor:
         Y_NT = fn.Output(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
         λ_NT = c_1_NT**(-self.E.var_θ) / np.sum(self.E.n * c_1_NT**(-self.E.var_θ))
-        cov_NT = np.sum(self.E.n * (λ_NT-1) * self.E.ζ**(-1))
+        A_expos_NT = x_NT / self.E.ζ
+        cov_NT = np.sum(self.E.n * (λ_NT-1) * A_expos_NT)
         
         MRS_c_NT = fn.cap_MRS(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
         r_NT = fn.Rents(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
@@ -615,17 +620,18 @@ class Processor:
         # ----------------- #
         # Covariance Figure #
         # ----------------- #
-        X_ζ = np.hstack((np.ones((self.E.J,1)), (self.E.ζ**(-1)).reshape((-1,1))))
+        X_opt = np.hstack((np.ones((self.E.J,1)), A_expos.reshape((-1,1))))
+        X_NT = np.hstack((np.ones((self.E.J,1)), A_expos_NT.reshape((-1,1))))
         W = np.diag(self.E.n)
         
-        β_opt = np.linalg.inv(X_ζ.T @ W @ X_ζ) @ X_ζ.T @ W @ λ.reshape((-1,1))
-        β_NT = np.linalg.inv(X_ζ.T @ W @ X_ζ) @ X_ζ.T @ W @ λ_NT.reshape((-1,1))
+        β_opt = np.linalg.inv(X_opt.T @ W @ X_opt) @ X_opt.T @ W @ λ.reshape((-1,1))
+        β_NT = np.linalg.inv(X_NT.T @ W @ X_NT) @ X_NT.T @ W @ λ_NT.reshape((-1,1))
         
-        λ_hat = X_ζ @ β_opt
-        λ_hat_NT = X_ζ @ β_NT
+        λ_hat = X_opt @ β_opt
+        λ_hat_NT = X_NT @ β_NT
         
-        DF_Cov_NT = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), (self.E.ζ**(-1)).reshape((-1,1)), λ.reshape((-1,1)), λ_hat, λ_NT.reshape((-1,1)), λ_hat_NT)), 
-                             columns=['Weight', 'Automation Exposure', 'lambda Optimal', 'lambda hat Optimal', 'lambda Capital Tax', 'lambda hat Capital Tax'])
+        DF_Cov_NT = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), A_expos.reshape((-1,1)), λ.reshape((-1,1)), λ_hat, A_expos_NT.reshape((-1,1)), λ_NT.reshape((-1,1)), λ_hat_NT)), 
+                             columns=['Weight', 'Automation Exposure Optimal', 'lambda Optimal', 'lambda hat Optimal', 'Automation Exposure Capital Tax', 'lambda Capital Tax', 'lambda hat Capital Tax'])
         DF_Cov_NT.to_csv(f'{self.Directory}/Results/Figures/Mirrlees_Covariance.csv', index=False)
         
         Mirrlees_Results.add('Optimal Regression Coef', gpf.clean_round(β_opt[1,0], 2))
