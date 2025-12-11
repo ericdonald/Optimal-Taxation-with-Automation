@@ -559,7 +559,6 @@ class Processor:
         # Threshold Mirrlees Optimum #
         # -------------------------- #        
         L = self.E.n * l
-        K = Y_bar - np.sum(self.E.n * c_0)
         Y = fn.Output(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
         λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
@@ -573,7 +572,6 @@ class Processor:
         # Capital Tax Mirrlees Optimum #
         # ---------------------------- #
         L_NT = self.E.n * l_NT
-        K_NT = Y_bar - np.sum(self.E.n * c_0_NT)
         Y_NT = fn.Output(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
         λ_NT = c_1_NT**(-self.E.var_θ) / np.sum(self.E.n * c_1_NT**(-self.E.var_θ))
@@ -599,10 +597,10 @@ class Processor:
         
         ConEquiv = (CE.x[0] - 1) * 100
         
-        Mirrlees_Results.add('Optimal Mirrlees DCapital', gpf.clean_round(ΔoptK, 1))
-        Mirrlees_Results.add('Optimal Mirrlees DOutput', gpf.clean_round(ΔoptY, 1))
-        Mirrlees_Results.add('Optimal Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 1))
-        Mirrlees_Results.add('Optimal Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 1))
+        Mirrlees_Results.add('Optimal Mirrlees DCapital', gpf.clean_round(ΔoptK, 2))
+        Mirrlees_Results.add('Optimal Mirrlees DOutput', gpf.clean_round(ΔoptY, 2))
+        Mirrlees_Results.add('Optimal Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 2))
+        Mirrlees_Results.add('Optimal Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
         
         
         # ----------------- #
@@ -624,6 +622,7 @@ class Processor:
         Output: 
         """""
         
+        θ_AI = self.E.AI_economy(5, 0.25)
         
         
     def write_package_versions(self, packages):

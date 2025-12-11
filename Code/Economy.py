@@ -353,6 +353,56 @@ class Economy:
         
         
         
-    def AI_economy(self, g_k):
+    def AI_economy(self, G_k, LAT_frac):
         "Solve for Post-AI Economy"
 
+        # ------------------- #
+        # Post-AI Calibration #
+        # ------------------- #
+        Webb_df = pd.read_pickle(f'{self.Directory}/Clean Data/Webb.pkl')
+        χ_AI = (Webb_df['pct_software'].to_numpy() + Webb_df['pct_robot'].to_numpy() + Webb_df['pct_ai'].to_numpy()) / 3
+        
+        ζ_AI = np.exp(self.Γ * χ_AI)
+       
+        nu_g = np.ones(self.J) * self.var_κ
+        
+        nu = sp.optimize.root(rt.νRoot, nu_g,
+                      args=(self.Γ, χ_AI, self.var_κ, self.x_bar, self.σ, self.S_j_sq, self.S_k),
+                      method='lm')
+        
+        ν_AI = nu.x
+        
+        x_AI = self.var_κ * self.x_bar
+        Λ_k_AI = fn.Lamba_k(x_AI, self.x_bar, ζ_AI, ν_AI, self.σ)
+        A_k_AI_base = self.r_sq**(self.σ / (self.σ-1)) * (self.COR / Λ_k_AI)**(1 / (self.σ-1))
+        
+        A_j_AI_base = (self.w_j_sq / x_AI**(ζ_AI)) / (self.r_sq / A_k_AI_base)
+        
+        
+        # -------------------------- #
+        # Solve for Growth Scenarios #
+        # -------------------------- #
+        
+        AI_growth = np.linspace(0, G_k, 50)
+        θ_AI = np.empty(50)
+        
+        E_sq = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, self.var_κ * self.x_bar))
+        
+        for g in range(50):
+            A_k_AI = A_k_AI_base * (1 + AI_growth[g])
+            A_j_AI = A_j_AI_base * (1 + AI_growth[g])
+            
+            args = (E_sq, A_j_AI, A_k_AI, self.x_bar, ζ_AI, ν_AI, self.σ, self.J, self.n, self.y_0, self.Ψ, self.ψ, self.β, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ)
+            
+            θ_AI[g] = gpf.bisect_scalar(rt.Optimalθ_SQ_Root, 0, 1, args)
+        
+        
+        return θ_AI
+        
+        
+        
+        
+        
+        
+        
+        
