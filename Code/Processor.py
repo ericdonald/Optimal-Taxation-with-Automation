@@ -595,7 +595,10 @@ class Processor:
         MRS_c_NT = fn.cap_MRS(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
         r_NT = fn.Rents(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         τ_K_NT = np.sum(self.E.n * (1 - (MRS_c_NT + self.E.g) / (r_NT - self.E.δ)))
-        Mirrlees_Results.add('Optimal Mirrlees Capital Tax NT', gpf.clean_round(τ_K_NT*100, 1))
+        Mirrlees_Results.add('Optimal Mirrlees Capital Tax', gpf.clean_round(τ_K_NT*100, 1))
+        R_NT = r_NT - self.E.δ - self.E.g
+        τ_wealth_NT = np.sum(self.E.n * (1 - MRS_c_NT / R_NT))
+        Mirrlees_Results.add('Optimal Mirrlees Wealth Tax', gpf.clean_round(τ_wealth_NT*100, 1))
         
         
         # ---------------- #
