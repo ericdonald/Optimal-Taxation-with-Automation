@@ -598,7 +598,8 @@ class Processor:
         Mirrlees_Results.add('Optimal Mirrlees Capital Tax', gpf.clean_round(τ_K_NT*100, 1))
         
         Return_NT = 1 + r_NT - self.E.δ
-        τ_wealth_NT = np.sum(self.E.n * (1 - MRS_c_NT / Return_NT))
+        Return_tilde_NT = 1 + (1-τ_K_NT)*(r_NT-self.E.δ)
+        τ_wealth_NT = 1 - Return_tilde_NT / Return_NT
         Mirrlees_Results.add('Optimal Mirrlees Wealth Tax', gpf.clean_round(τ_wealth_NT*100, 1))
         
         
