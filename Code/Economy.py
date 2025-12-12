@@ -397,7 +397,7 @@ class Economy:
             
             args = (E_sq, A_j_AI, A_k_AI, self.x_bar, ζ_AI, ν_AI, self.σ, self.J, self.n, self.y_0, Ψ_AI, self.ψ, self.β, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ)
             
-            θ_AI[g] = gpf.bisect_scalar(rt.Optimalθ_SQ_Root, 0, 1, args)
+            θ_AI[g] = gpf.bisect_scalar(rt.Optimalθ_SQ_Root, 0.1, 1, args)
         
         
         return θ_AI

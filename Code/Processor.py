@@ -521,10 +521,6 @@ class Processor:
         
         Mirrlees_Results = gpf.ResultsTable()
         
-        Y_0 = self.E.Y_sq / (1+self.E.g)
-        K_0 = self.E.K_sq / (1+self.E.g)
-        Y_bar = Y_0 + (1-self.E.δ) * K_0
-        
         
         # --------------------------------- #
         # Solve for Two Planner Allocations #
