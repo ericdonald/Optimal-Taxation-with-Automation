@@ -365,6 +365,7 @@ class Economy:
         
         E_sq = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, self.var_κ * self.x_bar))
         
+        qe.tic()
         for g in range(N_g):
             A_k_AI = A_k_AI_base * (1 + AI_growth[g])
             A_j_AI = A_j_AI_base * (1 + AI_growth[g] * LAT_frac)
@@ -376,6 +377,8 @@ class Economy:
             
             θ_AI[g] = gpf.bisect_scalar(rt.Optimalθ_SQ_Root, 0.1, 1, args)
         
+        qe.toc()
+        print("AI Experiment Policy Path Computed")
         
         return θ_AI
         

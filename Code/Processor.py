@@ -634,7 +634,10 @@ class Processor:
         Optimal Threshold Rule for AI Scenarios
         
         Output: Results/Figures/AI_Experiment.csv
+                Results/Tables/AI_Experiment_Results.csv
         """""
+        
+        AI_Experiment_Results = gpf.ResultsTable()
         
         # ------------------- #
         # Post-AI Calibration #
@@ -751,11 +754,17 @@ class Processor:
         AI_growth *= 100
         θ_AI_0 *= 100
         θ_AI_25 *= 100
-        θ_AI_25 *= 100
+        θ_AI_50 *= 100
         
         DF_AI = pd.DataFrame(np.hstack((AI_growth.reshape((-1,1)), θ_AI_0.reshape((-1,1)), ConEquiv_0.reshape((-1,1)), θ_AI_25.reshape((-1,1)), ConEquiv_25.reshape((-1,1)), θ_AI_50.reshape((-1,1)), ConEquiv_50.reshape((-1,1)))), 
                              columns=['Growth', 'Threshold Rule 0', 'Consumption Equivalence 0', 'Threshold Rule 25', 'Consumption Equivalence 25', 'Threshold Rule 50', 'Consumption Equivalence 50'])
         DF_AI.to_csv(f'{self.Directory}/Results/Figures/AI_Experiment.csv', index=False)
+        
+        AI_Experiment_Results.add('Doubling Threshold Rule', gpf.clean_round(θ_AI_25[-1], 1))
+        AI_Experiment_Results.add('Doubling Consumption Equivalence', gpf.clean_round(ConEquiv_25[-1], 1))
+        
+        
+        AI_Experiment_Results.to_csv(f'{self.Directory}/Results/Tables/AI_Experiment_Results.csv')
         
         
         
