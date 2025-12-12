@@ -680,7 +680,7 @@ class Processor:
             l_θ = E_θ[2*self.E.J:3*self.E.J]
           
             CE = sp.optimize.root(rt.CERoot, 1,
-                          args=(c_0_LF, c_1_LF, l_LF, c_0_θ, c_1_θ, l_θ, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
+                          args=(c_0_θ, c_1_θ, l_θ, c_0_LF, c_1_LF, l_LF, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
                           method='lm')
             
             ConEquiv[g] = (CE.x[0] - 1) * 100

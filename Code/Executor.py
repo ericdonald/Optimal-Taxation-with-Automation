@@ -58,7 +58,7 @@ P.Mirrlees_Optimum()
 # ------------------ #
 # Introduction of AI #
 # ------------------ #
-P.AI_Experiment()
+P.AI_Experiment(1, 10)
 
 
 # ----------------------- #
