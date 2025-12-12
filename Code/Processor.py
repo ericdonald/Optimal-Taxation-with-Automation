@@ -242,6 +242,7 @@ class Processor:
         Calibrate Parameters and Status Quo Allocation
         
         Output: Results/Figures/Wealth_Convexity.csv
+                Results/Figures/Webb_Corr.csv
                 Results/Tables/Calibrate_Results.csv
         """""
         
@@ -290,6 +291,16 @@ class Processor:
         Fif = 1 / ζ_50
         
         Calibrate_Results.add('50th Percentile Effect', gpf.clean_round(Fif, 2))
+        
+        
+        # ----------------------- #
+        # Webb Correlation Matrix #
+        # ----------------------- #
+        Webb_df = pd.read_pickle(f'{self.Directory}/Clean Data/Webb.pkl')
+        X_corr = np.vstact((self.E.w_j_sq, Webb_df['pct_software'].to_numpy(), Webb_df['pct_robot'].to_numpy(), Webb_df['pct_ai'].to_numpy()))
+        corr_mat = np.corrcoef(X_corr)
+        np.savetxt(f'{self.Directory}/Results/Figures/Webb_Corr.csv', corr_mat, delimiter=",", fmt="%.2f")
+        
         
         Calibrate_Results.to_csv(f'{self.Directory}/Results/Tables/Calibrate_Results.csv')
         
