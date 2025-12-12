@@ -500,7 +500,6 @@ class Processor:
         # ---------------- #
         # Comparison Table #
         # ---------------- #
-        ΔoptK = (K - self.E.K_sq) * 100 / self.E.K_sq
         ΔoptY = (Y - self.E.Y_sq) * 100 / self.E.Y_sq
         ΔoptCOV = (cov - cov_sq) * 100 / cov_sq
         
@@ -510,7 +509,6 @@ class Processor:
         
         ConEquiv = (CE.x[0] - 1) * 100
         
-        StatusQuo_Results.add('Optimal Status Quo DCapital', gpf.clean_round(ΔoptK, 1))
         StatusQuo_Results.add('Optimal Status Quo DOutput', gpf.clean_round(ΔoptY, 1))
         StatusQuo_Results.add('Optimal Status Quo DCOV', gpf.clean_round(ΔoptCOV, 1))
         StatusQuo_Results.add('Optimal Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv, 1))
@@ -606,7 +604,6 @@ class Processor:
         # ---------------- #
         # Comparison Table #
         # ---------------- #
-        ΔoptK = (K - K_NT) * 100 / K_NT
         ΔoptY = (Y - Y_NT) * 100 / Y_NT
         ΔoptCOV = (cov - cov_NT) * 100 / cov_NT
         
@@ -616,7 +613,6 @@ class Processor:
         
         ConEquiv = (CE.x[0] - 1) * 100
         
-        Mirrlees_Results.add('Optimal Mirrlees DCapital', gpf.clean_round(ΔoptK, 2))
         Mirrlees_Results.add('Optimal Mirrlees DOutput', gpf.clean_round(ΔoptY, 2))
         Mirrlees_Results.add('Optimal Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 2))
         Mirrlees_Results.add('Optimal Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
