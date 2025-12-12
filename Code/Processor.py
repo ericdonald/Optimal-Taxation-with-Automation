@@ -242,7 +242,6 @@ class Processor:
         Calibrate Parameters and Status Quo Allocation
         
         Output: Results/Figures/Wealth_Convexity.csv
-                Results/Figures/Webb_Corr.csv
                 Results/Tables/Calibrate_Results.csv
         """""
         
@@ -297,9 +296,17 @@ class Processor:
         # Webb Correlation Matrix #
         # ----------------------- #
         Webb_df = pd.read_pickle(f'{self.Directory}/Clean Data/Webb.pkl')
-        X_corr = np.vstact((self.E.w_j_sq, Webb_df['pct_software'].to_numpy(), Webb_df['pct_robot'].to_numpy(), Webb_df['pct_ai'].to_numpy()))
+        X_corr = np.vstack((self.E.w_j_sq, Webb_df['pct_software'].to_numpy(), Webb_df['pct_robot'].to_numpy(), Webb_df['pct_ai'].to_numpy()))
         corr_mat = np.corrcoef(X_corr)
-        np.savetxt(f'{self.Directory}/Results/Figures/Webb_Corr.csv', corr_mat, delimiter=",", fmt="%.2f")
+        
+        Calibrate_Results.add('Webb Wage Soft Corr', gpf.clean_round(corr_mat[0,1], 2))
+        Calibrate_Results.add('Webb Wage Rob Corr', gpf.clean_round(corr_mat[0,2], 2))
+        Calibrate_Results.add('Webb Wage AI Corr', gpf.clean_round(corr_mat[0,3], 2))
+        
+        Calibrate_Results.add('Webb Soft Rob Corr', gpf.clean_round(corr_mat[1,2], 2))
+        Calibrate_Results.add('Webb Soft AI Corr', gpf.clean_round(corr_mat[1,3], 2))
+        
+        Calibrate_Results.add('Webb Rob AI Corr', gpf.clean_round(corr_mat[2,3], 2))
         
         
         Calibrate_Results.to_csv(f'{self.Directory}/Results/Tables/Calibrate_Results.csv')
