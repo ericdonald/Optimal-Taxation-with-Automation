@@ -596,8 +596,9 @@ class Processor:
         r_NT = fn.Rents(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         τ_K_NT = np.sum(self.E.n * (1 - (MRS_c_NT + self.E.g) / (r_NT - self.E.δ)))
         Mirrlees_Results.add('Optimal Mirrlees Capital Tax', gpf.clean_round(τ_K_NT*100, 1))
-        R_NT = r_NT - self.E.δ - self.E.g
-        τ_wealth_NT = np.sum(self.E.n * (1 - MRS_c_NT / R_NT))
+        
+        Return_NT = 1 + r_NT - self.E.δ
+        τ_wealth_NT = np.sum(self.E.n * (1 - MRS_c_NT / Return_NT))
         Mirrlees_Results.add('Optimal Mirrlees Wealth Tax', gpf.clean_round(τ_wealth_NT*100, 1))
         
         
