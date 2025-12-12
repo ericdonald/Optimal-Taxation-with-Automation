@@ -688,6 +688,9 @@ class Processor:
         # ---- #
         # Plot #
         # ---- #
+        AI_growth *= 100
+        θ_AI *= 100
+        
         DF_AI = pd.DataFrame(np.hstack((AI_growth.reshape((-1,1)), θ_AI.reshape((-1,1)), ConEquiv.reshape((-1,1)))), 
                              columns=['Growth', 'Threshold Rule', 'Consumption Equivalence'])
         DF_AI.to_csv(f'{self.Directory}/Results/Figures/AI_Experiment.csv', index=False)
