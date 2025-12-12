@@ -56,11 +56,13 @@ def compute_decile_shares(df, value_col, weight_col='Weight', n_groups=10):
     
     df_sorted = df.sort_values(by=value_col, ascending=True).reset_index(drop=True)
     
+    
     # ------------------------------------ #
     # Compute cumulative weights and total #
     # ------------------------------------ #
     df_sorted['cum_weight'] = df_sorted[weight_col].cumsum()
     total_weight = df_sorted[weight_col].sum()
+    
     
     # -------------------------------------------- #
     # Compute population thresholds for each group #
@@ -103,6 +105,7 @@ def bisect_scalar(func, a, b, args, tol=1e-8):
         
     if fa * fb > 0:
         raise ValueError("Bisection interval does not bracket a root.")
+
 
     # ----------------- #
     # Classic Bisection #
