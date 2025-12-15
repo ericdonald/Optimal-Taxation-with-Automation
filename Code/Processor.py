@@ -759,7 +759,7 @@ class Processor:
         θ_AI_50 *= 100
         
         DF_AI = pd.DataFrame(np.hstack((AI_growth.reshape((-1,1)), θ_AI_10.reshape((-1,1)), ConEquiv_10.reshape((-1,1)), θ_AI_25.reshape((-1,1)), ConEquiv_25.reshape((-1,1)), θ_AI_50.reshape((-1,1)), ConEquiv_50.reshape((-1,1)))), 
-                             columns=['Growth', 'Threshold Rule 0', 'Consumption Equivalence 0', 'Threshold Rule 25', 'Consumption Equivalence 25', 'Threshold Rule 50', 'Consumption Equivalence 50'])
+                             columns=['Growth', 'Threshold Rule 10', 'Consumption Equivalence 10', 'Threshold Rule 25', 'Consumption Equivalence 25', 'Threshold Rule 50', 'Consumption Equivalence 50'])
         DF_AI.to_csv(f'{self.Directory}/Results/Figures/AI_Experiment.csv', index=False)
         
         AI_Experiment_Results.add('Doubling Threshold Rule', gpf.clean_round(θ_AI_25[-1], 1))
