@@ -666,14 +666,14 @@ class Processor:
         # ----------------- #
         # Solve θ Sequences #
         # ----------------- #
-        θ_AI_0 = self.E.AI_economy(ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, G_k, 0, N_g)
+        θ_AI_10 = self.E.AI_economy(ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, G_k, 0.1, N_g)
         θ_AI_25 = self.E.AI_economy(ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, G_k, 0.25, N_g)
         θ_AI_50 = self.E.AI_economy(ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, G_k, 0.5, N_g)
         
         # ----------------------- #
         # Consumption Equivalence #
         # ----------------------- #
-        ConEquiv_0 = np.empty(N_g)
+        ConEquiv_10 = np.empty(N_g)
         ConEquiv_25 = np.empty(N_g)
         ConEquiv_50 = np.empty(N_g)
         AI_growth = np.linspace(0, G_k, N_g)
@@ -682,45 +682,24 @@ class Processor:
         
         for g in range(N_g):
             A_k_AI = A_k_AI_base * (1 + AI_growth[g])
+            A_j_AI_10 = A_j_AI_base * (1 + AI_growth[g] * 0.1)
             A_j_AI_25 = A_j_AI_base * (1 + AI_growth[g] * 0.25)
             A_j_AI_50 = A_j_AI_base * (1 + AI_growth[g] * 0.5)
             
-            g_y_0 = self.E.S_k * AI_growth[g]
-            Ψ_AI_0 = self.E.Ψ * (1+g_y_0)**(-self.E.ψ)
+            g_y_10 = self.E.S_k * AI_growth[g] + (1-self.E.S_k) * AI_growth[g] * 0.25
+            Ψ_AI_10 = self.E.Ψ * (1+g_y_10)**(-self.E.ψ)
             g_y_25 = self.E.S_k * AI_growth[g] + (1-self.E.S_k) * AI_growth[g] * 0.25
-            Ψ_AI_25 = self.E.Ψ * (1+g_y_25.E.ψ)
+            Ψ_AI_25 = self.E.Ψ * (1+g_y_25)**(-self.E.ψ)
             g_y_50 = self.E.S_k * AI_growth[g] + (1-self.E.S_k) * AI_growth[g] * 0.5
             Ψ_AI_50 = self.E.Ψ * (1+g_y_50)**(-self.E.ψ)
             
-            Eqbm_LF_0 = sp.optimize.root(rt.Eqbm_Root, E_sq,
-                          args=(0, A_j_AI_base, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_0, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
+            Eqbm_θ_10 = sp.optimize.root(rt.Eqbm_Root, E_sq,
+                          args=(θ_AI_10[g], A_j_AI_10, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_10, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
                           jac=pr.δH_δclx)
-            E_LF_0 = Eqbm_LF_0.x
-            c_0_LF_0 = E_LF_0[:self.E.J]
-            c_1_LF_0 = E_LF_0[self.E.J:2*self.E.J]
-            l_LF_0 = E_LF_0[2*self.E.J:3*self.E.J]
-            Eqbm_LF_25 = sp.optimize.root(rt.Eqbm_Root, E_sq,
-                          args=(0, A_j_AI_25, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_25, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
-                          jac=pr.δH_δclx)
-            E_LF_25 = Eqbm_LF_25.x
-            c_0_LF_25 = E_LF_25[:self.E.J]
-            c_1_LF_25 = E_LF_25[self.E.J:2*self.E.J]
-            l_LF_25 = E_LF_25[2*self.E.J:3*self.E.J]
-            Eqbm_LF_50 = sp.optimize.root(rt.Eqbm_Root, E_sq,
-                          args=(0, A_j_AI_50, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_50, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
-                          jac=pr.δH_δclx)
-            E_LF_50 = Eqbm_LF_50.x
-            c_0_LF_50 = E_LF_50[:self.E.J]
-            c_1_LF_50 = E_LF_50[self.E.J:2*self.E.J]
-            l_LF_50 = E_LF_50[2*self.E.J:3*self.E.J]
-            
-            Eqbm_θ_0 = sp.optimize.root(rt.Eqbm_Root, E_sq,
-                          args=(θ_AI_0[g], A_j_AI_base, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_0, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
-                          jac=pr.δH_δclx)
-            E_θ_0 = Eqbm_θ_0.x
-            c_0_θ_0 = E_θ_0[:self.E.J]
-            c_1_θ_0 = E_θ_0[self.E.J:2*self.E.J]
-            l_θ_0 = E_θ_0[2*self.E.J:3*self.E.J]
+            E_θ_10 = Eqbm_θ_10.x
+            c_0_θ_10 = E_θ_10[:self.E.J]
+            c_1_θ_10 = E_θ_10[self.E.J:2*self.E.J]
+            l_θ_10 = E_θ_10[2*self.E.J:3*self.E.J]
             Eqbm_θ_25 = sp.optimize.root(rt.Eqbm_Root, E_sq,
                           args=(θ_AI_25[g], A_j_AI_25, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_25, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
                           jac=pr.δH_δclx)
@@ -735,11 +714,33 @@ class Processor:
             c_0_θ_50 = E_θ_50[:self.E.J]
             c_1_θ_50 = E_θ_50[self.E.J:2*self.E.J]
             l_θ_50 = E_θ_50[2*self.E.J:3*self.E.J]
+            
+            Eqbm_LF_10 = sp.optimize.root(rt.Eqbm_Root, E_θ_10,
+                          args=(0, A_j_AI_10, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_10, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
+                          jac=pr.δH_δclx)
+            E_LF_10 = Eqbm_LF_10.x
+            c_0_LF_10 = E_LF_10[:self.E.J]
+            c_1_LF_10 = E_LF_10[self.E.J:2*self.E.J]
+            l_LF_10 = E_LF_10[2*self.E.J:3*self.E.J]
+            Eqbm_LF_25 = sp.optimize.root(rt.Eqbm_Root, E_θ_25,
+                          args=(0, A_j_AI_25, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_25, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
+                          jac=pr.δH_δclx)
+            E_LF_25 = Eqbm_LF_25.x
+            c_0_LF_25 = E_LF_25[:self.E.J]
+            c_1_LF_25 = E_LF_25[self.E.J:2*self.E.J]
+            l_LF_25 = E_LF_25[2*self.E.J:3*self.E.J]
+            Eqbm_LF_50 = sp.optimize.root(rt.Eqbm_Root, E_θ_50,
+                          args=(0, A_j_AI_50, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_50, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
+                          jac=pr.δH_δclx)
+            E_LF_50 = Eqbm_LF_50.x
+            c_0_LF_50 = E_LF_50[:self.E.J]
+            c_1_LF_50 = E_LF_50[self.E.J:2*self.E.J]
+            l_LF_50 = E_LF_50[2*self.E.J:3*self.E.J]
           
-            CE_0 = sp.optimize.root(rt.CERoot, 1,
-                          args=(c_0_θ_0, c_1_θ_0, l_θ_0, c_0_LF_0, c_1_LF_0, l_LF_0, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
+            CE_10 = sp.optimize.root(rt.CERoot, 1,
+                          args=(c_0_θ_10, c_1_θ_10, l_θ_10, c_0_LF_10, c_1_LF_10, l_LF_10, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
                           method='lm')
-            ConEquiv_0[g] = (CE_0.x[0] - 1) * 100
+            ConEquiv_10[g] = (CE_10.x[0] - 1) * 100
             CE_25 = sp.optimize.root(rt.CERoot, 1,
                           args=(c_0_θ_25, c_1_θ_25, l_θ_25, c_0_LF_25, c_1_LF_25, l_LF_25, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
                           method='lm')
@@ -753,11 +754,11 @@ class Processor:
         # Plot #
         # ---- #
         AI_growth *= 100
-        θ_AI_0 *= 100
+        θ_AI_10 *= 100
         θ_AI_25 *= 100
         θ_AI_50 *= 100
         
-        DF_AI = pd.DataFrame(np.hstack((AI_growth.reshape((-1,1)), θ_AI_0.reshape((-1,1)), ConEquiv_0.reshape((-1,1)), θ_AI_25.reshape((-1,1)), ConEquiv_25.reshape((-1,1)), θ_AI_50.reshape((-1,1)), ConEquiv_50.reshape((-1,1)))), 
+        DF_AI = pd.DataFrame(np.hstack((AI_growth.reshape((-1,1)), θ_AI_10.reshape((-1,1)), ConEquiv_10.reshape((-1,1)), θ_AI_25.reshape((-1,1)), ConEquiv_25.reshape((-1,1)), θ_AI_50.reshape((-1,1)), ConEquiv_50.reshape((-1,1)))), 
                              columns=['Growth', 'Threshold Rule 0', 'Consumption Equivalence 0', 'Threshold Rule 25', 'Consumption Equivalence 25', 'Threshold Rule 50', 'Consumption Equivalence 50'])
         DF_AI.to_csv(f'{self.Directory}/Results/Figures/AI_Experiment.csv', index=False)
         
