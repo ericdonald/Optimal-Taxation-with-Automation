@@ -199,8 +199,10 @@ def Optimalθ_SQ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, 
     
     w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    R = r - δ - g
     Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
+    
+    δ_tilde = 1 + δ + g
+    R = 1 + r - δ_tilde
     
     δlnw = pr.dlnw(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0)
     δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0)
@@ -271,7 +273,7 @@ def Equal_Constr(E, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     c_1 = E[J:2*J]
     l = E[2*J:3*J]
     
-    δ_hat = 1 + δ + g
+    δ_tilde = 1 + δ + g
     
     
     # ---------------------------------- #
@@ -285,7 +287,7 @@ def Equal_Constr(E, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     # --------------------------------- #
     # Second Period Resource Constraint #
     # --------------------------------- #
-    RC_1 = np.sum(n * c_1) - Y - (1-δ_hat) * K
+    RC_1 = np.sum(n * c_1) - Y - (1-δ_tilde) * K
     
     
     return np.array([RC_1]) 
@@ -358,7 +360,8 @@ def Optimalθ_NL_Root(θ, E, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ,
     δlnl = dl / l
     δlnκ = - dc_0 / κ
     
-    R = r - δ - g
+    δ_tilde = 1 + δ + g
+    R = 1 + r - δ_tilde
     Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     
     δlnw = pr.dlnw(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, Y_bar)

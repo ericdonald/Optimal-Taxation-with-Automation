@@ -291,6 +291,8 @@ def δObj_δX(E, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     c_1 = E[J:2*J]
     l = E[2*J:3*J]
     
+    beta_tilde = β / (1 - β * (1+g)**(1-var_θ))
+    beta_tilde_l = (β / (1-β))
     
     # ---------------------- #
     # Derivatives of Welfare #
@@ -299,10 +301,10 @@ def δObj_δX(E, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     δW_δc_0 = n * c_0**(-var_θ)
     
     #   wrt to c_1
-    δW_δc_1 = n * (β / (1-β * (1+g)**(1-var_θ))) * c_1**(-var_θ)
+    δW_δc_1 = n * beta_tilde * c_1**(-var_θ)
     
     #   wrt to l
-    δW_δl = - n * (β / (1-β)) * φ * l**(1/ε)
+    δW_δl = - n * beta_tilde_l * φ * l**(1/ε)
     
     δW = np.concatenate((δW_δc_0, δW_δc_1, δW_δl))
     
@@ -314,14 +316,14 @@ def δObj_δX(E, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
 def δEC_δX(E, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     "Jacobian of Equality Constraints"
         
-    δ_hat = 1 + δ + g
+    δ_tilde = 1 + δ + g
     
     
     # ------------------------------------------------ #
     # Derivatives of Second Period Resource Constraint #
     # ------------------------------------------------ #
     #   wrt to c_0
-    δRC_1_δc_0 = (1 + r - δ_hat) * n.reshape((1,J))
+    δRC_1_δc_0 = (1 + r - δ_tilde) * n.reshape((1,J))
     
     #   wrt to c_1
     δRC_1_δc_1 = n.reshape((1,J))
@@ -394,7 +396,8 @@ def δH_δclx_NL(θ, E, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, 
     L = n * l
     K = Y_bar - np.sum(n * c_0)
     
-    R = r - δ - g
+    δ_tilde = 1 + δ + g
+    R = 1 + r - δ_tilde
     Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     S_k = r * K / Y
     S_j = w * L / Y

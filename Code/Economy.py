@@ -145,9 +145,9 @@ class Economy:
         
         D_1 = self.G * self.Y_sq
         
-        R = (1-self.τ_k) * (self.r_sq - self.δ) - self.g
-        β_g = 1 - R
-        c_0_g = (R*self.y_0 + self.Ψ * (wl_1)**(1-self.ψ) + D_1) / (R + (R * β_g / (1-β_g))**(1/self.var_θ))
+        R_tilde = (1-self.τ_k) * (self.r_sq - self.δ) - self.g
+        β_g = 1 - R_tilde
+        c_0_g = (R_tilde*self.y_0 + self.Ψ * (wl_1)**(1-self.ψ) + D_1) / (R_tilde + (R_tilde * β_g / (1-β_g))**(1/self.var_θ))
         
         CSQ_g = np.concatenate((c_0_g, np.array([β_g])))
         
@@ -158,7 +158,8 @@ class Economy:
         self.c_0_sq = CSQ.x[:self.J]
         self.β = CSQ.x[-1]
         
-        self.c_1_sq = self.c_0_sq * (R * self.β / (1-self.β))**(1/self.var_θ)
+        beta_tilde = self.β / (1 - self.β * (1+self.g)**(1-self.var_θ))
+        self.c_1_sq = self.c_0_sq * (R_tilde * beta_tilde)**(1/self.var_θ)
         
         keep_l = fn.Heath_keep(self.w_j_sq, self.l_j_sq, self.Ψ, self.ψ)
         self.φ = (keep_l * self.w_j_sq) / (self.l_j_sq**(1/self.ε) * self.c_1_sq**(self.var_θ))
