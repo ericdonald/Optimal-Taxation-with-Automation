@@ -678,7 +678,9 @@ class Processor:
         ConEquiv_50 = np.empty(N_g)
         AI_growth = np.linspace(0, G_k, N_g)
         
-        E_sq = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
+        E_θ_10 = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
+        E_θ_25 = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
+        E_θ_50 = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
         
         for g in range(N_g):
             A_k_AI = A_k_AI_base * (1 + AI_growth[g])
@@ -693,21 +695,21 @@ class Processor:
             g_y_50 = self.E.S_k * AI_growth[g] + (1-self.E.S_k) * AI_growth[g] * 0.5
             Ψ_AI_50 = self.E.Ψ * (1+g_y_50)**(self.E.ψ)
             
-            Eqbm_θ_10 = sp.optimize.root(rt.Eqbm_Root, E_sq,
+            Eqbm_θ_10 = sp.optimize.root(rt.Eqbm_Root, E_θ_10,
                           args=(θ_AI_10[g], A_j_AI_10, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_10, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
                           jac=pr.δH_δclx)
             E_θ_10 = Eqbm_θ_10.x
             c_0_θ_10 = E_θ_10[:self.E.J]
             c_1_θ_10 = E_θ_10[self.E.J:2*self.E.J]
             l_θ_10 = E_θ_10[2*self.E.J:3*self.E.J]
-            Eqbm_θ_25 = sp.optimize.root(rt.Eqbm_Root, E_sq,
+            Eqbm_θ_25 = sp.optimize.root(rt.Eqbm_Root, E_θ_25,
                           args=(θ_AI_25[g], A_j_AI_25, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_25, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
                           jac=pr.δH_δclx)
             E_θ_25 = Eqbm_θ_25.x
             c_0_θ_25 = E_θ_25[:self.E.J]
             c_1_θ_25 = E_θ_25[self.E.J:2*self.E.J]
             l_θ_25 = E_θ_25[2*self.E.J:3*self.E.J]
-            Eqbm_θ_50 = sp.optimize.root(rt.Eqbm_Root, E_sq,
+            Eqbm_θ_50 = sp.optimize.root(rt.Eqbm_Root, E_θ_50,
                           args=(θ_AI_50[g], A_j_AI_50, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_50, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
                           jac=pr.δH_δclx)
             E_θ_50 = Eqbm_θ_50.x

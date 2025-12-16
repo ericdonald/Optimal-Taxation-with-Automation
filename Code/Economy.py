@@ -13,6 +13,7 @@ from pathlib import Path
 import Roots as rt
 import Production_Functions as fn
 import Processing_Functions as gpf
+import Perturbations as pr
 
 
 
@@ -364,7 +365,7 @@ class Economy:
         AI_growth = np.linspace(0, G_k, N_g)
         θ_AI = np.empty(N_g)
         
-        E_sq = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, self.var_κ * self.x_bar))
+        E = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, self.var_κ * self.x_bar))
         
         qe.tic()
         for g in range(N_g):
@@ -374,9 +375,15 @@ class Economy:
             g_y = self.S_k * AI_growth[g] + (1-self.S_k) * AI_growth[g] * LAT_frac
             Ψ_AI = self.Ψ * (1+g_y)**(self.ψ)
             
-            args = (E_sq, A_j_AI, A_k_AI, self.x_bar, ζ_AI, ν_AI, self.σ, self.J, self.n, self.y_0, Ψ_AI, self.ψ, self.β, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ)
+            args = (E, A_j_AI, A_k_AI, self.x_bar, ζ_AI, ν_AI, self.σ, self.J, self.n, self.y_0, Ψ_AI, self.ψ, self.β, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ)
             
             θ_AI[g] = gpf.bisect_scalar(rt.Optimalθ_SQ_Root, 0.1, 1, args)
+            #print(θ_AI[g])
+            
+            Eqbm = sp.optimize.root(rt.Eqbm_Root, E,
+                          args=(θ_AI[g], A_j_AI, A_k_AI, self.x_bar, ζ_AI, ν_AI, self.σ, self.J, self.n, self.y_0, Ψ_AI, self.ψ, self.β, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ),
+                          jac=pr.δH_δclx)
+            E = Eqbm.x
         
         qe.toc()
         print("AI Experiment Policy Path Computed")
