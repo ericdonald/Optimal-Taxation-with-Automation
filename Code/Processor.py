@@ -687,11 +687,11 @@ class Processor:
             A_j_AI_50 = A_j_AI_base * (1 + AI_growth[g] * 0.5)
             
             g_y_10 = self.E.S_k * AI_growth[g] + (1-self.E.S_k) * AI_growth[g] * 0.25
-            Ψ_AI_10 = self.E.Ψ * (1+g_y_10)**(-self.E.ψ)
+            Ψ_AI_10 = self.E.Ψ * (1+g_y_10)**(self.E.ψ)
             g_y_25 = self.E.S_k * AI_growth[g] + (1-self.E.S_k) * AI_growth[g] * 0.25
-            Ψ_AI_25 = self.E.Ψ * (1+g_y_25)**(-self.E.ψ)
+            Ψ_AI_25 = self.E.Ψ * (1+g_y_25)**(self.E.ψ)
             g_y_50 = self.E.S_k * AI_growth[g] + (1-self.E.S_k) * AI_growth[g] * 0.5
-            Ψ_AI_50 = self.E.Ψ * (1+g_y_50)**(-self.E.ψ)
+            Ψ_AI_50 = self.E.Ψ * (1+g_y_50)**(self.E.ψ)
             
             Eqbm_θ_10 = sp.optimize.root(rt.Eqbm_Root, E_sq,
                           args=(θ_AI_10[g], A_j_AI_10, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_10, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
