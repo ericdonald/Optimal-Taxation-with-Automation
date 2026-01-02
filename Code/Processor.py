@@ -43,7 +43,7 @@ class Processor:
                 
         
         
-    def Cleaner(self, ipums_extract=0):
+    def Cleaner(self, ipums_extract=0, CPI_year=2016):
         """""
         Clean Data
         
@@ -62,13 +62,12 @@ class Processor:
         # -------- #
         FRED = api.get(f'https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&frequency=a&api_key={self.FRED_API}&file_type=json')
         data = FRED.json()['observations']
-        filtered_data = [{'date': entry['date'], 'value': entry['value']} for entry in data]
+        filtered_data = [{'year': entry['date'], 'CPI': entry['value']} for entry in data]
         CPI_df = pd.DataFrame(filtered_data)
         
-        CPI_df['date'] = pd.to_datetime(CPI_df['date']).dt.year
-        CPI_df.rename(columns={'date': 'year', 'value': 'CPI'}, inplace=True)
+        CPI_df['year'] = pd.to_datetime(CPI_df['year']).dt.year
         CPI_df['CPI'] = pd.to_numeric(CPI_df['CPI'], errors='coerce')
-        CPI_df['CPI'] = CPI_df['CPI'] / CPI_df.loc[CPI_df['year'] == 2016, 'CPI'].values[0] #CPI indexed to 1 in 2016
+        CPI_df['CPI'] = CPI_df['CPI'] / CPI_df.loc[CPI_df['year'] == CPI_year, 'CPI'].values[0] #CPI indexed to 1 in CPI_year
         
         CPI_df.to_pickle(f'{self.Directory}/Clean Data/FRED_CPI.pkl')
         
