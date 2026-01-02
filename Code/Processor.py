@@ -11,9 +11,7 @@ import numpy as np
 from ipumspy import IpumsApiClient, MicrodataExtract
 import scipy as sp
 from pathlib import Path
-import sys
-import pickle
-
+import sys, pickle
 import importlib.metadata as md
 import Roots as rt
 import Production_Functions as fn
