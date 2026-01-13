@@ -769,6 +769,38 @@ class Processor:
         
         
         
+    def Σ_robust(self, Σ_l):
+        """""
+        Robustness with Lower Σ
+    
+        Output:
+        """""
+        
+        self.E.Σ = Σ_l
+        
+        
+        # ----------- #
+        # Recalibrate #
+        # ----------- #
+        self.E.Calibrate()
+        
+        
+        # ------------------------- #
+        # Status Quo Threshold Rule #
+        # ------------------------- #
+        θ_sq = self.E.StatusQuo_θ(0,1/3)
+        
+        
+        # ---------------- #
+        # Mirrlees Problem #
+        # ---------------- #
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr_NT()
+        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
+        
+        (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr_θ(E_NT, x_NT, -0.25, 0.5)
+        
+        
+        
     def write_package_versions(self, packages):
         """""
         Table of Package Versions

@@ -61,6 +61,12 @@ P.Mirrlees_Optimum()
 P.AI_Experiment(1, 20)
 
 
+# ------------------------------------------ #
+# Lower Aggregate Elasticity of Substitution #
+# ------------------------------------------ #
+P.Σ_robust(0.9)
+
+
 # ----------------------- #
 # Record Package Versions #
 # ----------------------- #
