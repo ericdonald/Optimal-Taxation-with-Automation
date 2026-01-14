@@ -11,7 +11,7 @@ import numpy as np
 from ipumspy import IpumsApiClient, MicrodataExtract
 import scipy as sp
 from pathlib import Path
-import sys, pickle
+import sys
 import importlib.metadata as md
 import Roots as rt
 import Production_Functions as fn
@@ -451,7 +451,7 @@ class Processor:
         
         StatusQuo_Results = gpf.ResultsTable()
         
-        θ = self.E.StatusQuo_θ(0,1/3)
+        θ = self.E.StatusQuo_θ(0, 1/3)
         
         StatusQuo_Results.add('Optimal Status Quo Threshold Rule', gpf.clean_round(θ*100, 1))
         
@@ -524,7 +524,7 @@ class Processor:
         
         
         
-    def Mirrlees_Optimum(self, first1=0, first2=0):
+    def Mirrlees_Optimum(self):
         """""
         Optimal Threshold Rule for Non-Linear Taxes
         
@@ -538,30 +538,10 @@ class Processor:
         # --------------------------------- #
         # Solve for Two Planner Allocations #
         # --------------------------------- #
-        if first1 == 1:
-            tup_NT = self.E.Mirrlees_Lagr_NT()
-            
-            with open(f'{self.Directory}/Results/E_NT.pkl', 'wb') as file:
-                pickle.dump(tup_NT, file)
-                (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = tup_NT
-    
-        else:
-            with open(f'{self.Directory}/Results/E_NT.pkl', 'rb') as file:
-                tup_NT = pickle.load(file)
-                (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = tup_NT
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr_NT()
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
         
-        if first2 == 1:
-            tup = self.E.Mirrlees_Lagr_θ(E_NT, x_NT, -0.25, 0.5)
-            
-            with open(f'{self.Directory}/Results/E_theta.pkl', 'wb') as file:
-                pickle.dump(tup, file)
-                (c_0, c_1, l, K, x, θ) = tup
-    
-        else:
-            with open(f'{self.Directory}/Results/E_theta.pkl', 'rb') as file:
-                tup = pickle.load(file)
-                (c_0, c_1, l, K, x, θ) = tup
+        (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr_θ(E_NT, x_NT, -0.25, 0.5)
         
         
         # -------------------------- #
@@ -773,9 +753,12 @@ class Processor:
         """""
         Robustness with Elasticities of Substitution
     
-        Output:
+        Output: Results/Figures/Σ_robust_StatusQuo_Covariance.csv
+                Results/Figures/Σ_robust_Mirrlees_Covariance.csv
+                Results/Tables/Σ_robust_Results.csv
         """""
         
+        Σ_robust_Results = gpf.ResultsTable()
         self.E.Σ_k = Σ_low
         self.E.σ = σ_low
         
@@ -789,7 +772,58 @@ class Processor:
         # ------------------------- #
         # Status Quo Threshold Rule #
         # ------------------------- #
-        θ_sq = self.E.StatusQuo_θ(0,1/3)
+        θ = self.E.StatusQuo_θ(0, 1/3)
+        
+        Σ_robust_Results.add('Low ES Status Quo Threshold Rule', gpf.clean_round(θ*100, 1))
+        
+        # Derive Equilibria
+        E_sq = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
+        
+        Eqbm = sp.optimize.root(rt.Eqbm_Root, E_sq,
+                      args=(θ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0, self.E.Ψ, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
+                      jac=pr.δH_δclx)
+        
+        E = Eqbm.x
+        
+        c_0 = E[:self.E.J]
+        c_1 = E[self.E.J:2*self.E.J]
+        l = E[2*self.E.J:3*self.E.J]
+        x = E[3*self.E.J:]
+        
+        # Optimal Allocation 
+        L = self.E.n * l
+        κ = self.E.y_0 - c_0
+        K = np.sum(self.E.n * κ)
+        Y = fn.Output(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
+        
+        λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
+        A_expos = x / self.E.ζ
+        cov = np.sum(self.E.n * (λ-1) * A_expos)
+        
+        # Status Quo Allocation
+        λ_sq = self.E.c_1_sq**(-self.E.var_θ) / np.sum(self.E.n * self.E.c_1_sq**(-self.E.var_θ))
+        A_expos_sq = self.E.var_κ * self.E.x_bar / self.E.ζ
+        cov_sq = np.sum(self.E.n * (λ_sq-1) * A_expos_sq)
+        
+        # Comparison Table 
+        ΔoptY = (Y - self.E.Y_sq) * 100 / self.E.Y_sq
+        ΔoptCOV = (cov - cov_sq) * 100 / cov_sq
+        
+        CE = sp.optimize.root(rt.CERoot, 1,
+                      args=(c_0, c_1, l, self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
+                      method='lm')
+        
+        ConEquiv = (CE.x[0] - 1) * 100
+        
+        Σ_robust_Results.add('Low ES Status Quo DOutput', gpf.clean_round(ΔoptY, 1))
+        Σ_robust_Results.add('Low ES Status Quo DCOV', gpf.clean_round(ΔoptCOV, 1))
+        Σ_robust_Results.add('Low ES Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv, 1))
+
+        # Covariance Figure
+        DF_Cov_sq = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), A_expos.reshape((-1,1)), λ.reshape((-1,1)), A_expos_sq.reshape((-1,1)), λ_sq.reshape((-1,1)))), 
+                             columns=['Weight', 'Automation Exposure Optimal', 'lambda Optimal',  'Automation Exposure Status Quo', 'lambda Status Quo'])
+        DF_Cov_sq = DF_Cov_sq.sort_values("Weight", ascending=False)
+        DF_Cov_sq.to_csv(f'{self.Directory}/Results/Figures/Σ_robust_StatusQuo_Covariance.csv', index=False)
         
         
         # ---------------- #
@@ -799,6 +833,52 @@ class Processor:
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
         
         (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr_θ(E_NT, x_NT, -0.25, 0.5)
+        
+        # Threshold Mirrlees Optimum
+        L = self.E.n * l
+        Y = fn.Output(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
+        
+        λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
+        A_expos = x / self.E.ζ
+        cov = np.sum(self.E.n * (λ-1) * A_expos)
+        
+        Σ_robust_Results.add('Low ES Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
+        
+        # Capital Tax Mirrlees Optimum
+        L_NT = self.E.n * l_NT
+        Y_NT = fn.Output(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
+        
+        λ_NT = c_1_NT**(-self.E.var_θ) / np.sum(self.E.n * c_1_NT**(-self.E.var_θ))
+        A_expos_NT = x_NT / self.E.ζ
+        cov_NT = np.sum(self.E.n * (λ_NT-1) * A_expos_NT)
+        
+        MRS_c_NT = fn.cap_MRS(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
+        r_NT = fn.Rents(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
+        τ_K_NT = np.sum(self.E.n * (1 - (MRS_c_NT + self.E.g) / (r_NT - self.E.δ)))
+        Σ_robust_Results.add('Low ES Mirrlees Capital Tax', gpf.clean_round(τ_K_NT*100, 1))
+    
+        # Comparison Table 
+        ΔoptY = (Y - Y_NT) * 100 / Y_NT
+        ΔoptCOV = (cov - cov_NT) * 100 / cov_NT
+        
+        CE = sp.optimize.root(rt.CERoot, 1,
+                      args=(c_0, c_1, l, c_0_NT, c_1_NT, l_NT, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
+                      method='lm')
+        
+        ConEquiv = (CE.x[0] - 1) * 100
+        
+        Σ_robust_Results.add('Low ES Mirrlees DOutput', gpf.clean_round(ΔoptY, 2))
+        Σ_robust_Results.add('Low ES Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 2))
+        Σ_robust_Results.add('Low ES Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
+        
+        # Covariance Figure
+        DF_Cov_NT = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), A_expos.reshape((-1,1)), λ.reshape((-1,1)), A_expos_NT.reshape((-1,1)), λ_NT.reshape((-1,1)))), 
+                             columns=['Weight', 'Automation Exposure Optimal', 'lambda Optimal', 'Automation Exposure Capital Tax', 'lambda Capital Tax'])
+        DF_Cov_NT = DF_Cov_NT.sort_values("Weight", ascending=False)
+        DF_Cov_NT.to_csv(f'{self.Directory}/Results/Figures/Σ_robust_Mirrlees_Covariance.csv', index=False)
+        
+        
+        Σ_robust_Results.to_csv(f'{self.Directory}/Results/Tables/Σ_robust_Results.csv')
         
         
         
