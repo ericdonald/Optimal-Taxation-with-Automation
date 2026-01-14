@@ -178,8 +178,7 @@ def inner_solve(w, r, E_0, args, max_inner_iter=100, viol_frac=1/1000):
         viol_tol = np.abs(W) * viol_frac
 
         viols = (IC_full < -viol_tol)
-        #print(W)
-        #print(np.min(IC_full))
+        #print(np.min(IC_full) / np.abs(W))
 
         if not viols.any():
             break
