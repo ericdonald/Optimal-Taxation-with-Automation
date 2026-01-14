@@ -769,14 +769,15 @@ class Processor:
         
         
         
-    def Σ_robust(self, Σ_l):
+    def Σ_robust(self, Σ_low, σ_low):
         """""
-        Robustness with Lower Σ
+        Robustness with Elasticities of Substitution
     
         Output:
         """""
         
-        self.E.Σ = Σ_l
+        self.E.Σ_k = Σ_low
+        self.E.σ = σ_low
         
         
         # ----------- #

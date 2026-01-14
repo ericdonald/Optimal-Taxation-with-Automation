@@ -61,10 +61,10 @@ P.Mirrlees_Optimum()
 P.AI_Experiment(1, 20)
 
 
-# ------------------------------------------ #
-# Lower Aggregate Elasticity of Substitution #
-# ------------------------------------------ #
-P.Σ_robust(0.9)
+# ---------------------------------- #
+# Lower Elasticities of Substitution #
+# ---------------------------------- #
+P.Σ_robust(0.95, 0.25)
 
 
 # ----------------------- #
