@@ -221,9 +221,9 @@ def solve_planner(w, r, E_0, args):
     # ----- #
     # Solve #
     # ----- #
-    opt = sp.minimize(obj_pen_fun, E_0, jac=obj_pen_jac, method='trust-constr',
+    opt = sp.optimize.minimize(obj_pen_fun, E_0, jac=obj_pen_jac, method='trust-constr',
                             bounds=bounds, constraints=[eq_cons],
-                            options={'max_iter':100})
+                            options={'maxiter':100})
     
     return opt.x
 
