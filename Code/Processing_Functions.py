@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from numba import njit
 import scipy as sp
+import cyipopt as cp
 import Roots as rt
 import Perturbations as pr
 
@@ -220,7 +221,8 @@ def solve_planner(w, r, E_0, args):
     # ----- #
     # Solve #
     # ----- #
-    opt = sp.optimize.minimize(obj_pen_fun, E_0, jac=obj_pen_jac, method='trust-constr',
+
+    opt = cp.minimize_ipopt(obj_pen_fun, E_0, jac=obj_pen_jac,
                             bounds=bounds, constraints=[eq_cons],
                             options={'maxiter':100})
     
