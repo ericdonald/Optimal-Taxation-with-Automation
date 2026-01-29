@@ -484,7 +484,7 @@ class Processor:
         ln_w = np.log(fn.Wages(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
         z_j = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x
         z_jk = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x
-        Σ_j = (self.E.σ + (z_j + z_jk) / self.E.ζ).reshape((-1,1))
+        Σ_j = (self.E.σ + (z_j + z_jk) / self.E.ζ)
         cov = np.sum(self.E.n * Σ_j * ln_w) - np.sum(self.E.n * Σ_j) * np.sum(self.E.n * ln_w)
         
         
@@ -495,7 +495,7 @@ class Processor:
         x_sq = self.E.var_κ * self.E.x_bar
         z_j_sq = fn.relα(x_sq, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x_sq
         z_jk_sq = fn.relα(x_sq, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x_sq
-        Σ_j_sq = (self.E.σ + (z_j_sq + z_jk_sq) / self.E.ζ).reshape((-1,1))
+        Σ_j_sq = (self.E.σ + (z_j_sq + z_jk_sq) / self.E.ζ)
         cov_sq = np.sum(self.E.n * Σ_j_sq * ln_w_sq) - np.sum(self.E.n * Σ_j_sq) * np.sum(self.E.n * ln_w_sq)
         
         
@@ -519,8 +519,8 @@ class Processor:
         # ----------------- #
         # Covariance Figure #
         # ----------------- #
-        X = np.hstack((np.ones((self.E.J,1)), Σ_j))
-        X_sq = np.hstack((np.ones((self.E.J,1)), Σ_j_sq))
+        X = np.hstack((np.ones((self.E.J,1)), Σ_j.reshape((-1,1))))
+        X_sq = np.hstack((np.ones((self.E.J,1)), Σ_j_sq.reshape((-1,1))))
         y = ln_w.reshape((-1,1))
         y_sq = ln_w_sq.reshape((-1,1))
         W = np.diag(self.E.n)
@@ -531,7 +531,7 @@ class Processor:
         ln_w_hat = X @ β
         ln_w_hat_sq = X_sq @ β_sq
         
-        DF_Cov_sq = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), Σ_j, y, ln_w_hat, Σ_j_sq, y_sq, ln_w_hat_sq)), 
+        DF_Cov_sq = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), Σ_j.reshape((-1,1)), y, ln_w_hat, Σ_j_sq.reshape((-1,1)), y_sq, ln_w_hat_sq)), 
                              columns=['Weight', 'ES Optimal', 'Log Wages Optimal', 'Log Wages_hat Optimal', 'ES Status Quo', 'Log Wages Status Quo', 'Log Wages_hat Status Quo'])
         DF_Cov_sq = DF_Cov_sq.sort_values("Weight", ascending=False)
         DF_Cov_sq.to_csv(f'{self.Directory}/Results/Figures/StatusQuo_Covariance.csv', index=False)
@@ -570,7 +570,7 @@ class Processor:
         ln_w = np.log(fn.Wages(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
         z_j = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x
         z_jk = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x
-        Σ_j = (self.E.σ + (z_j + z_jk) / self.E.ζ).reshape((-1,1))
+        Σ_j = (self.E.σ + (z_j + z_jk) / self.E.ζ)
         cov = np.sum(self.E.n * Σ_j * ln_w) - np.sum(self.E.n * Σ_j) * np.sum(self.E.n * ln_w)
         
         Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
@@ -585,7 +585,7 @@ class Processor:
         ln_w_NT = np.log(fn.Wages(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
         z_j_NT = fn.relα(x_NT, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x_NT
         z_jk_NT = fn.relα(x_NT, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x_NT
-        Σ_j_NT = (self.E.σ + (z_j_NT + z_jk_NT) / self.E.ζ).reshape((-1,1))
+        Σ_j_NT = (self.E.σ + (z_j_NT + z_jk_NT) / self.E.ζ)
         cov_NT = np.sum(self.E.n * Σ_j_NT * ln_w_NT) - np.sum(self.E.n * Σ_j_NT) * np.sum(self.E.n * ln_w_NT)
         
         MRS_c_NT = fn.cap_MRS(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
@@ -619,8 +619,8 @@ class Processor:
         # ----------------- #
         # Covariance Figure #
         # ----------------- #
-        X = np.hstack((np.ones((self.E.J,1)), Σ_j))
-        X_NT = np.hstack((np.ones((self.E.J,1)), Σ_j_NT))
+        X = np.hstack((np.ones((self.E.J,1)), Σ_j.reshape((-1,1))))
+        X_NT = np.hstack((np.ones((self.E.J,1)), Σ_j_NT.reshape((-1,1))))
         y = ln_w.reshape((-1,1))
         y_NT = ln_w_NT.reshape((-1,1))
         W = np.diag(self.E.n)
@@ -631,7 +631,7 @@ class Processor:
         ln_w_hat = X @ β
         ln_w_hat_NT = X_NT @ β_NT
         
-        DF_Cov_NT = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), Σ_j, y, ln_w_hat, Σ_j_NT, y_NT, ln_w_hat_NT)), 
+        DF_Cov_NT = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), Σ_j.reshape((-1,1)), y, ln_w_hat, Σ_j_NT.reshape((-1,1)), y_NT, ln_w_hat_NT)), 
                              columns=['Weight', 'ES Optimal', 'Log Wages Optimal', 'Log Wages_hat Optimal', 'ES Capital Tax', 'Log Wages Capital Tax', 'Log Wages_hat Capital Tax'])
         DF_Cov_NT = DF_Cov_NT.sort_values("Weight", ascending=False)
         DF_Cov_NT.to_csv(f'{self.Directory}/Results/Figures/Mirrlees_Covariance.csv', index=False)
@@ -832,7 +832,7 @@ class Processor:
         ln_w = np.log(fn.Wages(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
         z_j = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x
         z_jk = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x
-        Σ_j = (self.E.σ + (z_j + z_jk) / self.E.ζ).reshape((-1,1))
+        Σ_j = (self.E.σ + (z_j + z_jk) / self.E.ζ)
         cov = np.sum(self.E.n * Σ_j * ln_w) - np.sum(self.E.n * Σ_j) * np.sum(self.E.n * ln_w)
         
         # Status Quo Allocation
@@ -840,7 +840,7 @@ class Processor:
         x_sq = self.E.var_κ * self.E.x_bar
         z_j_sq = fn.relα(x_sq, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x_sq
         z_jk_sq = fn.relα(x_sq, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x_sq
-        Σ_j_sq = (self.E.σ + (z_j_sq + z_jk_sq) / self.E.ζ).reshape((-1,1))
+        Σ_j_sq = (self.E.σ + (z_j_sq + z_jk_sq) / self.E.ζ)
         cov_sq = np.sum(self.E.n * Σ_j_sq * ln_w_sq) - np.sum(self.E.n * Σ_j_sq) * np.sum(self.E.n * ln_w_sq)
         
         # Comparison Table 
@@ -858,8 +858,8 @@ class Processor:
         Σ_robust_Results.add('Low ES Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv, 1))
 
         # Covariance Figure
-        X = np.hstack((np.ones((self.E.J,1)), Σ_j))
-        X_sq = np.hstack((np.ones((self.E.J,1)), Σ_j_sq))
+        X = np.hstack((np.ones((self.E.J,1)), Σ_j.reshape((-1,1))))
+        X_sq = np.hstack((np.ones((self.E.J,1)), Σ_j_sq.reshape((-1,1))))
         y = ln_w.reshape((-1,1))
         y_sq = ln_w_sq.reshape((-1,1))
         W = np.diag(self.E.n)
@@ -870,7 +870,7 @@ class Processor:
         ln_w_hat = X @ β
         ln_w_hat_sq = X_sq @ β_sq
         
-        DF_Cov_sq = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), Σ_j, y, ln_w_hat, Σ_j_sq, y_sq, ln_w_hat_sq)), 
+        DF_Cov_sq = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), Σ_j.reshape((-1,1)), y, ln_w_hat, Σ_j_sq.reshape((-1,1)), y_sq, ln_w_hat_sq)), 
                              columns=['Weight', 'ES Optimal', 'Log Wages Optimal', 'Log Wages_hat Optimal', 'ES Status Quo', 'Log Wages Status Quo', 'Log Wages_hat Status Quo'])
         DF_Cov_sq = DF_Cov_sq.sort_values("Weight", ascending=False)
         DF_Cov_sq.to_csv(f'{self.Directory}/Results/Figures/Σ_robust_StatusQuo_Covariance.csv', index=False)
@@ -891,7 +891,7 @@ class Processor:
         ln_w = np.log(fn.Wages(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
         z_j = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x
         z_jk = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x
-        Σ_j = (self.E.σ + (z_j + z_jk) / self.E.ζ).reshape((-1,1))
+        Σ_j = (self.E.σ + (z_j + z_jk) / self.E.ζ)
         cov = np.sum(self.E.n * Σ_j * ln_w) - np.sum(self.E.n * Σ_j) * np.sum(self.E.n * ln_w)
         
         Σ_robust_Results.add('Low ES Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
@@ -903,7 +903,7 @@ class Processor:
         ln_w_NT = np.log(fn.Wages(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
         z_j_NT = fn.relα(x_NT, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x_NT
         z_jk_NT = fn.relα(x_NT, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x_NT
-        Σ_j_NT = (self.E.σ + (z_j_NT + z_jk_NT) / self.E.ζ).reshape((-1,1))
+        Σ_j_NT = (self.E.σ + (z_j_NT + z_jk_NT) / self.E.ζ)
         cov_NT = np.sum(self.E.n * Σ_j_NT * ln_w_NT) - np.sum(self.E.n * Σ_j_NT) * np.sum(self.E.n * ln_w_NT)
         
         MRS_c_NT = fn.cap_MRS(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
@@ -926,8 +926,8 @@ class Processor:
         Σ_robust_Results.add('Low ES Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
         
         # Covariance Figure
-        X = np.hstack((np.ones((self.E.J,1)), Σ_j))
-        X_NT = np.hstack((np.ones((self.E.J,1)), Σ_j_NT))
+        X = np.hstack((np.ones((self.E.J,1)), Σ_j.reshape((-1,1))))
+        X_NT = np.hstack((np.ones((self.E.J,1)), Σ_j_NT.reshape((-1,1))))
         y = ln_w.reshape((-1,1))
         y_NT = ln_w_NT.reshape((-1,1))
         W = np.diag(self.E.n)
@@ -938,7 +938,7 @@ class Processor:
         ln_w_hat = X @ β
         ln_w_hat_NT = X_NT @ β_NT
         
-        DF_Cov_NT = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), Σ_j, y, ln_w_hat, Σ_j_NT, y_NT, ln_w_hat_NT)), 
+        DF_Cov_NT = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), Σ_j.reshape((-1,1)), y, ln_w_hat, Σ_j_NT.reshape((-1,1)), y_NT, ln_w_hat_NT)), 
                              columns=['Weight', 'ES Optimal', 'Log Wages Optimal', 'Log Wages_hat Optimal', 'ES Capital Tax', 'Log Wages Capital Tax', 'Log Wages_hat Capital Tax'])
         DF_Cov_NT = DF_Cov_NT.sort_values("Weight", ascending=False)
         DF_Cov_NT.to_csv(f'{self.Directory}/Results/Figures/Mirrlees_Covariance.csv', index=False)
