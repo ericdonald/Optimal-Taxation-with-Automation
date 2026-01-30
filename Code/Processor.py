@@ -941,7 +941,7 @@ class Processor:
         DF_Cov_NT = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), Σ_j.reshape((-1,1)), y, ln_w_hat, Σ_j_NT.reshape((-1,1)), y_NT, ln_w_hat_NT)), 
                              columns=['Weight', 'ES Optimal', 'Log Wages Optimal', 'Log Wages_hat Optimal', 'ES Capital Tax', 'Log Wages Capital Tax', 'Log Wages_hat Capital Tax'])
         DF_Cov_NT = DF_Cov_NT.sort_values("Weight", ascending=False)
-        DF_Cov_NT.to_csv(f'{self.Directory}/Results/Figures/Mirrlees_Covariance.csv', index=False)
+        DF_Cov_NT.to_csv(f'{self.Directory}/Results/Figures/ES_robust_Mirrlees_Covariance.csv', index=False)
         
         
         ES_robust_Results.to_csv(f'{self.Directory}/Results/Tables/ES_robust_Results.csv')
