@@ -612,7 +612,7 @@ class Processor:
         ConEquiv = (CE.x[0] - 1) * 100
         
         Mirrlees_Results.add('Optimal Mirrlees DOutput', gpf.clean_round(ΔoptY, 2))
-        Mirrlees_Results.add('Optimal Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 2))
+        Mirrlees_Results.add('Optimal Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 1))
         Mirrlees_Results.add('Optimal Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
         
         
@@ -922,7 +922,7 @@ class Processor:
         ConEquiv = (CE.x[0] - 1) * 100
         
         Σ_robust_Results.add('Low ES Mirrlees DOutput', gpf.clean_round(ΔoptY, 2))
-        Σ_robust_Results.add('Low ES Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 2))
+        Σ_robust_Results.add('Low ES Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 1))
         Σ_robust_Results.add('Low ES Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
         
         # Covariance Figure
