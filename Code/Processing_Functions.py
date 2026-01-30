@@ -160,7 +160,7 @@ def broadcast_col_to_matrix(col):
 
 
 
-def inner_solve(w, r, E_0, args, max_inner_iter=100, viol_frac=1/1000):
+def inner_solve(w, r, E_0, args, max_inner_iter=100, viol_frac=1/10_000):
     "Solve Inner Loop"
     
     for _ in range(max_inner_iter):
@@ -174,12 +174,18 @@ def inner_solve(w, r, E_0, args, max_inner_iter=100, viol_frac=1/1000):
         # --------------------- #
         # Scan for IC Violation #
         # --------------------- #
-        W = rt.Mir_obj(alloc, *args)
-        IC_full = rt.Inequal_Constr(alloc, w, *args)
-        viol_tol = np.abs(W) * viol_frac
+        J = args[-1]
+        var_θ = args[-4]
+        
+        IC_full = -np.minimum(rt.Inequal_Constr(alloc, w, *args), 0.0)
+        IC_max = IC_full.max(axis=1)
+        c_0 = alloc[:J]
+        MU_0 = c_0**(-var_θ)
+        
+        deviat = IC_max / (MU_0 * c_0)
 
-        viols = (IC_full < -viol_tol)
-        #print(np.min(IC_full) / np.abs(W))
+        viols = (deviat > viol_frac)
+        #print(np.max(deviat))
 
         if not viols.any():
             break
