@@ -786,12 +786,12 @@ class Processor:
         """""
         Robustness with Elasticities of Substitution
     
-        Output: Results/Figures/Σ_robust_StatusQuo_Covariance.csv
-                Results/Figures/Σ_robust_Mirrlees_Covariance.csv
-                Results/Tables/Σ_robust_Results.csv
+        Output: Results/Figures/ES_robust_StatusQuo_Covariance.csv
+                Results/Figures/ES_robust_Mirrlees_Covariance.csv
+                Results/Tables/ES_robust_Results.csv
         """""
         
-        Σ_robust_Results = gpf.ResultsTable()
+        ES_robust_Results = gpf.ResultsTable()
         self.E.Σ_k = Σ_low
         self.E.σ = σ_low
         
@@ -807,7 +807,7 @@ class Processor:
         # ------------------------- #
         θ = self.E.StatusQuo_θ(0, 1/3)
         
-        Σ_robust_Results.add('Low ES Status Quo Threshold Rule', gpf.clean_round(θ*100, 1))
+        ES_robust_Results.add('Low ES Status Quo Threshold Rule', gpf.clean_round(θ*100, 1))
         
         # Derive Equilibria
         E_sq = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
@@ -853,9 +853,9 @@ class Processor:
         
         ConEquiv = (CE.x[0] - 1) * 100
         
-        Σ_robust_Results.add('Low ES Status Quo DOutput', gpf.clean_round(ΔoptY, 1))
-        Σ_robust_Results.add('Low ES Status Quo DCOV', gpf.clean_round(ΔoptCOV, 1))
-        Σ_robust_Results.add('Low ES Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv, 1))
+        ES_robust_Results.add('Low ES Status Quo DOutput', gpf.clean_round(ΔoptY, 1))
+        ES_robust_Results.add('Low ES Status Quo DCOV', gpf.clean_round(ΔoptCOV, 1))
+        ES_robust_Results.add('Low ES Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv, 1))
 
         # Covariance Figure
         X = np.hstack((np.ones((self.E.J,1)), Σ_j.reshape((-1,1))))
@@ -873,7 +873,7 @@ class Processor:
         DF_Cov_sq = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), Σ_j.reshape((-1,1)), y, ln_w_hat, Σ_j_sq.reshape((-1,1)), y_sq, ln_w_hat_sq)), 
                              columns=['Weight', 'ES Optimal', 'Log Wages Optimal', 'Log Wages_hat Optimal', 'ES Status Quo', 'Log Wages Status Quo', 'Log Wages_hat Status Quo'])
         DF_Cov_sq = DF_Cov_sq.sort_values("Weight", ascending=False)
-        DF_Cov_sq.to_csv(f'{self.Directory}/Results/Figures/Σ_robust_StatusQuo_Covariance.csv', index=False)
+        DF_Cov_sq.to_csv(f'{self.Directory}/Results/Figures/ES_robust_StatusQuo_Covariance.csv', index=False)
         
         
         # ---------------- #
@@ -894,7 +894,7 @@ class Processor:
         Σ_j = (self.E.σ + (z_j + z_jk) / self.E.ζ)
         cov = np.sum(self.E.n * Σ_j * ln_w) - np.sum(self.E.n * Σ_j) * np.sum(self.E.n * ln_w)
         
-        Σ_robust_Results.add('Low ES Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
+        ES_robust_Results.add('Low ES Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
         
         # Capital Tax Mirrlees Optimum
         L_NT = self.E.n * l_NT
@@ -909,7 +909,7 @@ class Processor:
         MRS_c_NT = fn.cap_MRS(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
         r_NT = fn.Rents(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         τ_K_NT = np.sum(self.E.n * (1 - (MRS_c_NT + self.E.g) / (r_NT - self.E.δ)))
-        Σ_robust_Results.add('Low ES Mirrlees Capital Tax', gpf.clean_round(τ_K_NT*100, 1))
+        ES_robust_Results.add('Low ES Mirrlees Capital Tax', gpf.clean_round(τ_K_NT*100, 1))
     
         # Comparison Table 
         ΔoptY = (Y - Y_NT) * 100 / Y_NT
@@ -921,9 +921,9 @@ class Processor:
         
         ConEquiv = (CE.x[0] - 1) * 100
         
-        Σ_robust_Results.add('Low ES Mirrlees DOutput', gpf.clean_round(ΔoptY, 2))
-        Σ_robust_Results.add('Low ES Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 1))
-        Σ_robust_Results.add('Low ES Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
+        ES_robust_Results.add('Low ES Mirrlees DOutput', gpf.clean_round(ΔoptY, 2))
+        ES_robust_Results.add('Low ES Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 1))
+        ES_robust_Results.add('Low ES Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
         
         # Covariance Figure
         X = np.hstack((np.ones((self.E.J,1)), Σ_j.reshape((-1,1))))
@@ -944,7 +944,7 @@ class Processor:
         DF_Cov_NT.to_csv(f'{self.Directory}/Results/Figures/Mirrlees_Covariance.csv', index=False)
         
         
-        Σ_robust_Results.to_csv(f'{self.Directory}/Results/Tables/Σ_robust_Results.csv')
+        ES_robust_Results.to_csv(f'{self.Directory}/Results/Tables/ES_robust_Results.csv')
         
         
         
