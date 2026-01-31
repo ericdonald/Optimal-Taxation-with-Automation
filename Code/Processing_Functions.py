@@ -160,7 +160,7 @@ def broadcast_col_to_matrix(col):
 
 
 
-def inner_solve(w, r, E_0, args, max_inner_iter=100, viol_frac=1/10_000):
+def inner_solve(w, r, E_0, args, viol_frac, max_inner_iter=1000):
     "Solve Inner Loop"
     
     for _ in range(max_inner_iter):
@@ -184,7 +184,7 @@ def inner_solve(w, r, E_0, args, max_inner_iter=100, viol_frac=1/10_000):
         
         deviat = IC_max / (MU_0 * c_0)
 
-        viols = (deviat > viol_frac)
+        viols = (deviat > np.minimum(viol_frac, 1.0))
         #print(np.max(deviat))
 
         if not viols.any():

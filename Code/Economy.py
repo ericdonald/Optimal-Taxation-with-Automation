@@ -210,7 +210,7 @@ class Economy:
     
     
     
-    def Mirrlees_Lagr_NT(self, damp=1/5, tol=1e-4, max_iter=10000):
+    def Mirrlees_Lagr_NT(self, damp=1/5, tol=1e-4, max_iter=10_000):
         "Solve Non-Linear Tax Problem without Threshold Rule"
             
         E = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq))
@@ -224,6 +224,7 @@ class Economy:
         
         w = self.w_j_sq
         r = self.r_sq
+        error_x = 1.0
         
         
         qe.tic()
@@ -236,7 +237,7 @@ class Economy:
             # ---------------- #
             # Solve Inner Loop #
             # ---------------- #
-            E = gpf.inner_solve(w, r, E, args)
+            E = gpf.inner_solve(w, r, E, args, error_x)
             c_0 = E[:self.J]
             c_1 = E[self.J:2*self.J]
             l = E[2*self.J:3*self.J]
@@ -279,7 +280,7 @@ class Economy:
         
         
         
-    def Mirrlees_Lagr_θ(self, E, x, θ_lower, θ_upper, θ=0.25, damp=1/5, tol=1e-4, max_iter=1000):
+    def Mirrlees_Lagr_θ(self, E, x, θ_lower, θ_upper, θ=0.25, damp=1/5, tol=1e-4, max_iter=10_000):
         "Solve Non-Linear Tax Problem with Threshold Rule"
                     
         Y_0 = self.Y_sq / (1+self.g)
@@ -295,6 +296,7 @@ class Economy:
         
         w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
         r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+        error = 1.0
         
         
         qe.tic()
@@ -307,7 +309,7 @@ class Economy:
             # ---------------- #
             # Solve Inner Loop #
             # ---------------- #
-            E = gpf.inner_solve(w, r, E, args)
+            E = gpf.inner_solve(w, r, E, args, error)
             c_0 = E[:self.J]
             c_1 = E[self.J:2*self.J]
             l = E[2*self.J:3*self.J]
@@ -343,6 +345,7 @@ class Economy:
             
             θ = θ * (1-damp) + θ_new * damp
             x = x * (1-damp) + x_new * damp
+            error = np.maximum(error_x, error_θ)
             
             w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
