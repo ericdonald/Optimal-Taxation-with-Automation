@@ -63,10 +63,13 @@ def ConCalRoot(CSQ, J, Y, K, G, n, w_j, l_j, y_j0, r, δ, g, τ_k, Ψ, ψ, var_�
 
 
 
-def GammaRoot(Γ, var_κ, Σ_k, χ, x_bar, σ, S_k, S_j, J):
+def GammaRoot(Γ, E_sq, w_j_sq, r_sq, COR, var_κ, Σ_k, χ, x_bar, σ, S_k, S_j, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ):
     "Automation Exposure Root"
     
     ζ = fn.zeta(Γ, χ)
+    
+    
+    ### Compute Productivity and Absolute Advantage
     
     nu_g = np.ones(J) * var_κ
     
@@ -77,16 +80,38 @@ def GammaRoot(Γ, var_κ, Σ_k, χ, x_bar, σ, S_k, S_j, J):
     ν = nu.x
     x_j = var_κ * x_bar
     
-    z_j = fn.relα(x_j, x_bar, ζ, ν, σ, 0) * x_j
+    Λ_k = fn.Lamba_k(x_j, x_bar, ζ, ν, σ)
+    A_k = r_sq**(σ / (σ-1)) * (COR / Λ_k)**(1 / (σ-1))
     
-    z_jk = fn.relα(x_j, x_bar, ζ, ν, σ, 1) * x_j
+    A_j = (w_j_sq / x_j**(ζ)) / (r_sq / A_k)
     
-    Σ_j = σ + (z_j + z_jk) / ζ
     
-    ES_weight = S_j * (Σ_k - σ) * ζ / z_jk
-    unit = np.sum(ES_weight)
+    ### Compute Elasticity of Substitution
+    c_0 = E_sq[:J]
+    l = E_sq[2*J:3*J]
     
-    RHS = np.sum(ES_weight * Σ_j) / unit
+    ΔH_ΔΕ = pr.δH_δclx(E_sq, 0, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ)
+    ΔH_ΔA_k = pr.δH_δA_k(0, J)
+
+    dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_ΔA_k
+    
+    dc_0 = dE[:J,0]
+    dl = dE[2*J:3*J,0]
+    dx = dE[3*J:,0]
+    
+    κ = y_0 - c_0
+    K = np.sum(n * κ)
+    dK = - np.sum(n * dc_0)
+    
+    δlnK = dK / K
+    
+    #Add direct effects
+    δlnY = pr.dlnY(dc_0, dl, dx, c_0, l, x_j, 0, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0) + S_k
+    δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x_j, 0, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0) + (σ-1)/σ + S_k / σ
+    
+    δlnS_k = δlnr + δlnK / δlnY
+    
+    RHS = δlnS_k / δlnr
         
     return np.log(Σ_k) - np.log(RHS)
 

@@ -198,6 +198,37 @@ def δH_δθ(θ, J):
 
 
 @njit
+def δH_δA_k(θ, J):
+    "Jacobian of H wrt Capital-Augmenting Technology"
+    
+    # ---------------------------------------- #
+    # Derivative of Log Labor Supply Condition #
+    # ---------------------------------------- #
+    δlnLS = np.zeros((J,1))
+    
+    
+    # -------------------------------- #
+    # Derivative of Log Euler Equation #
+    # -------------------------------- #
+    δlnEE = np.zeros((J,1))
+    
+    
+    # ------------------------------ #
+    # Derivative of Household Budget #
+    # ------------------------------ #
+    δHB = np.zeros((J,1))
+    
+    
+    # --------------------------------------- #
+    # Derivative of Log Automation Thresholds #
+    # --------------------------------------- #
+    δlnAT = np.ones((J,1)) / (1+θ)
+    
+    return np.vstack((δlnLS, δlnEE, δHB, δlnAT))
+
+
+
+@njit
 def dlnY(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0):
     "Total Derivative of Log Output"
     
