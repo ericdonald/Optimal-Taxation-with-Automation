@@ -14,7 +14,7 @@ import Roots as rt
 
 
 @njit
-def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ):
+def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ):
     "Jacobian of H wrt Equilibrium Allocation"
     
     c_0 = E[:J]
@@ -27,7 +27,7 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     
     w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    R = (1-τ_k)*(r-δ) - g
+    R_tilde = (1-τ_k)*(r-δ) - g
         
     Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     S_k = r * K / Y
@@ -76,7 +76,7 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     τ_l = 1 - keep_l
     y_l = w * l
     
-    δD_δl = - n * τ_l * w - ((n * τ_l * y_l).reshape((1,J)) @ δlnw_δlnL) / l + τ_k * r * K * δlnr_δlnL / l
+    δD_δl = n * τ_l * w + ((n * τ_l * y_l).reshape((1,J)) @ δlnw_δlnL) / l + τ_k * r * K * δlnr_δlnL / l
     δD_δK = np.sum(n * τ_l * y_l * δlnw_δlnK) / K + τ_k * r * δlnr_δlnK + τ_k * (r - δ)
     δD_δX = (n * τ_l * y_l).reshape((1,J)) @ δlnw_δX + τ_k * r * K * δlnr_δX
     
@@ -106,16 +106,16 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     # Derivatives of Log Euler Equation #
     # --------------------------------- #
     #   wrt to c_0
-    δlnEE_δc_0 = - gpf.make_diag(1/c_0) * var_θ - ((1-τ_k) * r / R) * δlnr_δlnK / K * gpf.broadcast_row_to_matrix(-n)
+    δlnEE_δc_0 = - gpf.make_diag(1/c_0) * var_θ - ((1-τ_k) * r / R_tilde) * δlnr_δlnK / K * gpf.broadcast_row_to_matrix(-n)
     
     #   wrt to c_1
     δlnEE_δc_1 = gpf.make_diag(1/c_1) * var_θ
     
     #   wrt to l
-    δlnEE_δl = - ((1-τ_k) * r / R) * gpf.broadcast_row_to_matrix(δlnr_δlnL / l)
+    δlnEE_δl = - ((1-τ_k) * r / R_tilde) * gpf.broadcast_row_to_matrix(δlnr_δlnL / l)
     
     #   wrt to x
-    δlnEE_δx = - ((1-τ_k) * r / R) * gpf.broadcast_row_to_matrix(δlnr_δX)
+    δlnEE_δx = - ((1-τ_k) * r / R_tilde) * gpf.broadcast_row_to_matrix(δlnr_δX)
     
     δlnEE = np.hstack((δlnEE_δc_0, δlnEE_δc_1, δlnEE_δl, δlnEE_δx))
     
@@ -124,7 +124,7 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
     # Derivatives of Household Budget #
     # ------------------------------- #
     #   wrt to c_0
-    δHB_δc_0 = np.eye(J)*R + (gpf.broadcast_col_to_matrix(c_0 - y_0) * (1-τ_k) * r * δlnr_δlnK / K 
+    δHB_δc_0 = np.eye(J)*R_tilde + (gpf.broadcast_col_to_matrix(c_0 - y_0) * (1-τ_k) * r * δlnr_δlnK / K 
                               - gpf.broadcast_col_to_matrix(keep_l * y_l * δlnw_δlnK) / K
                               - δD_δK) * gpf.broadcast_row_to_matrix(-n)
     
@@ -167,39 +167,70 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
 
 
 @njit
-def δH_δθ(θ, J):
-    "Jacobian of H wrt Threshold Rule"
+def δH_δA_k(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ):
+    "Jacobian of H wrt Capital-Augmenting Technology"
+    
+    
+    # ------------------- #
+    # Equilibrium Changes #
+    # ------------------- #
+    c_0 = E[:J]
+    l = E[2*J:3*J]
+    x = E[3*J:]
+    
+    L = n * l
+    K = np.sum(n * (y_0 - c_0))
+    
+    w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
+    r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
+    R_tilde = (1-τ_k)*(r-δ) - g
+    
+    Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
+    S_k = r * K / Y
+    
+    δlnY = S_k
+    δlnw = np.ones((J,1)) * δlnY / σ
+    δlnr = (σ-1) / σ + δlnY / σ
+    
+    keep_l = fn.Heath_keep(w, l, Ψ, ψ)
+    τ_l = 1 - keep_l
+    y_l = w * l
+    
+    δD = (n * τ_l * y_l).reshape((1,J)) @ δlnw + τ_k * r * K * δlnr
+    
     
     # ---------------------------------------- #
     # Derivative of Log Labor Supply Condition #
     # ---------------------------------------- #
-    δlnLS = np.zeros((J,1))
+    δlnLS = - (1-ψ) * δlnw
     
     
     # -------------------------------- #
     # Derivative of Log Euler Equation #
     # -------------------------------- #
-    δlnEE = np.zeros((J,1))
+    δlnEE = - np.zeros((J,1)) * ((1-τ_k) * r / R_tilde) * δlnr
     
     
     # ------------------------------ #
     # Derivative of Household Budget #
     # ------------------------------ #
-    δHB = np.zeros((J,1))
+    δHB = ((c_0 - y_0) * (1-τ_k) * r * δlnr
+                  - keep_l * y_l * δlnw
+                  - δD)
     
     
     # --------------------------------------- #
     # Derivative of Log Automation Thresholds #
     # --------------------------------------- #
-    δlnAT = np.ones((J,1)) / (1+θ)
+    δlnAT = - δlnw + np.ones((J,1)) * (δlnr - 1)
     
     return np.vstack((δlnLS, δlnEE, δHB, δlnAT))
 
 
 
 @njit
-def δH_δA_k(θ, J):
-    "Jacobian of H wrt Capital-Augmenting Technology"
+def δH_δθ(θ, J):
+    "Jacobian of H wrt Threshold Rule"
     
     # ---------------------------------------- #
     # Derivative of Log Labor Supply Condition #

@@ -384,7 +384,7 @@ class Economy:
             #print(θ_AI[g])
             
             Eqbm = sp.optimize.root(rt.Eqbm_Root, E,
-                          args=(θ_AI[g], A_j_AI, A_k_AI, self.x_bar, ζ_AI, ν_AI, self.σ, self.J, self.n, self.y_0, Ψ_AI, self.ψ, self.β, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ),
+                          args=(θ_AI[g], A_j_AI, A_k_AI, self.x_bar, ζ_AI, ν_AI, self.σ, self.J, self.n, self.y_0, Ψ_AI, self.ψ, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ),
                           jac=pr.δH_δclx)
             E = Eqbm.x
         

@@ -69,8 +69,9 @@ def GammaRoot(Γ, E_sq, w_j_sq, r_sq, COR, var_κ, Σ_k, χ, x_bar, σ, S_k, S_j
     ζ = fn.zeta(Γ, χ)
     
     
-    ### Compute Productivity and Absolute Advantage
-    
+    # ------------------------------------------- #
+    # Compute Productivity and Absolute Advantage #
+    # ------------------------------------------- #
     nu_g = np.ones(J) * var_κ
     
     nu = sp.optimize.root(νRoot, nu_g,
@@ -86,12 +87,14 @@ def GammaRoot(Γ, E_sq, w_j_sq, r_sq, COR, var_κ, Σ_k, χ, x_bar, σ, S_k, S_j
     A_j = (w_j_sq / x_j**(ζ)) / (r_sq / A_k)
     
     
-    ### Compute Elasticity of Substitution
+    # ---------------------------------- #
+    # Compute Elasticity of Substitution #
+    # ---------------------------------- #
     c_0 = E_sq[:J]
     l = E_sq[2*J:3*J]
     
-    ΔH_ΔΕ = pr.δH_δclx(E_sq, 0, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ)
-    ΔH_ΔA_k = pr.δH_δA_k(0, J)
+    ΔH_ΔΕ = pr.δH_δclx(E_sq, 0, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ)
+    ΔH_ΔA_k = pr.δH_δA_k(E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ)
 
     dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_ΔA_k
     
@@ -192,7 +195,7 @@ def Optimalθ_SQ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, 
     # Solve for Equilibrium Allocation #
     # -------------------------------- #
     Eqbm = sp.optimize.root(Eqbm_Root, E_sq,
-                  args=(θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ),
+                  args=(θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ),
                   jac=pr.δH_δclx)
     
     E = Eqbm.x
@@ -206,7 +209,7 @@ def Optimalθ_SQ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, 
     # ------------------------------------ #
     # Compute Threshold Rule Perturbations #
     # ------------------------------------ #
-    ΔH_ΔΕ = pr.δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ)
+    ΔH_ΔΕ = pr.δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ)
     ΔH_Δθ = pr.δH_δθ(θ, J)
 
     dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_Δθ
