@@ -21,10 +21,10 @@ def Lamba_l(x_j, x_bar, ζ, ν, σ):
 
 
 @njit
-def Lamba_k(x_j, x_bar, ζ, ν, σ, ε=0.0001):
+def Lamba_k(x_j, x_bar, ζ, ν, σ, x_underbar=0.0001):
     "Capital Task Integral"
     
-    Λ_k = np.sum((x_j**(ζ*(ν-1)*(σ-1) + 1) - ε**(ζ*(ν-1)*(σ-1) + 1)) / (ζ*(ν-1)*(σ-1) + 1))
+    Λ_k = np.sum((x_j**(ζ*(ν-1)*(σ-1) + 1) - x_underbar**(ζ*(ν-1)*(σ-1) + 1)) / (ζ*(ν-1)*(σ-1) + 1))
     
     return Λ_k
     

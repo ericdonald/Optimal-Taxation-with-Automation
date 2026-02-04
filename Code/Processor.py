@@ -395,7 +395,6 @@ class Processor:
         
         CapbyOcc_df['occ1990dd_2d'] = np.select(conditions, values_2d, default=np.nan)
 
-        
         z_jk = fn.relα(x_j, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x_j
         
         Σ_j = self.E.σ + (z_j + z_jk) / self.E.ζ
