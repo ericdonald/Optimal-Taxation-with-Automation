@@ -167,7 +167,7 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, var_θ, ε,
 
 
 @njit
-def δH_δA_k(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ):
+def δH_δA_k(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ):
     "Jacobian of H wrt Capital-Augmenting Technology"
     
     
@@ -208,14 +208,14 @@ def δH_δA_k(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε,
     # -------------------------------- #
     # Derivative of Log Euler Equation #
     # -------------------------------- #
-    δlnEE = - np.zeros((J,1)) * ((1-τ_k) * r / R_tilde) * δlnr
+    δlnEE = - np.ones((J,1)) * ((1-τ_k) * r / R_tilde) * δlnr
     
     
     # ------------------------------ #
     # Derivative of Household Budget #
     # ------------------------------ #
-    δHB = ((c_0 - y_0) * (1-τ_k) * r * δlnr
-                  - keep_l * y_l * δlnw
+    δHB = ((c_0 - y_0).reshape((J,1)) * (1-τ_k) * r * δlnr
+                  - (keep_l * y_l).reshape((J,1)) * δlnw
                   - δD)
     
     

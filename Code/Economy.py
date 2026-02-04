@@ -169,7 +169,8 @@ class Economy:
         # ---------------------------------- #
         # Task-Level Productivity Parameters #
         # ---------------------------------- #
-        args = (self.var_κ, self.Σ_k, self.χ, self.x_bar, self.σ, self.S_k, self.S_j_sq, self.J)
+        E_sq = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, self.var_κ * self.x_bar))
+        args = (E_sq, self.w_j_sq, self.r_sq, self.COR, self.var_κ, self.Σ_k, self.χ, self.x_bar, self.σ, self.S_k, self.S_j_sq, self.J, self.n, self.y_0, self.Ψ, self.ψ, self.β, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ)
         
         a = 0
         b = -np.log(1000) / 100 #Lower bound for ζ of 1/1000
