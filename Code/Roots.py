@@ -112,9 +112,9 @@ def GammaRoot(Γ, E_sq, w_j_sq, r_sq, COR, var_κ, Σ_k, χ, x_bar, σ, S_k, S_j
     δlnY = pr.dlnY(dc_0, dl, dx, c_0, l, x_j, 0, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0) + S_k
     δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x_j, 0, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0) + (σ-1)/σ + S_k / σ
     
-    δlnS_k = δlnr + δlnK / δlnY
+    δlnS_k = δlnr + δlnK - δlnY
     
-    RHS = δlnS_k / δlnr
+    RHS = 1 - δlnS_k / δlnr
         
     return np.log(Σ_k) - np.log(RHS)
 
