@@ -43,7 +43,7 @@ class Economy:
         self.Y_sq = 100 #Status Quo Output
         self.G = 0.3 #Government Revenue Share
         self.x_bar = np.ones(J)*100 #Task Interval Upper Bounds
-        self.var_κ = 0.1 #Normalized proportion of initial task
+        self.var_κ = 0.15 #Normalized proportion of initial task
         self.g = 0.02 #TFP Growth
         self.τ_k = 0.1 #Status Quo Capital Income Tax
         self.ψ = 0.181 #Status Quo Labor Tax Shape
