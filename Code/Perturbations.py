@@ -14,7 +14,7 @@ import Roots as rt
 
 
 @njit
-def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ):
+def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ):
     "Jacobian of H wrt Equilibrium Allocation"
     
     c_0 = E[:J]

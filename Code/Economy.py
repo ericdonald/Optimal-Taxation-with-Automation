@@ -43,7 +43,7 @@ class Economy:
         self.Y_sq = 100 #Status Quo Output
         self.G = 0.3 #Government Revenue Share
         self.x_bar = np.ones(J)*100 #Task Interval Upper Bounds
-        self.var_κ = 0.2 #Normalized proportion of initial task
+        self.var_κ = 0.1 #Normalized proportion of initial task
         self.g = 0.02 #TFP Growth
         self.τ_k = 0.1 #Status Quo Capital Income Tax
         self.ψ = 0.181 #Status Quo Labor Tax Shape
@@ -385,7 +385,7 @@ class Economy:
             #print(θ_AI[g])
             
             Eqbm = sp.optimize.root(rt.Eqbm_Root, E,
-                          args=(θ_AI[g], A_j_AI, A_k_AI, self.x_bar, ζ_AI, ν_AI, self.σ, self.J, self.n, self.y_0, Ψ_AI, self.ψ, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ),
+                          args=(θ_AI[g], A_j_AI, A_k_AI, self.x_bar, ζ_AI, ν_AI, self.σ, self.J, self.n, self.y_0, Ψ_AI, self.ψ, self.β, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ),
                           jac=pr.δH_δclx)
             E = Eqbm.x
         

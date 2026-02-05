@@ -93,7 +93,7 @@ def GammaRoot(Γ, E_sq, w_j_sq, r_sq, COR, var_κ, Σ_k, χ, x_bar, σ, S_k, S_j
     c_0 = E_sq[:J]
     l = E_sq[2*J:3*J]
     
-    ΔH_ΔΕ = pr.δH_δclx(E_sq, 0, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ)
+    ΔH_ΔΕ = pr.δH_δclx(E_sq, 0, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ)
     ΔH_ΔIST = pr.δH_δIST(E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, κ_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ)
 
     dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_ΔIST
@@ -193,7 +193,7 @@ def Optimalθ_SQ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, 
     # Solve for Equilibrium Allocation #
     # -------------------------------- #
     Eqbm = sp.optimize.root(Eqbm_Root, E_sq,
-                  args=(θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ),
+                  args=(θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ),
                   jac=pr.δH_δclx)
     
     E = Eqbm.x
@@ -207,7 +207,7 @@ def Optimalθ_SQ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, 
     # ------------------------------------ #
     # Compute Threshold Rule Perturbations #
     # ------------------------------------ #
-    ΔH_ΔΕ = pr.δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ)
+    ΔH_ΔΕ = pr.δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ)
     ΔH_Δθ = pr.δH_δθ(θ, J)
 
     dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_Δθ
