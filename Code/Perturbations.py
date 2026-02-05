@@ -167,8 +167,8 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, var_θ, ε,
 
 
 @njit
-def δH_δA_k(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ):
-    "Jacobian of H wrt Capital-Augmenting Technology"
+def δH_δIST(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, κ_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ):
+    "Jacobian of H wrt Investment Price"
     
     
     # ------------------- #
@@ -181,48 +181,39 @@ def δH_δA_k(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, var_θ, ε, τ_
     L = n * l
     K = np.sum(n * (y_0 - c_0))
     
-    w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     R_tilde = (1-τ_k)*(r-δ) - g
     
-    Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    S_k = r * K / Y
+    δD_0 = τ_k * δ * K / (1+g)
+    δD_1 = τ_k * δ * K
     
-    δlnY = S_k
-    δlnw = np.ones((J,1)) * δlnY / σ
-    δlnr = (σ-1) / σ + δlnY / σ
-    
-    keep_l = fn.Heath_keep(w, l, Ψ, ψ)
-    τ_l = 1 - keep_l
-    y_l = w * l
-    
-    δD = (n * τ_l * y_l).reshape((1,J)) @ δlnw + τ_k * r * K * δlnr
+    δy_0 = δD_0 - (1 - (1-τ_k)*δ) * κ_0.reshape((J,1))
     
     
     # ---------------------------------------- #
     # Derivative of Log Labor Supply Condition #
     # ---------------------------------------- #
-    δlnLS = - (1-ψ) * δlnw
+    δlnLS = np.zeros((J,1))
     
     
     # -------------------------------- #
     # Derivative of Log Euler Equation #
     # -------------------------------- #
-    δlnEE = - np.ones((J,1)) * ((1-τ_k) * r / R_tilde) * δlnr
+    δlnEE = - np.ones((J,1)) * ((1-τ_k) * r / R_tilde)
     
     
     # ------------------------------ #
     # Derivative of Household Budget #
     # ------------------------------ #
-    δHB = ((c_0 - y_0).reshape((J,1)) * (1-τ_k) * r * δlnr
-                  - (keep_l * y_l).reshape((J,1)) * δlnw
-                  - δD)
+    δHB = ((c_0 - y_0).reshape((J,1)) * (1-τ_k) * r
+                  - R_tilde * δy_0
+                  - δD_1)
     
     
     # --------------------------------------- #
     # Derivative of Log Automation Thresholds #
     # --------------------------------------- #
-    δlnAT = - δlnw + np.ones((J,1)) * (δlnr - 1)
+    δlnAT = np.zeros((J,1))
     
     return np.vstack((δlnLS, δlnEE, δHB, δlnAT))
 

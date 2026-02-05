@@ -63,7 +63,7 @@ def ConCalRoot(CSQ, J, Y, K, G, n, w_j, l_j, y_j0, r, δ, g, τ_k, Ψ, ψ, var_�
 
 
 
-def GammaRoot(Γ, E_sq, w_j_sq, r_sq, COR, var_κ, Σ_k, χ, x_bar, σ, S_k, S_j, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ):
+def GammaRoot(Γ, E_sq, w_j_sq, r_sq, COR, var_κ, Σ_k, χ, x_bar, σ, S_k, S_j, J, n, y_0, κ_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ):
     "Automation Exposure Root"
     
     ζ = fn.zeta(Γ, χ)
@@ -94,9 +94,9 @@ def GammaRoot(Γ, E_sq, w_j_sq, r_sq, COR, var_κ, Σ_k, χ, x_bar, σ, S_k, S_j
     l = E_sq[2*J:3*J]
     
     ΔH_ΔΕ = pr.δH_δclx(E_sq, 0, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ)
-    ΔH_ΔA_k = pr.δH_δA_k(E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ)
+    ΔH_ΔIST = pr.δH_δIST(E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, κ_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ)
 
-    dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_ΔA_k
+    dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_ΔIST
     
     dc_0 = dE[:J,0]
     dl = dE[2*J:3*J,0]
@@ -107,10 +107,8 @@ def GammaRoot(Γ, E_sq, w_j_sq, r_sq, COR, var_κ, Σ_k, χ, x_bar, σ, S_k, S_j
     dK = - np.sum(n * dc_0)
     
     δlnK = dK / K
-    
-    #Add direct effects
-    δlnY = pr.dlnY(dc_0, dl, dx, c_0, l, x_j, 0, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0) + S_k
-    δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x_j, 0, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0) + (σ-1)/σ + S_k / σ
+    δlnY = pr.dlnY(dc_0, dl, dx, c_0, l, x_j, 0, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0)
+    δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x_j, 0, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0)
     
     δlnS_k = δlnr + δlnK - δlnY
     
