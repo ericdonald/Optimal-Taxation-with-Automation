@@ -807,7 +807,7 @@ class Processor:
         # ------------------------- #
         # Status Quo Threshold Rule #
         # ------------------------- #
-        θ = self.E.StatusQuo_θ(0, 1/3)
+        θ = self.E.StatusQuo_θ(0, 0.4)
         
         ES_robust_Results.add('Low ES Status Quo Threshold Rule', gpf.clean_round(θ*100, 1))
         
