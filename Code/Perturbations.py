@@ -170,7 +170,6 @@ def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
 def δH_δIST(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, κ_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ):
     "Jacobian of H wrt Investment Price"
     
-    
     # ------------------- #
     # Equilibrium Changes #
     # ------------------- #
@@ -215,6 +214,7 @@ def δH_δIST(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, κ_0, Ψ, ψ, var_θ, �
     # --------------------------------------- #
     δlnAT = np.zeros((J,1))
     
+    
     return np.vstack((δlnLS, δlnEE, δHB, δlnAT))
 
 
@@ -245,6 +245,7 @@ def δH_δθ(θ, J):
     # Derivative of Log Automation Thresholds #
     # --------------------------------------- #
     δlnAT = np.ones((J,1)) / (1+θ)
+    
     
     return np.vstack((δlnLS, δlnEE, δHB, δlnAT))
 

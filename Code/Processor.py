@@ -396,9 +396,7 @@ class Processor:
         CapbyOcc_df['occ1990dd_2d'] = np.select(conditions, values_2d, default=np.nan)
 
         z_jk = fn.relα(x_j, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x_j
-        
         Σ_j = self.E.σ + (z_j + z_jk) / self.E.ζ
-        
         ES_weight = self.E.S_j_sq * (self.E.Σ_k - self.E.σ) * self.E.ζ / z_jk
         
         CapbyOcc_df['Σ_j'] = Σ_j
@@ -416,18 +414,23 @@ class Processor:
         Sigma_model = CapbyOcc_df['Sigma_2d'].to_numpy()
         Sigma = CapbyOcc_ES_2d_df['ES'].to_numpy()
         
-        X_0 = np.hstack((np.ones((18,1)), Sigma_model.reshape((-1,1))))
-        X_1 = Sigma_model.reshape((-1,1))
-        W = np.diag(norm)
+        X = np.hstack((np.ones((18,1)), Sigma_model.reshape((-1,1))))
         
-        β_0 = np.linalg.inv(X_0.T @ W @ X_0) @ X_0.T @ W @ Sigma.reshape((-1,1))
-        β_1 = np.linalg.inv(X_1.T @ W @ X_1) @ X_1.T @ W @ Sigma.reshape((-1,1))
+        β = np.linalg.inv(X.T @ X) @ X.T @ Sigma.reshape((-1,1))
         
-        Sigma_hat = (X_1 @ β_1).reshape(-1)
+        Sigma_hat = (X @ β).reshape(-1)
         
-        Validation_Results.add('Occ Regression Intercept', gpf.clean_round(β_0[0,0], 2))
-        Validation_Results.add('Occ Regression Slope', gpf.clean_round(β_0[1,0], 2))
-        Validation_Results.add('Occ Regression Coef', gpf.clean_round(β_1[0,0], 2))
+        E_Σ = np.sum(Sigma)
+        Var_Σ = np.sum((Sigma - E_Σ)**2)
+        error_Σ = Sigma - Sigma_hat
+        
+        SSR_Σ = np.sum(error_Σ**2)
+        
+        R_squared_Σ = 1 - SSR_Σ / Var_Σ
+        
+        Validation_Results.add('Occ Regression Intercept', gpf.clean_round(β[0,0], 2))
+        Validation_Results.add('Occ Regression Slope', gpf.clean_round(β[1,0], 2))
+        Validation_Results.add('Occ Regression Fit', gpf.clean_round(R_squared_Σ, 2))
         
         CapbyOcc_ES_2d_df['Sigma_2d'] = Sigma_model
         CapbyOcc_ES_2d_df['Sigma_2d_hat'] = Sigma_hat
