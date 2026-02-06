@@ -430,7 +430,7 @@ class Processor:
         
         Validation_Results.add('Occ Regression Intercept', gpf.clean_round(β[0,0], 2))
         Validation_Results.add('Occ Regression Slope', gpf.clean_round(β[1,0], 2))
-        Validation_Results.add('Occ Regression Fit', gpf.clean_round(R_squared_Σ, 2))
+        Validation_Results.add('Occ Regression Fit', gpf.clean_round(R_squared_Σ, 3))
         
         CapbyOcc_ES_2d_df['Sigma_2d'] = Sigma_model
         CapbyOcc_ES_2d_df['Sigma_2d_hat'] = Sigma_hat
