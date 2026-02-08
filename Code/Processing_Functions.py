@@ -185,7 +185,7 @@ def inner_solve(w, r, E_0, args, viol_frac, max_inner_iter=1000):
         deviat = IC_max / (MU_0 * c_0)
 
         viols = (deviat > np.minimum(viol_frac, 1.0))
-        #print(np.max(deviat))
+        #print(f'IC Violation: {np.max(deviat)}')
 
         if not viols.any():
             break

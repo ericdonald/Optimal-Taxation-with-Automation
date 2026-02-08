@@ -481,13 +481,15 @@ class Processor:
         L = self.E.n * l
         κ = self.E.y_0 - c_0
         K = np.sum(self.E.n * κ)
-        Y = fn.Output(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
         ln_w = np.log(fn.Wages(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
         z_j = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x
         z_jk = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x
         Σ_j = (self.E.σ + (z_j + z_jk) / self.E.ζ)
-        cov = np.sum(self.E.n * Σ_j * ln_w) - np.sum(self.E.n * Σ_j) * np.sum(self.E.n * ln_w)
+        
+        E_ln_w = np.sum(self.E.n * ln_w)
+        E_Σ_j = np.sum(self.E.n * Σ_j)
+        cov = np.sum(self.E.n * Σ_j * ln_w) - E_Σ_j * E_ln_w
         
         
         # --------------------- #
@@ -498,13 +500,16 @@ class Processor:
         z_j_sq = fn.relα(x_sq, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x_sq
         z_jk_sq = fn.relα(x_sq, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x_sq
         Σ_j_sq = (self.E.σ + (z_j_sq + z_jk_sq) / self.E.ζ)
-        cov_sq = np.sum(self.E.n * Σ_j_sq * ln_w_sq) - np.sum(self.E.n * Σ_j_sq) * np.sum(self.E.n * ln_w_sq)
+        
+        E_ln_w_sq = np.sum(self.E.n * ln_w_sq)
+        E_Σ_j_sq = np.sum(self.E.n * Σ_j_sq)
+        cov_sq = np.sum(self.E.n * Σ_j_sq * ln_w_sq) - E_Σ_j_sq * E_ln_w_sq
         
         
         # ---------------- #
         # Comparison Table #
         # ---------------- #
-        ΔoptY = (Y - self.E.Y_sq) * 100 / self.E.Y_sq
+        Δoptln_w = (E_ln_w - E_ln_w_sq) * 100 / E_ln_w_sq
         ΔoptCOV = (cov - cov_sq) * 100 / cov_sq
         
         CE = sp.optimize.root(rt.CERoot, 1,
@@ -513,7 +518,7 @@ class Processor:
         
         ConEquiv = (CE.x[0] - 1) * 100
         
-        StatusQuo_Results.add('Optimal Status Quo DOutput', gpf.clean_round(ΔoptY, 1))
+        StatusQuo_Results.add('Optimal Status Quo DWages', gpf.clean_round(Δoptln_w, 1))
         StatusQuo_Results.add('Optimal Status Quo DCOV', gpf.clean_round(ΔoptCOV, 1))
         StatusQuo_Results.add('Optimal Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv, 1))
 
@@ -567,13 +572,15 @@ class Processor:
         # Threshold Mirrlees Optimum #
         # -------------------------- #        
         L = self.E.n * l
-        Y = fn.Output(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
         ln_w = np.log(fn.Wages(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
         z_j = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x
         z_jk = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x
         Σ_j = (self.E.σ + (z_j + z_jk) / self.E.ζ)
-        cov = np.sum(self.E.n * Σ_j * ln_w) - np.sum(self.E.n * Σ_j) * np.sum(self.E.n * ln_w)
+        
+        E_ln_w = np.sum(self.E.n * ln_w)
+        E_Σ_j = np.sum(self.E.n * Σ_j)
+        cov = np.sum(self.E.n * Σ_j * ln_w) - E_Σ_j * E_ln_w
         
         Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
         
@@ -582,17 +589,19 @@ class Processor:
         # Capital Tax Mirrlees Optimum #
         # ---------------------------- #
         L_NT = self.E.n * l_NT
-        Y_NT = fn.Output(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
         ln_w_NT = np.log(fn.Wages(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
         z_j_NT = fn.relα(x_NT, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x_NT
         z_jk_NT = fn.relα(x_NT, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x_NT
         Σ_j_NT = (self.E.σ + (z_j_NT + z_jk_NT) / self.E.ζ)
-        cov_NT = np.sum(self.E.n * Σ_j_NT * ln_w_NT) - np.sum(self.E.n * Σ_j_NT) * np.sum(self.E.n * ln_w_NT)
+        
+        E_ln_w_NT = np.sum(self.E.n * ln_w_NT)
+        E_Σ_j_NT = np.sum(self.E.n * Σ_j_NT)
+        cov_NT = np.sum(self.E.n * Σ_j_NT * ln_w_NT) - E_Σ_j_NT * E_ln_w_NT
         
         MRS_c_NT = fn.cap_MRS(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
         r_NT = fn.Rents(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
-        τ_K_NT = np.sum(self.E.n * (1 - (MRS_c_NT + self.E.g) / (r_NT - self.E.δ)))
+        τ_K_NT = np.median(1 - (MRS_c_NT + self.E.g) / (r_NT - self.E.δ))
         Mirrlees_Results.add('Optimal Mirrlees Capital Tax', gpf.clean_round(τ_K_NT*100, 1))
         
         Return_NT = 1 + r_NT - self.E.δ
@@ -604,7 +613,7 @@ class Processor:
         # ---------------- #
         # Comparison Table #
         # ---------------- #
-        ΔoptY = (Y - Y_NT) * 100 / Y_NT
+        Δoptln_w = (E_ln_w - E_ln_w_NT) * 100 / E_ln_w_NT
         ΔoptCOV = (cov - cov_NT) * 100 / cov_NT
         
         CE = sp.optimize.root(rt.CERoot, 1,
@@ -613,7 +622,7 @@ class Processor:
         
         ConEquiv = (CE.x[0] - 1) * 100
         
-        Mirrlees_Results.add('Optimal Mirrlees DOutput', gpf.clean_round(ΔoptY, 2))
+        Mirrlees_Results.add('Optimal Mirrlees DWages', gpf.clean_round(Δoptln_w, 2))
         Mirrlees_Results.add('Optimal Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 1))
         Mirrlees_Results.add('Optimal Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
         
@@ -652,6 +661,7 @@ class Processor:
         
         AI_Experiment_Results = gpf.ResultsTable()
         
+        
         # ------------------- #
         # Post-AI Calibration #
         # ------------------- #
@@ -681,6 +691,7 @@ class Processor:
         θ_AI_10 = self.E.AI_economy(ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, G_k, 0.1, N_g)
         θ_AI_25 = self.E.AI_economy(ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, G_k, 0.25, N_g)
         θ_AI_50 = self.E.AI_economy(ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, G_k, 0.5, N_g)
+        
         
         # ----------------------- #
         # Consumption Equivalence #
@@ -764,6 +775,7 @@ class Processor:
                           method='lm')
             ConEquiv_50[g] = (CE_50.x[0] - 1) * 100
         
+        
         # ---- #
         # Plot #
         # ---- #
@@ -829,13 +841,15 @@ class Processor:
         L = self.E.n * l
         κ = self.E.y_0 - c_0
         K = np.sum(self.E.n * κ)
-        Y = fn.Output(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
         ln_w = np.log(fn.Wages(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
         z_j = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x
         z_jk = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x
         Σ_j = (self.E.σ + (z_j + z_jk) / self.E.ζ)
-        cov = np.sum(self.E.n * Σ_j * ln_w) - np.sum(self.E.n * Σ_j) * np.sum(self.E.n * ln_w)
+        
+        E_ln_w = np.sum(self.E.n * ln_w)
+        E_Σ_j = np.sum(self.E.n * Σ_j)
+        cov = np.sum(self.E.n * Σ_j * ln_w) - E_Σ_j * E_ln_w
         
         # Status Quo Allocation
         ln_w_sq = np.log(self.E.w_j_sq)
@@ -843,10 +857,13 @@ class Processor:
         z_j_sq = fn.relα(x_sq, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x_sq
         z_jk_sq = fn.relα(x_sq, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x_sq
         Σ_j_sq = (self.E.σ + (z_j_sq + z_jk_sq) / self.E.ζ)
-        cov_sq = np.sum(self.E.n * Σ_j_sq * ln_w_sq) - np.sum(self.E.n * Σ_j_sq) * np.sum(self.E.n * ln_w_sq)
+        
+        E_ln_w_sq = np.sum(self.E.n * ln_w_sq)
+        E_Σ_j_sq = np.sum(self.E.n * Σ_j_sq)
+        cov_sq = np.sum(self.E.n * Σ_j_sq * ln_w_sq) - E_Σ_j_sq * E_ln_w_sq
         
         # Comparison Table 
-        ΔoptY = (Y - self.E.Y_sq) * 100 / self.E.Y_sq
+        Δoptln_w = (E_ln_w - E_ln_w_sq) * 100 / E_ln_w_sq
         ΔoptCOV = (cov - cov_sq) * 100 / cov_sq
         
         CE = sp.optimize.root(rt.CERoot, 1,
@@ -855,7 +872,7 @@ class Processor:
         
         ConEquiv = (CE.x[0] - 1) * 100
         
-        ES_robust_Results.add('Low ES Status Quo DOutput', gpf.clean_round(ΔoptY, 1))
+        ES_robust_Results.add('Low ES Status Quo DWages', gpf.clean_round(Δoptln_w, 1))
         ES_robust_Results.add('Low ES Status Quo DCOV', gpf.clean_round(ΔoptCOV, 1))
         ES_robust_Results.add('Low ES Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv, 1))
 
@@ -888,33 +905,37 @@ class Processor:
         
         # Threshold Mirrlees Optimum
         L = self.E.n * l
-        Y = fn.Output(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
         ln_w = np.log(fn.Wages(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
         z_j = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x
         z_jk = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x
         Σ_j = (self.E.σ + (z_j + z_jk) / self.E.ζ)
-        cov = np.sum(self.E.n * Σ_j * ln_w) - np.sum(self.E.n * Σ_j) * np.sum(self.E.n * ln_w)
+        
+        E_ln_w = np.sum(self.E.n * ln_w)
+        E_Σ_j = np.sum(self.E.n * Σ_j)
+        cov = np.sum(self.E.n * Σ_j * ln_w) - E_Σ_j * E_ln_w
         
         ES_robust_Results.add('Low ES Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
         
         # Capital Tax Mirrlees Optimum
         L_NT = self.E.n * l_NT
-        Y_NT = fn.Output(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         
         ln_w_NT = np.log(fn.Wages(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
         z_j_NT = fn.relα(x_NT, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x_NT
         z_jk_NT = fn.relα(x_NT, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x_NT
         Σ_j_NT = (self.E.σ + (z_j_NT + z_jk_NT) / self.E.ζ)
-        cov_NT = np.sum(self.E.n * Σ_j_NT * ln_w_NT) - np.sum(self.E.n * Σ_j_NT) * np.sum(self.E.n * ln_w_NT)
+        
+        E_ln_w_NT = np.sum(self.E.n * ln_w_NT)
+        E_Σ_j_NT = np.sum(self.E.n * Σ_j_NT)
+        cov_NT = np.sum(self.E.n * Σ_j_NT * ln_w_NT) - E_Σ_j_NT * E_ln_w_NT
         
         MRS_c_NT = fn.cap_MRS(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
         r_NT = fn.Rents(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
-        τ_K_NT = np.sum(self.E.n * (1 - (MRS_c_NT + self.E.g) / (r_NT - self.E.δ)))
+        τ_K_NT = np.median(1 - (MRS_c_NT + self.E.g) / (r_NT - self.E.δ))
         ES_robust_Results.add('Low ES Mirrlees Capital Tax', gpf.clean_round(τ_K_NT*100, 1))
     
         # Comparison Table 
-        ΔoptY = (Y - Y_NT) * 100 / Y_NT
+        Δoptln_w = (E_ln_w - E_ln_w_NT) * 100 / E_ln_w_NT
         ΔoptCOV = (cov - cov_NT) * 100 / cov_NT
         
         CE = sp.optimize.root(rt.CERoot, 1,
@@ -923,7 +944,7 @@ class Processor:
         
         ConEquiv = (CE.x[0] - 1) * 100
         
-        ES_robust_Results.add('Low ES Mirrlees DOutput', gpf.clean_round(ΔoptY, 2))
+        ES_robust_Results.add('Low ES Mirrlees DWages', gpf.clean_round(Δoptln_w, 2))
         ES_robust_Results.add('Low ES Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 1))
         ES_robust_Results.add('Low ES Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
         
@@ -958,6 +979,7 @@ class Processor:
         """""
         
         filename=f'{self.Directory}/Results/core_versions.txt'
+        
         
         # ---------------- #
         # Collect Packages #

@@ -263,7 +263,7 @@ class Economy:
             # Check Convergence and Update #
             # ---------------------------- #
             error_x = np.max(np.abs(x - x_new))
-            #print(error_x)
+            #print(f'Automation Error: {error_x}')
             
             if error_x < tol:
                 break
@@ -337,9 +337,9 @@ class Economy:
             # Check Convergence and Update #
             # ---------------------------- #
             error_x = np.max(np.abs(x - x_new))
-            #print(error_x)
+            #print(f'Automation Error: {error_x}')
             error_θ = np.abs(θ - θ_new)
-            #print(error_θ)
+            #print(f'Threshold Rule Error: {error_θ}')
             
             if error_θ < tol and error_x < tol:
                 break
@@ -382,7 +382,7 @@ class Economy:
             args = (E, A_j_AI, A_k_AI, self.x_bar, ζ_AI, ν_AI, self.σ, self.J, self.n, self.y_0, Ψ_AI, self.ψ, self.β, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ)
             
             θ_AI[g] = gpf.bisect_scalar(rt.Optimalθ_SQ_Root, 0.1, 1, args)
-            #print(θ_AI[g])
+            #print(f'AI Experiment Threshold Rule: {θ_AI[g]}')
             
             Eqbm = sp.optimize.root(rt.Eqbm_Root, E,
                           args=(θ_AI[g], A_j_AI, A_k_AI, self.x_bar, ζ_AI, ν_AI, self.σ, self.J, self.n, self.y_0, Ψ_AI, self.ψ, self.β, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ),
