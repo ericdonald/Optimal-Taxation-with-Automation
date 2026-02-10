@@ -483,7 +483,7 @@ class Processor:
         K = np.sum(self.E.n * κ)
         
         λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
-        var_λ = np.sum(self.E.n * λ) - 1
+        var_λ = np.sum(self.E.n * λ**2) - 1
         
         Λ_l = fn.Lamba_l(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         E_ln_Λ = np.sum(self.E.n * Λ_l) / self.E.σ
@@ -502,7 +502,7 @@ class Processor:
         # Status Quo Allocation #
         # --------------------- #
         λ_sq = self.E.c_1_sq**(-self.E.var_θ) / np.sum(self.E.n * self.E.c_1_sq**(-self.E.var_θ))
-        var_λ_sq = np.sum(self.E.n * λ_sq) - 1
+        var_λ_sq = np.sum(self.E.n * λ_sq**2) - 1
         
         x_sq = self.E.var_κ * self.E.x_bar
         Λ_l_sq = fn.Lamba_l(x_sq, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
@@ -588,7 +588,7 @@ class Processor:
         L = self.E.n * l
         
         λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
-        var_λ = np.sum(self.E.n * λ) - 1
+        var_λ = np.sum(self.E.n * λ**2) - 1
         
         Λ_l = fn.Lamba_l(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         E_ln_Λ = np.sum(self.E.n * Λ_l) / self.E.σ
@@ -611,7 +611,7 @@ class Processor:
         L_NT = self.E.n * l_NT
         
         λ_NT = c_1_NT**(-self.E.var_θ) / np.sum(self.E.n * c_1_NT**(-self.E.var_θ))
-        var_λ_NT = np.sum(self.E.n * λ_NT) - 1
+        var_λ_NT = np.sum(self.E.n * λ_NT**2) - 1
         
         Λ_l_NT = fn.Lamba_l(x_NT, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         E_ln_Λ_NT = np.sum(self.E.n * Λ_l_NT) / self.E.σ
@@ -871,7 +871,7 @@ class Processor:
         K = np.sum(self.E.n * κ)
         
         λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
-        var_λ = np.sum(self.E.n * λ) - 1
+        var_λ = np.sum(self.E.n * λ**2) - 1
         
         Λ_l = fn.Lamba_l(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         E_ln_Λ = np.sum(self.E.n * Λ_l) / self.E.σ
@@ -887,7 +887,7 @@ class Processor:
         
         # Status Quo Allocation
         λ_sq = self.E.c_1_sq**(-self.E.var_θ) / np.sum(self.E.n * self.E.c_1_sq**(-self.E.var_θ))
-        var_λ_sq = np.sum(self.E.n * λ_sq) - 1
+        var_λ_sq = np.sum(self.E.n * λ_sq**2) - 1
         
         x_sq = self.E.var_κ * self.E.x_bar
         Λ_l_sq = fn.Lamba_l(x_sq, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
@@ -949,7 +949,7 @@ class Processor:
         L = self.E.n * l
         
         λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
-        var_λ = np.sum(self.E.n * λ) - 1
+        var_λ = np.sum(self.E.n * λ**2) - 1
         
         Λ_l = fn.Lamba_l(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         E_ln_Λ = np.sum(self.E.n * Λ_l) / self.E.σ
@@ -969,7 +969,7 @@ class Processor:
         L_NT = self.E.n * l_NT
         
         λ_NT = c_1_NT**(-self.E.var_θ) / np.sum(self.E.n * c_1_NT**(-self.E.var_θ))
-        var_λ_NT = np.sum(self.E.n * λ_NT) - 1
+        var_λ_NT = np.sum(self.E.n * λ_NT**2) - 1
         
         Λ_l_NT = fn.Lamba_l(x_NT, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         E_ln_Λ_NT = np.sum(self.E.n * Λ_l_NT) / self.E.σ
