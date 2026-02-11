@@ -163,12 +163,14 @@ def broadcast_col_to_matrix(col):
 def inner_solve(w, r, E_0, args, viol_frac, max_inner_iter=1000):
     "Solve Inner Loop"
     
+    Pen_N = 1
+    
     for _ in range(max_inner_iter):
 
         # ----- #
         # Solve #
         # ----- #
-        alloc = solve_planner(w, r, E_0, args)
+        alloc = solve_planner(w, r, E_0, args, Pen_N)
 
 
         # --------------------- #
@@ -195,19 +197,20 @@ def inner_solve(w, r, E_0, args, viol_frac, max_inner_iter=1000):
         # Update #
         # ------ #
         E_0 = alloc.copy()
+        Pen_N += 1
         
 
     return alloc
 
 
 
-def solve_planner(w, r, E_0, args):
+def solve_planner(w, r, E_0, args, Pen_N):
     "Solve Mirrlees with Normalized Penalty"
     
     J = args[-1]
     W_0 = rt.Mir_obj(E_0, *args)
     Pen_0 = np.sum(np.minimum(rt.Inequal_Constr(E_0, w, *args), 0)**2)
-    Δ = np.abs(W_0) / (Pen_0 + 1e-12)
+    Δ = Pen_N * np.abs(W_0) / (Pen_0 + 1e-12)
     
     
     # ------------------ #

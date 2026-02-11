@@ -940,10 +940,10 @@ class Processor:
         # ---------------- #
         # Mirrlees Problem #
         # ---------------- #
-        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr_NT()
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr_NT(damp=1/10)
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
         
-        (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr_θ(E_NT, x_NT, -0.25, 0.5)
+        (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr_θ(E_NT, x_NT, -0.25, 0.5, damp=1/10)
         
         # Threshold Mirrlees Optimum
         L = self.E.n * l
