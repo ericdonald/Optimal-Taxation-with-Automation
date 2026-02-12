@@ -521,7 +521,7 @@ class Processor:
         # ---------------- #
         # Comparison Table #
         # ---------------- #
-        Δoptln_Λ = (E_ln_Λ - E_ln_Λ_sq) * 100
+        Δoptln_Λ = E_ln_Λ - E_ln_Λ_sq
         Δoptvar_λ = (var_λ - var_λ_sq) * 100 / var_λ_sq
         ΔoptCOV = (cov - cov_sq) * 100 / cov_sq
         
@@ -639,7 +639,7 @@ class Processor:
         # ---------------- #
         # Comparison Table #
         # ---------------- #
-        Δoptln_Λ = (E_ln_Λ - E_ln_Λ_NT) * 100
+        Δoptln_Λ = E_ln_Λ - E_ln_Λ_NT
         Δoptvar_λ = (var_λ - var_λ_NT) * 100 / var_λ_NT
         ΔoptCOV = (cov - cov_NT) * 100 / cov_NT
         
@@ -903,7 +903,7 @@ class Processor:
         cov_sq = np.sum(self.E.n * Σ_j_sq * ln_w_sq) - E_Σ_j_sq * E_ln_w_sq
         
         # Comparison Table 
-        Δoptln_Λ = (E_ln_Λ - E_ln_Λ_sq) * 100
+        Δoptln_Λ = E_ln_Λ - E_ln_Λ_sq
         Δoptvar_λ = (var_λ - var_λ_sq) * 100 / var_λ_sq
         ΔoptCOV = (cov - cov_sq) * 100 / cov_sq
         
@@ -989,7 +989,7 @@ class Processor:
         ES_robust_Results.add('Low ES Mirrlees Capital Tax', gpf.clean_round(τ_K_NT*100, 1))
     
         # Comparison Table 
-        Δoptln_Λ = (E_ln_Λ - E_ln_Λ_NT) * 100
+        Δoptln_Λ = E_ln_Λ - E_ln_Λ_NT
         Δoptvar_λ = (var_λ - var_λ_NT) * 100 / var_λ_NT
         ΔoptCOV = (cov - cov_NT) * 100 / cov_NT
         
