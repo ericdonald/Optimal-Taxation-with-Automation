@@ -521,7 +521,7 @@ class Processor:
         # ---------------- #
         # Comparison Table #
         # ---------------- #
-        Δoptln_Λ = (E_ln_Λ - E_ln_Λ_sq) * 100 / E_ln_Λ_sq
+        Δoptln_Λ = (E_ln_Λ - E_ln_Λ_sq) * 100
         Δoptvar_λ = (var_λ - var_λ_sq) * 100 / var_λ_sq
         ΔoptCOV = (cov - cov_sq) * 100 / cov_sq
         
@@ -633,13 +633,13 @@ class Processor:
         Return_NT = 1 + r_NT - self.E.δ
         Return_tilde_NT = 1 + (1-τ_K_NT)*(r_NT-self.E.δ)
         τ_wealth_NT = 1 - Return_tilde_NT / Return_NT
-        Mirrlees_Results.add('Optimal Mirrlees Wealth Tax', gpf.clean_round(τ_wealth_NT*100, 1))
+        Mirrlees_Results.add('Optimal Mirrlees Wealth Tax', gpf.clean_round(τ_wealth_NT*100, 2))
         
         
         # ---------------- #
         # Comparison Table #
         # ---------------- #
-        Δoptln_Λ = (E_ln_Λ - E_ln_Λ_NT) * 100 / E_ln_Λ_NT
+        Δoptln_Λ = (E_ln_Λ - E_ln_Λ_NT) * 100
         Δoptvar_λ = (var_λ - var_λ_NT) * 100 / var_λ_NT
         ΔoptCOV = (cov - cov_NT) * 100 / cov_NT
         
@@ -649,8 +649,8 @@ class Processor:
         
         ConEquiv = (CE.x[0] - 1) * 100
         
-        Mirrlees_Results.add('Optimal Mirrlees DLambda', gpf.clean_round(Δoptln_Λ, 2))
-        Mirrlees_Results.add('Optimal Mirrlees DvarWW', gpf.clean_round(Δoptvar_λ, 2))
+        Mirrlees_Results.add('Optimal Mirrlees DLambda', gpf.clean_round(Δoptln_Λ, 1))
+        Mirrlees_Results.add('Optimal Mirrlees DvarWW', gpf.clean_round(Δoptvar_λ, 1))
         Mirrlees_Results.add('Optimal Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 1))
         Mirrlees_Results.add('Optimal Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
         
@@ -903,7 +903,7 @@ class Processor:
         cov_sq = np.sum(self.E.n * Σ_j_sq * ln_w_sq) - E_Σ_j_sq * E_ln_w_sq
         
         # Comparison Table 
-        Δoptln_Λ = (E_ln_Λ - E_ln_Λ_sq) * 100 / E_ln_Λ_sq
+        Δoptln_Λ = (E_ln_Λ - E_ln_Λ_sq) * 100
         Δoptvar_λ = (var_λ - var_λ_sq) * 100 / var_λ_sq
         ΔoptCOV = (cov - cov_sq) * 100 / cov_sq
         
@@ -989,7 +989,7 @@ class Processor:
         ES_robust_Results.add('Low ES Mirrlees Capital Tax', gpf.clean_round(τ_K_NT*100, 1))
     
         # Comparison Table 
-        Δoptln_Λ = (E_ln_Λ - E_ln_Λ_NT) * 100 / E_ln_Λ_NT
+        Δoptln_Λ = (E_ln_Λ - E_ln_Λ_NT) * 100
         Δoptvar_λ = (var_λ - var_λ_NT) * 100 / var_λ_NT
         ΔoptCOV = (cov - cov_NT) * 100 / cov_NT
         
@@ -999,8 +999,8 @@ class Processor:
         
         ConEquiv = (CE.x[0] - 1) * 100
         
-        ES_robust_Results.add('Low ES Mirrlees DLambda', gpf.clean_round(Δoptln_Λ, 2))
-        ES_robust_Results.add('Low ES Mirrlees DvarWW', gpf.clean_round(Δoptvar_λ, 2))
+        ES_robust_Results.add('Low ES Mirrlees DLambda', gpf.clean_round(Δoptln_Λ, 1))
+        ES_robust_Results.add('Low ES Mirrlees DvarWW', gpf.clean_round(Δoptvar_λ, 1))
         ES_robust_Results.add('Low ES Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 1))
         ES_robust_Results.add('Low ES Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
         
