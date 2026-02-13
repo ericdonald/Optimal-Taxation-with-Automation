@@ -420,17 +420,7 @@ class Processor:
         
         Sigma_hat = (X @ β).reshape(-1)
         
-        E_Σ = np.sum(Sigma)
-        Var_Σ = np.sum((Sigma - E_Σ)**2)
-        error_Σ = Sigma - Sigma_hat
-        
-        SSR_Σ = np.sum(error_Σ**2)
-        
-        R_squared_Σ = 1 - SSR_Σ / Var_Σ
-        
-        Validation_Results.add('Occ Regression Intercept', gpf.clean_round(β[0,0], 2))
         Validation_Results.add('Occ Regression Slope', gpf.clean_round(β[1,0], 2))
-        Validation_Results.add('Occ Regression Fit', gpf.clean_round(R_squared_Σ, 3))
         
         CapbyOcc_ES_2d_df['Sigma_2d'] = Sigma_model
         CapbyOcc_ES_2d_df['Sigma_2d_hat'] = Sigma_hat
