@@ -19,6 +19,7 @@ where `XX` is the user's API key for the relevant data source.
 - IPUMS
   - [1980 Census](https://usa.ipums.org/usa/)
   - [2016 ACS](https://usa.ipums.org/usa/)
+- LLM Exposure from [Elondou et al. (2024)](https://github.com/openai/GPTs-are-GPTs/tree/main)
 
 ### Contained in Raw Data:
 
