@@ -52,6 +52,7 @@ class Processor:
                 Clean Data/ACS16.pkl
                 Clean Data/Webb.pkl
                 Clean Data/CapbyOcc_ES_2d.pkl
+                Clean Data/Elondou.pkl
         """""
    
         
@@ -210,7 +211,6 @@ class Processor:
         # Webb #
         # ---- #
         Webb_df = pd.read_csv(f'{self.Directory}/Raw Data/Webb.csv')
-        Webb_df = Webb_df.drop('lswt2010', axis=1)
                 
         Webb_df = pd.merge(
             Webb_df,
@@ -231,8 +231,66 @@ class Processor:
         CapbyOcc_ES_2d_df = CapbyOcc_ES_2d_df[['occ1990dd_2d_title', 'ES']]
         
         CapbyOcc_ES_2d_df.to_pickle(f'{self.Directory}/Clean Data/CapbyOcc_ES_2d.pkl')
-
         
+        
+        # ---------------------- #
+        # Elondou et al Exposure #
+        # ---------------------- #
+        Crosswalk_elon_df = pd.read_stata(f'{self.Directory}/Raw Data/onet_to_occ1990dd.dta')
+        Crosswalk_elon_df = pd.merge(
+            Crosswalk_df,
+            Crosswalk_elon_df[['occ1990dd', 'onetsoccode']].drop_duplicates(),
+            on='occ1990dd',
+            how='inner'
+        )
+        
+        Elondou_df = pd.read_csv("https://github.com/openai/GPTs-are-GPTs/raw/refs/heads/main/data/occ_level.csv")
+        Elondou_df.rename(columns={'O*NET-SOC Code': 'onetsoccode'}, inplace=True)
+        Elondou_df = pd.merge(
+            Crosswalk_elon_df,
+            Elondou_df[['onetsoccode', 'dv_rating_beta', 'human_rating_beta']],
+            on='onetsoccode',
+            how='inner'
+        )
+        
+        Elondou_df['β_expos'] = (Elondou_df.groupby('occ1990dd')['dv_rating_beta'].transform('mean') + Elondou_df.groupby('occ1990dd')['human_rating_beta'].transform('mean')) / 2
+        Elondou_df = Elondou_df[['occ1990dd', 'β_expos']].drop_duplicates()
+        
+        Elondou_df = pd.merge(
+            Elondou_df,
+            Webb_df[['occ1990dd', 'lswt2010']],
+            on='occ1990dd',
+            how='inner'
+        )
+        
+        Elondou_df = Elondou_df.sort_values('β_expos')
+
+        Elondou_df['cum_weight'] = Elondou_df['lswt2010'].cumsum()
+        Elondou_df['percentile'] = 100 * Elondou_df['cum_weight'] / Elondou_df['lswt2010'].sum()
+        
+        Elondou_df = pd.merge(
+            Elondou_df,
+            Webb_df[['occ1990dd', 'pct_software', 'pct_robot', 'pct_ai']],
+            on='occ1990dd',
+            how='outer'
+        )
+        
+        W_sft_exp = Elondou_df.dropna()['pct_software'].to_numpy()
+        W_rbt_exp = Elondou_df.dropna()['pct_robot'].to_numpy()
+        W_ai_exp = Elondou_df.dropna()['pct_ai'].to_numpy()
+        E_exp = Elondou_df.dropna()['percentile'].to_numpy()
+        
+        X = np.hstack((np.ones((W_ai_exp.size,1)), W_sft_exp.reshape((-1,1)), W_rbt_exp.reshape((-1,1)), W_ai_exp.reshape((-1,1))))
+        β = np.linalg.inv(X.T @ X) @ X.T @ E_exp.reshape((-1,1))
+        
+        Elondou_df['percentile'] = Elondou_df['percentile'].fillna(
+            β[0,0] + β[1,0] * Elondou_df['pct_software'] + β[2,0] * Elondou_df['pct_robot'] + β[3,0] * Elondou_df['pct_ai']
+            )
+        
+        Elondou_df = Elondou_df[['occ1990dd', 'percentile']].sort_values('occ1990dd')
+        Elondou_df.to_pickle(f'{self.Directory}/Clean Data/Elondou.pkl')
+
+
 
     def Calibrate(self):
         """""
