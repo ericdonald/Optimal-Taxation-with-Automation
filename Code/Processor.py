@@ -352,8 +352,11 @@ class Processor:
         # ----------------------- #
         Webb_df = pd.read_pickle(f'{self.Directory}/Clean Data/Webb.pkl')
         X_corr = np.vstack((self.E.w_j_sq, Webb_df['pct_software'].to_numpy(), Webb_df['pct_robot'].to_numpy(), Webb_df['pct_ai'].to_numpy()))
-        corr_mat = np.corrcoef(X_corr)
-        
+        cov = np.cov(X_corr, aweights=self.E.n)
+
+        std = np.sqrt(np.diag(cov))
+        corr_mat = cov / np.outer(std, std)
+                
         Calibrate_Results.add('Webb Wage Soft Corr', gpf.clean_round(corr_mat[0,1], 2))
         Calibrate_Results.add('Webb Wage Rob Corr', gpf.clean_round(corr_mat[0,2], 2))
         Calibrate_Results.add('Webb Wage AI Corr', gpf.clean_round(corr_mat[0,3], 2))
