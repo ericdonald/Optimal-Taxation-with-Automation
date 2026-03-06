@@ -19,12 +19,12 @@ where `XX` is the user's API key for the relevant data source.
 - IPUMS
   - [1980 Census](https://usa.ipums.org/usa/)
   - [2016 ACS](https://usa.ipums.org/usa/)
-- LLM Exposure from [Elondou et al. (2024)](https://github.com/openai/GPTs-are-GPTs/tree/main)
+- AI Exposure from [Felten el al. (2021)](https://github.com/AIOE-Data/AIOE/tree/main) and [Elondou et al. (2024)](https://github.com/openai/GPTs-are-GPTs/tree/main)
 
 ### Contained in Raw Data:
 
 - [2016 SCF](https://www.federalreserve.gov/econres/scf_2016.htm)
-- Occupation Exposure Scores and Crosswalk from [Webb (2020)](http://eepurl.com/gxo4zr)
+- Occupational Exposure Scores and Crosswalk from [Webb (2020)](http://eepurl.com/gxo4zr)
 - Capital-Labor Elasticities of Substitution from [Caunedo et al. (2023)](https://capitalbyoccupation.weebly.com/)
 
 ## Software Requirements:
