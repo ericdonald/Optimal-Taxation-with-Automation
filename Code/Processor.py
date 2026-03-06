@@ -747,6 +747,7 @@ class Processor:
         Optimal Threshold Rule for AI Scenarios
         
         Output: Results/Figures/AI_Experiment.csv
+                Results/Figures/AI_Experiment_Felten.csv
                 Results/Figures/AI_Experiment_Elondou.csv
                 Results/Tables/AI_Experiment_Results.csv
         """""
@@ -884,6 +885,142 @@ class Processor:
         AI_Experiment_Results.add('Doubling Consumption Equivalence', gpf.clean_round(ConEquiv_25[-1], 1))
         
                 
+        # ----------------------------------------------------------------
+
+        # Robustness with Felten et al. (2021) exposure.
+
+        # ----------------------------------------------------------------
+        
+        # ------------------- #
+        # Post-AI Calibration #
+        # ------------------- #
+        Webb_df = pd.read_pickle(f'{self.Directory}/Clean Data/Webb.pkl')
+        Felten_df = pd.read_pickle(f'{self.Directory}/Clean Data/Felten_df.pkl')
+        χ_AI = (Webb_df['pct_software'].to_numpy() + Webb_df['pct_robot'].to_numpy() + Felten_df['percentile'].to_numpy()) / 3
+        
+        ζ_AI = np.exp(self.E.Γ * χ_AI)
+       
+        nu_g = np.ones(self.E.J) * self.E.var_κ
+        
+        nu = sp.optimize.root(rt.νRoot, nu_g,
+                      args=(self.E.Γ, χ_AI, self.E.var_κ, self.E.x_bar, self.E.σ, self.E.S_j_sq, self.E.S_k),
+                      method='lm')
+        
+        ν_AI = nu.x
+        
+        x_AI = self.E.var_κ * self.E.x_bar
+        Λ_k_AI = fn.Lamba_k(x_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ)
+        A_k_AI_base = self.E.r_sq**(self.E.σ / (self.E.σ-1)) * (self.E.COR / Λ_k_AI)**(1 / (self.E.σ-1))
+        
+        A_j_AI_base = (self.E.w_j_sq / x_AI**(ζ_AI)) / (self.E.r_sq / A_k_AI_base)
+        
+        
+        # ----------------- #
+        # Solve θ Sequences #
+        # ----------------- #
+        θ_AI_10 = self.E.AI_economy(ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, G_k, 0.1, N_g)
+        θ_AI_25 = self.E.AI_economy(ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, G_k, 0.25, N_g)
+        θ_AI_50 = self.E.AI_economy(ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, G_k, 0.5, N_g)
+        
+        
+        # ----------------------- #
+        # Consumption Equivalence #
+        # ----------------------- #
+        ConEquiv_10 = np.empty(N_g)
+        ConEquiv_25 = np.empty(N_g)
+        ConEquiv_50 = np.empty(N_g)
+        AI_growth = np.linspace(0, G_k, N_g)
+        
+        E_θ_10 = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
+        E_θ_25 = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
+        E_θ_50 = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
+        
+        for g in range(N_g):
+            A_k_AI = A_k_AI_base * (1 + AI_growth[g])
+            A_j_AI_10 = A_j_AI_base * (1 + AI_growth[g] * 0.1)
+            A_j_AI_25 = A_j_AI_base * (1 + AI_growth[g] * 0.25)
+            A_j_AI_50 = A_j_AI_base * (1 + AI_growth[g] * 0.5)
+            
+            g_y_10 = self.E.S_k * AI_growth[g] + (1-self.E.S_k) * AI_growth[g] * 0.25
+            Ψ_AI_10 = self.E.Ψ * (1+g_y_10)**(self.E.ψ)
+            g_y_25 = self.E.S_k * AI_growth[g] + (1-self.E.S_k) * AI_growth[g] * 0.25
+            Ψ_AI_25 = self.E.Ψ * (1+g_y_25)**(self.E.ψ)
+            g_y_50 = self.E.S_k * AI_growth[g] + (1-self.E.S_k) * AI_growth[g] * 0.5
+            Ψ_AI_50 = self.E.Ψ * (1+g_y_50)**(self.E.ψ)
+            
+            Eqbm_θ_10 = sp.optimize.root(rt.Eqbm_Root, E_θ_10,
+                          args=(θ_AI_10[g], A_j_AI_10, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_10, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
+                          jac=pr.δH_δclx)
+            E_θ_10 = Eqbm_θ_10.x
+            c_0_θ_10 = E_θ_10[:self.E.J]
+            c_1_θ_10 = E_θ_10[self.E.J:2*self.E.J]
+            l_θ_10 = E_θ_10[2*self.E.J:3*self.E.J]
+            Eqbm_θ_25 = sp.optimize.root(rt.Eqbm_Root, E_θ_25,
+                          args=(θ_AI_25[g], A_j_AI_25, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_25, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
+                          jac=pr.δH_δclx)
+            E_θ_25 = Eqbm_θ_25.x
+            c_0_θ_25 = E_θ_25[:self.E.J]
+            c_1_θ_25 = E_θ_25[self.E.J:2*self.E.J]
+            l_θ_25 = E_θ_25[2*self.E.J:3*self.E.J]
+            Eqbm_θ_50 = sp.optimize.root(rt.Eqbm_Root, E_θ_50,
+                          args=(θ_AI_50[g], A_j_AI_50, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_50, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
+                          jac=pr.δH_δclx)
+            E_θ_50 = Eqbm_θ_50.x
+            c_0_θ_50 = E_θ_50[:self.E.J]
+            c_1_θ_50 = E_θ_50[self.E.J:2*self.E.J]
+            l_θ_50 = E_θ_50[2*self.E.J:3*self.E.J]
+            
+            Eqbm_LF_10 = sp.optimize.root(rt.Eqbm_Root, E_θ_10,
+                          args=(0, A_j_AI_10, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_10, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
+                          jac=pr.δH_δclx)
+            E_LF_10 = Eqbm_LF_10.x
+            c_0_LF_10 = E_LF_10[:self.E.J]
+            c_1_LF_10 = E_LF_10[self.E.J:2*self.E.J]
+            l_LF_10 = E_LF_10[2*self.E.J:3*self.E.J]
+            Eqbm_LF_25 = sp.optimize.root(rt.Eqbm_Root, E_θ_25,
+                          args=(0, A_j_AI_25, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_25, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
+                          jac=pr.δH_δclx)
+            E_LF_25 = Eqbm_LF_25.x
+            c_0_LF_25 = E_LF_25[:self.E.J]
+            c_1_LF_25 = E_LF_25[self.E.J:2*self.E.J]
+            l_LF_25 = E_LF_25[2*self.E.J:3*self.E.J]
+            Eqbm_LF_50 = sp.optimize.root(rt.Eqbm_Root, E_θ_50,
+                          args=(0, A_j_AI_50, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_50, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
+                          jac=pr.δH_δclx)
+            E_LF_50 = Eqbm_LF_50.x
+            c_0_LF_50 = E_LF_50[:self.E.J]
+            c_1_LF_50 = E_LF_50[self.E.J:2*self.E.J]
+            l_LF_50 = E_LF_50[2*self.E.J:3*self.E.J]
+          
+            CE_10 = sp.optimize.root(rt.CERoot, 1,
+                          args=(c_0_θ_10, c_1_θ_10, l_θ_10, c_0_LF_10, c_1_LF_10, l_LF_10, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
+                          method='lm')
+            ConEquiv_10[g] = (CE_10.x[0] - 1) * 100
+            CE_25 = sp.optimize.root(rt.CERoot, 1,
+                          args=(c_0_θ_25, c_1_θ_25, l_θ_25, c_0_LF_25, c_1_LF_25, l_LF_25, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
+                          method='lm')
+            ConEquiv_25[g] = (CE_25.x[0] - 1) * 100
+            CE_50 = sp.optimize.root(rt.CERoot, 1,
+                          args=(c_0_θ_50, c_1_θ_50, l_θ_50, c_0_LF_50, c_1_LF_50, l_LF_50, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
+                          method='lm')
+            ConEquiv_50[g] = (CE_50.x[0] - 1) * 100
+        
+        
+        # ---- #
+        # Plot #
+        # ---- #
+        AI_growth *= 100
+        θ_AI_10 *= 100
+        θ_AI_25 *= 100
+        θ_AI_50 *= 100
+        
+        DF_AI = pd.DataFrame(np.hstack((AI_growth.reshape((-1,1)), θ_AI_10.reshape((-1,1)), ConEquiv_10.reshape((-1,1)), θ_AI_25.reshape((-1,1)), ConEquiv_25.reshape((-1,1)), θ_AI_50.reshape((-1,1)), ConEquiv_50.reshape((-1,1)))), 
+                             columns=['Growth', 'Threshold Rule 10', 'Consumption Equivalence 10', 'Threshold Rule 25', 'Consumption Equivalence 25', 'Threshold Rule 50', 'Consumption Equivalence 50'])
+        DF_AI.to_csv(f'{self.Directory}/Results/Figures/AI_Experiment_Felten.csv', index=False)
+        
+        AI_Experiment_Results.add('Felten Doubling Threshold Rule', gpf.clean_round(θ_AI_25[-1], 1))
+        AI_Experiment_Results.add('Felten Doubling Consumption Equivalence', gpf.clean_round(ConEquiv_25[-1], 1))
+        
         
         # ----------------------------------------------------------------
 
