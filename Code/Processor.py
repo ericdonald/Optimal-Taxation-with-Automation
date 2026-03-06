@@ -47,7 +47,6 @@ class Processor:
         
         Output: Clean Data/FRED_CPI.pkl
                 Clean Data/SCF_2016.pkl
-                Clean Data/OCC_Crosswalk.pkl
                 Clean Data/Census80.pkl
                 Clean Data/ACS16.pkl
                 Clean Data/Webb.pkl
@@ -132,30 +131,28 @@ class Processor:
         # Census & ACS #
         # ------------ #
         Crosswalk_df = pd.read_stata(f'{self.Directory}/Raw Data/onet_to_occ1990dd.dta')
-        Crosswalk_df = Crosswalk_df[['occ1990dd', 'occ']]
-        Crosswalk_df = Crosswalk_df.drop_duplicates()
+        Crosswalk_soc_df= Crosswalk_df[['occ1990dd', 'onetsoccode']].drop_duplicates()
+        Crosswalk_occ_df = Crosswalk_df[['occ1990dd', 'occ']].drop_duplicates()        
         
         Census80_df = IPUMS_df[IPUMS_df['year'] == 1980]
         ACS16_df = IPUMS_df[IPUMS_df['year'] == 2016]
         
-        Crosswalk_df = pd.merge(
-            Crosswalk_df,
+        Crosswalk_occ_df = pd.merge(
+            Crosswalk_occ_df,
             Census80_df['occ'].drop_duplicates(),
             on='occ',
             how='inner'
         )
-        Crosswalk_df = pd.merge(
-            Crosswalk_df,
+        Crosswalk_occ_df = pd.merge(
+            Crosswalk_occ_df,
             ACS16_df['occ'].drop_duplicates(),
             on='occ',
             how='inner'
         ) #Only take intersection of available occupations 
-        
-        Crosswalk_df.to_pickle(f'{self.Directory}/Clean Data/OCC_Crosswalk.pkl')
-        
+                
         Census80_df = pd.merge(
             Census80_df,
-            Crosswalk_df,
+            Crosswalk_occ_df,
             on='occ',
             how='inner'
         )
@@ -186,7 +183,7 @@ class Processor:
         
         ACS16_df = pd.merge(
             ACS16_df,
-            Crosswalk_df,
+            Crosswalk_occ_df,
             on='occ',
             how='inner'
         )
@@ -214,7 +211,7 @@ class Processor:
                 
         Webb_df = pd.merge(
             Webb_df,
-            Crosswalk_df['occ1990dd'].drop_duplicates(),
+            Crosswalk_occ_df['occ1990dd'].drop_duplicates(),
             on='occ1990dd',
             how='inner'
         )
@@ -233,21 +230,36 @@ class Processor:
         CapbyOcc_ES_2d_df.to_pickle(f'{self.Directory}/Clean Data/CapbyOcc_ES_2d.pkl')
         
         
+        # --------------------- #
+        # Felten et al Exposure #
+        # --------------------- #
+        Crosswalk_soc_df['SOC Code'] = Crosswalk_soc_df["onetsoccode"].str[:7]
+        Felten_df = pd.read_excel("https://raw.githubusercontent.com/AIOE-Data/AIOE/main/AIOE_DataAppendix.xlsx", sheet_name="Appendix A")
+
+        Felten_df = Felten_df.merge(Crosswalk_soc_df[['SOC Code', 'occ1990dd']].drop_duplicates()
+                                    , on='SOC Code', how='inner')
+        Felten_df['AIOE_expos'] = Felten_df.groupby('occ1990dd')['AIOE'].transform('mean')
+        Felten_df = Felten_df[['occ1990dd', 'AIOE_expos']].drop_duplicates()
+        
+        Felten_df = Felten_df.merge(Webb_df[['occ1990dd', 'lswt2010']],
+                                    on='occ1990dd',how='inner')
+        
+        Felten_df = Felten_df.sort_values('AIOE_expos')
+
+        Felten_df['cum_weight'] = Felten_df['lswt2010'].cumsum()
+        Felten_df['percentile'] = 100 * Felten_df['cum_weight'] / Felten_df['lswt2010'].sum()
+        
+        Felten_df = Felten_df[['occ1990dd', 'percentile']].sort_values('occ1990dd')
+        Felten_df.to_pickle(f'{self.Directory}/Clean Data/Elondou.pkl')
+
+        
         # ---------------------- #
         # Elondou et al Exposure #
         # ---------------------- #
-        Crosswalk_elon_df = pd.read_stata(f'{self.Directory}/Raw Data/onet_to_occ1990dd.dta')
-        Crosswalk_elon_df = pd.merge(
-            Crosswalk_df,
-            Crosswalk_elon_df[['occ1990dd', 'onetsoccode']].drop_duplicates(),
-            on='occ1990dd',
-            how='inner'
-        )
-        
         Elondou_df = pd.read_csv("https://github.com/openai/GPTs-are-GPTs/raw/refs/heads/main/data/occ_level.csv")
         Elondou_df.rename(columns={'O*NET-SOC Code': 'onetsoccode'}, inplace=True)
         Elondou_df = pd.merge(
-            Crosswalk_elon_df,
+            Crosswalk_soc_df,
             Elondou_df[['onetsoccode', 'dv_rating_beta', 'human_rating_beta']],
             on='onetsoccode',
             how='inner'
