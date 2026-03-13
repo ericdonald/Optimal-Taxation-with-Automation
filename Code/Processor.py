@@ -51,6 +51,7 @@ class Processor:
                 Clean Data/ACS16.pkl
                 Clean Data/Webb.pkl
                 Clean Data/CapbyOcc_ES_2d.pkl
+                Clean Data/Felten.pkl
                 Clean Data/Elondou.pkl
         """""
    
@@ -250,7 +251,7 @@ class Processor:
         Felten_df['percentile'] = 100 * Felten_df['cum_weight'] / Felten_df['lswt2010'].sum()
         
         Felten_df = Felten_df[['occ1990dd', 'percentile']].sort_values('occ1990dd')
-        Felten_df.to_pickle(f'{self.Directory}/Clean Data/Elondou.pkl')
+        Felten_df.to_pickle(f'{self.Directory}/Clean Data/Felten.pkl')
 
         
         # ---------------------- #
@@ -895,7 +896,7 @@ class Processor:
         # Post-AI Calibration #
         # ------------------- #
         Webb_df = pd.read_pickle(f'{self.Directory}/Clean Data/Webb.pkl')
-        Felten_df = pd.read_pickle(f'{self.Directory}/Clean Data/Felten_df.pkl')
+        Felten_df = pd.read_pickle(f'{self.Directory}/Clean Data/Felten.pkl')
         χ_AI = (Webb_df['pct_software'].to_numpy() + Webb_df['pct_robot'].to_numpy() + Felten_df['percentile'].to_numpy()) / 3
         
         ζ_AI = np.exp(self.E.Γ * χ_AI)
