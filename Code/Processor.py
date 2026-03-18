@@ -595,10 +595,10 @@ class Processor:
         
         ConEquiv = (CE.x[0] - 1) * 100
         
-        StatusQuo_Results.add('Optimal Status Quo DLambda', gpf.clean_round(Δoptln_Λ, 2))
+        StatusQuo_Results.add('Optimal Status Quo DLambda', gpf.clean_round(Δoptln_Λ, 1))
         StatusQuo_Results.add('Optimal Status Quo DvarWW', gpf.clean_round(Δoptvar_λ, 1))
         StatusQuo_Results.add('Optimal Status Quo DCOV', gpf.clean_round(ΔoptCOV, 1))
-        StatusQuo_Results.add('Optimal Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv, 1))
+        StatusQuo_Results.add('Optimal Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
 
         
         # ----------------- #
@@ -713,7 +713,7 @@ class Processor:
         
         ConEquiv = (CE.x[0] - 1) * 100
         
-        Mirrlees_Results.add('Optimal Mirrlees DLambda', gpf.clean_round(Δoptln_Λ, 2))
+        Mirrlees_Results.add('Optimal Mirrlees DLambda', gpf.clean_round(Δoptln_Λ, 1))
         Mirrlees_Results.add('Optimal Mirrlees DvarWW', gpf.clean_round(Δoptvar_λ, 1))
         Mirrlees_Results.add('Optimal Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 1))
         Mirrlees_Results.add('Optimal Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
@@ -1252,10 +1252,10 @@ class Processor:
         
         ConEquiv = (CE.x[0] - 1) * 100
         
-        ES_robust_Results.add('Low ES Status Quo DLambda', gpf.clean_round(Δoptln_Λ, 2))
+        ES_robust_Results.add('Low ES Status Quo DLambda', gpf.clean_round(Δoptln_Λ, 1))
         ES_robust_Results.add('Low ES Status Quo DvarWW', gpf.clean_round(Δoptvar_λ, 1))
         ES_robust_Results.add('Low ES Status Quo DCOV', gpf.clean_round(ΔoptCOV, 1))
-        ES_robust_Results.add('Low ES Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv, 1))
+        ES_robust_Results.add('Low ES Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
 
         # Covariance Figure
         X = np.hstack((np.ones((self.E.J,1)), Σ_j.reshape((-1,1))))
@@ -1338,7 +1338,7 @@ class Processor:
         
         ConEquiv = (CE.x[0] - 1) * 100
         
-        ES_robust_Results.add('Low ES Mirrlees DLambda', gpf.clean_round(Δoptln_Λ, 2))
+        ES_robust_Results.add('Low ES Mirrlees DLambda', gpf.clean_round(Δoptln_Λ, 1))
         ES_robust_Results.add('Low ES Mirrlees DvarWW', gpf.clean_round(Δoptvar_λ, 1))
         ES_robust_Results.add('Low ES Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 1))
         ES_robust_Results.add('Low ES Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
