@@ -208,81 +208,11 @@ class Economy:
         print("Status Quo θ Found")
         
         return θ
-    
-    
-    
-    def Mirrlees_Lagr_NT(self, damp=1/5, tol=1e-4, max_iter=10_000):
-        "Solve Non-Linear Tax Problem without Threshold Rule"
-            
-        E = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq))
-        x = self.var_κ * self.x_bar
-        
-        Y_0 = self.Y_sq / (1+self.g)
-        K_0 = self.K_sq / (1+self.g)
-        Y_bar = Y_0 + (1-self.δ) * K_0
-        
-        args = (self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J)
-        
-        w = self.w_j_sq
-        r = self.r_sq
-        error_x = 1.0
-        
-        
-        qe.tic()
-        # ---------- #
-        # Outer Loop #
-        # ---------- #
-        for _ in range(max_iter):
-        
-            
-            # ---------------- #
-            # Solve Inner Loop #
-            # ---------------- #
-            E = gpf.inner_solve(w, r, E, args, error_x)
-            c_0 = E[:self.J]
-            c_1 = E[self.J:2*self.J]
-            l = E[2*self.J:3*self.J]
-            K = Y_bar - np.sum(self.n * c_0)
-            
-            
-            # -------------------- #
-            # Update Factor Prices #
-            # -------------------- #
-            L = self.n * l
-            w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-            r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-            
-            
-            # -------------------- #
-            # Solve for Thresholds #
-            # -------------------- #
-            x_new = ((w / self.A_j) / (r / self.A_k))**(1/self.ζ)
-            
-            
-            # ---------------------------- #
-            # Check Convergence and Update #
-            # ---------------------------- #
-            error_x = np.max(np.abs(x - x_new))
-            #print(f'Automation Error: {error_x}')
-            
-            if error_x < tol:
-                break
-            
-            x = x * (1-damp) + x_new * damp
-            
-            w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-            r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-            
-            
-        qe.toc()
-        print("Mirrlees Capital Tax Solution Found")
-        
-        return (c_0, c_1, l, K, x)
         
         
         
-    def Mirrlees_Lagr_θ(self, E, x, θ_lower, θ_upper, θ=0.25, damp=1/5, tol=1e-4, max_iter=10_000):
-        "Solve Non-Linear Tax Problem with Threshold Rule"
+    def Mirrlees_Lagr(self, E, x, θ_on=1, damp=1/5, tol=1e-4, max_iter=10_000):
+        "Solve Non-Linear Tax Problem"
                     
         Y_0 = self.Y_sq / (1+self.g)
         K_0 = self.K_sq / (1+self.g)
@@ -292,6 +222,7 @@ class Economy:
         
         c_0 = E[:self.J]
         l = E[2*self.J:3*self.J]
+        θ = 0
         K = Y_bar - np.sum(self.n * c_0)
         L = self.n * l
         
@@ -299,14 +230,12 @@ class Economy:
         r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
         error = 1.0
         
-        
         qe.tic()
         # ---------- #
         # Outer Loop #
         # ---------- #
         for _ in range(max_iter):
         
-            
             # ---------------- #
             # Solve Inner Loop #
             # ---------------- #
@@ -328,8 +257,12 @@ class Economy:
             # -------------------- #
             # Solve for Thresholds #
             # -------------------- #
-            θ_args = (E, x, w, r, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J, self.x_bar, self.ζ, self.ν, self.σ)
-            θ_new = gpf.bisect_scalar(rt.Optimalθ_NL_Root, θ_lower, θ_upper, θ_args)
+            if θ_on == 1:
+                θ_args = (E, x, w, r, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J, self.x_bar, self.ζ, self.ν, self.σ)
+                θ_new = gpf.bisect_scalar(rt.Optimalθ_NL_Root, -0.25, 0.5, θ_args)
+            else:
+                θ_new = 0
+            
             x_new = ((w / self.A_j) / ((1+θ_new) * r / self.A_k))**(1/self.ζ)
             
             
@@ -338,24 +271,27 @@ class Economy:
             # ---------------------------- #
             error_x = np.max(np.abs(x - x_new))
             #print(f'Automation Error: {error_x}')
+            
             error_θ = np.abs(θ - θ_new)
             #print(f'Threshold Rule Error: {error_θ}')
-            
+                
             if error_θ < tol and error_x < tol:
                 break
             
+            error = np.maximum(error_x, error_θ)
             θ = θ * (1-damp) + θ_new * damp
             x = x * (1-damp) + x_new * damp
-            error = np.maximum(error_x, error_θ)
             
             w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-            
         
         qe.toc()
-        print("Mirrlees Threshold Rule Solution Found")
+        print("Mirrlees Solution Found")
         
-        return (c_0, c_1, l, K, x, θ)    
+        if θ_on == 1:
+            return (c_0, c_1, l, K, x, θ)
+        else: 
+            return (c_0, c_1, l, K, x)
         
         
         

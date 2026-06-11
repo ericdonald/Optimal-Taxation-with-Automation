@@ -43,10 +43,10 @@ P.Calibrate()
 P.Validation()
 
 
-# ------------------------------------ #
-# Optimal Threshold Rule in Status Quo #
-# ------------------------------------ #
-P.StatusQuo_Optimum()
+# --------------------------- #
+# Optimal Parametric Policies #
+# --------------------------- #
+P.Parametric_Optimum()
 
 
 # ---------------------- #

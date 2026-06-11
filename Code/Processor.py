@@ -507,19 +507,26 @@ class Processor:
         
         
         
-    def StatusQuo_Optimum(self):
+    def Parametric_Optimum(self):
         """""
-        Optimal Threshold Rule for Status Quo Taxes
+        Optimal Parametric Policy Tools
         
         Output: Results/Figures/StatusQuo_Covariance.csv
-                Results/Tables/StatusQuo_Results.csv
+                Results/Tables/Parametric_Results.csv
         """""
         
-        StatusQuo_Results = gpf.ResultsTable()
+        Parametric_Results = gpf.ResultsTable()
+        
+        
+        # ----------------------------------------------------------------
+
+        # Status quo tax function optimum.
+
+        # ----------------------------------------------------------------
         
         θ = self.E.StatusQuo_θ(0, 1/3)
         
-        StatusQuo_Results.add('Optimal Status Quo Threshold Rule', gpf.clean_round(θ*100, 1))
+        Parametric_Results.add('Optimal Status Quo Threshold Rule', gpf.clean_round(θ*100, 1))
         
         
         # ----------------- #
@@ -595,10 +602,10 @@ class Processor:
         
         ConEquiv = (CE.x[0] - 1) * 100
         
-        StatusQuo_Results.add('Optimal Status Quo DLambda', gpf.clean_round(Δoptln_Λ, 1))
-        StatusQuo_Results.add('Optimal Status Quo DvarWW', gpf.clean_round(Δoptvar_λ, 1))
-        StatusQuo_Results.add('Optimal Status Quo DCOV', gpf.clean_round(ΔoptCOV, 1))
-        StatusQuo_Results.add('Optimal Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
+        Parametric_Results.add('Optimal Status Quo DLambda', gpf.clean_round(Δoptln_Λ, 1))
+        Parametric_Results.add('Optimal Status Quo DvarWW', gpf.clean_round(Δoptvar_λ, 1))
+        Parametric_Results.add('Optimal Status Quo DCOV', gpf.clean_round(ΔoptCOV, 1))
+        Parametric_Results.add('Optimal Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
 
         
         # ----------------- #
@@ -622,7 +629,21 @@ class Processor:
         DF_Cov_sq.to_csv(f'{self.Directory}/Results/Figures/StatusQuo_Covariance.csv', index=False)
         
         
-        StatusQuo_Results.to_csv(f'{self.Directory}/Results/Tables/StatusQuo_Results.csv')
+        # ----------------------------------------------------------------
+
+        # Heathcote et al. (2017) tax function optimum.
+
+        # ----------------------------------------------------------------
+        
+        
+        # ----------------------------------------------------------------
+
+        # Heathcote et al. (2017) tax function optimum with VAT.
+
+        # ----------------------------------------------------------------
+        
+        
+        Parametric_Results.to_csv(f'{self.Directory}/Results/Tables/StatusQuo_Results.csv')
         
         
         
@@ -640,10 +661,12 @@ class Processor:
         # --------------------------------- #
         # Solve for Two Planner Allocations #
         # --------------------------------- #
-        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr_NT()
-        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
+        E_eq = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq))
+        x_eq = self.var_κ * self.x_bar
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr_NT(E_eq, x_eq, 0)
         
-        (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr_θ(E_NT, x_NT, -0.25, 0.5)
+        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
+        (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr_θ(E_NT, x_NT)
         
         
         # -------------------------- #
