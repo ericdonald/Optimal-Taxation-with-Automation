@@ -632,10 +632,10 @@ class Processor:
                                 self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq)
         Parametric_Results.add('Optimal Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv_θ, 2))
         
+        
         # ------------------- #
         # Capital Tax to Both #
         # ------------------- #
-        
         Δ_ln_Λ_both, Δ_var_λ_both, Δ_cov_both = _deltas(stats_both, stats_τ)
         ConEquiv_both = _consumption_equiv(c_0_both, c_1_both, l_both,
                                            c_0_τ, c_1_τ, l_τ)
@@ -657,6 +657,36 @@ class Processor:
         
         (τ_k_H, Ψ_Η, ψ_H) = self.E.Para_Solver(0, 1, 1)
         (θ_H_both, τ_k_H_both, Ψ_Η_both, ψ_H_both) = self.E.Para_Solver(1, 1, 1)
+        
+        Parametric_Results.add('Optimal Heathcote Capital Tax', gpf.clean_round(τ_k_H*100, 1))
+        Parametric_Results.add('Optimal Heathcote Threshold Rule, Both', gpf.clean_round(θ_H_both*100, 1))
+        Parametric_Results.add('Optimal Heathcote Capital Tax, Both', gpf.clean_round(τ_k_H_both*100, 1))
+        
+        
+        # ----------------- #
+        # Derive Equilibria #
+        # ----------------- #
+        c_0_H,    c_1_H,    l_H,    x_H    = _solve_eqbm(0, τ_k_H, Ψ_Η, ψ_H)
+        c_0_H_both, c_1_H_both, l_H_both, x_H_both = _solve_eqbm(θ_H_both, τ_k_H_both, Ψ_Η_both, ψ_H_both)
+
+        stats_H    = _alloc_stats(c_0_τ,    c_1_τ,    l_τ,    x_τ)
+        stats_H_both = _alloc_stats(c_0_both, c_1_both, l_both, x_both)
+        
+        
+        # ---------- #
+        # Comparison #
+        # ---------- #
+        Δ_ln_Λ_H, Δ_var_λ_H, Δ_cov_H = _deltas(stats_H_both, stats_H)
+        ConEquiv_H = _consumption_equiv(c_0_H_both, c_1_H_both, l_H_both,
+                                           c_0_H, c_1_H, l_H)
+        
+        Parametric_Results.add('Optimal Heathcote DLambda', gpf.clean_round(Δ_ln_Λ_H, 1))
+        Parametric_Results.add('Optimal Heathcote DvarWW', gpf.clean_round(Δ_var_λ_H, 1))
+        Parametric_Results.add('Optimal Heathcote DCOV', gpf.clean_round(Δ_cov_H, 1))
+        Parametric_Results.add('Optimal Heathcote Consumption Equivalence', gpf.clean_round(ConEquiv_H, 2))
+
+        _cov_dataframe(stats_H_both, 'Both', stats_H, 'tau_k').to_csv(
+                        f'{self.Directory}/Results/Figures/Heathcote_Covariance.csv', index=False)
         
         
         # ----------------------------------------------------------------

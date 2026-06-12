@@ -196,7 +196,7 @@ class Economy:
         
         
         
-    def Para_Solver(self, θ_on, τ_on, HC_on, damp=0.66, tol=1e-4, max_iter=10_000):
+    def Para_Solver(self, θ_on, τ_on, HC_on, damp=2/3, tol=1e-4, max_iter=10_000):
         "Solve Parametric Policy Problem"
         
         args = (self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.J, self.n, self.y_0, self.β, self.var_θ, self.ε, self.δ, self.g, self.φ)
