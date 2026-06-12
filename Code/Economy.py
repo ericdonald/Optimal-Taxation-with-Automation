@@ -263,16 +263,16 @@ class Economy:
                 ψ = ψ_new
                 break
             
-            error_θ = np.abs(np.log(θ / θ_new))
+            error_θ = np.abs(np.arcsinh(θ) - np.arcsinh(θ_new))
             #print(f'Threshold Rule Error: {error_θ}')
             
-            error_τ = np.abs(np.log(τ_k / τ_new))
+            error_τ = np.abs(np.log(τ_k) - np.log(τ_new))
             #print(f'Capital Tax Error: {error_τ}')
             
-            error_Ψ = np.abs(np.log(Ψ / Ψ_new))
+            error_Ψ = np.abs(np.log(Ψ) - np.log(Ψ_new))
             #print(f'Labor Tax Scale Error: {error_Ψ}')
             
-            error_ψ = np.abs(np.log(ψ / ψ_new))
+            error_ψ = np.abs(np.log(ψ) - np.log(ψ_new))
             #print(f'Labor Tax Curvature Error: {error_ψ}')
                 
             if error_θ < tol and error_τ < tol and error_Ψ < tol and error_ψ < tol:
@@ -368,10 +368,10 @@ class Economy:
             # ---------------------------- #
             # Check Convergence and Update #
             # ---------------------------- #
-            error_x = np.max(np.abs(np.log(x / x_new)))
+            error_x = np.max(np.abs(np.log(x) - np.log(x_new)))
             #print(f'Automation Error: {error_x}')
             
-            error_θ = np.abs(np.log(θ / θ_new))
+            error_θ = np.abs(np.arcsinh(θ) - np.arcsinh(θ_new))
             #print(f'Threshold Rule Error: {error_θ}')
                 
             if error_θ < tol and error_x < tol:
