@@ -96,7 +96,7 @@ def GammaRoot(Γ, E_sq, w_j_sq, r_sq, COR, var_κ, Σ_k, χ, x_bar, σ, S_k, S_j
     ΔH_ΔΕ = pr.δH_δclx(E_sq, 0, τ_k, Ψ, ψ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, β, var_θ, ε, δ, g, φ)
     ΔH_ΔIST = pr.δH_δIST(E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, κ_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ)
 
-    dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_ΔIST
+    dE = - np.linalg.solve(ΔH_ΔΕ, ΔH_ΔIST)
     
     dc_0 = dE[:J,0]
     dl = dE[2*J:3*J,0]
@@ -211,19 +211,19 @@ def Optimal_Para_Root(θ, τ_k, Ψ, ψ, digamma, E_sq, A_j, A_k, x_bar, ζ, ν, 
     
     if digamma == 'theta':
         ΔH_Δθ = pr.δH_δθ(θ, J)
-        dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_Δθ
-        
+        dE = - np.linalg.solve(ΔH_ΔΕ, ΔH_Δθ)
+                
     if digamma == 'tau':
         ΔH_Δτ = pr.δH_δτ(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, τ_k, δ, g)
-        dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_Δτ
-        
+        dE = - np.linalg.solve(ΔH_ΔΕ, ΔH_Δτ)
+                
     if digamma == 'Psi':
         ΔH_ΔΨ = pr.δH_δΨ(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ)
-        dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_ΔΨ
-        
+        dE = - np.linalg.solve(ΔH_ΔΕ, ΔH_ΔΨ)
+                
     if digamma == 'psi':
         ΔH_Δψ = pr.δH_δψ(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ)
-        dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_Δψ
+        dE = - np.linalg.solve(ΔH_ΔΕ, ΔH_Δψ)
     
     dc_0 = dE[:J,0]
     dl = dE[2*J:3*J,0]
@@ -402,7 +402,7 @@ def Optimalθ_NL_Root(θ, E, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ,
     ΔH_ΔΕ = pr.δH_δclx_NL(θ, E, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J, x_bar, ζ, ν, σ)
     ΔH_Δθ = pr.δH_δθ(θ, J)
 
-    dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_Δθ
+    dE = - np.linalg.solve(ΔH_ΔΕ, ΔH_Δθ)
     
     dc_0 = dE[:J,0]
     dl = dE[2*J:3*J,0]

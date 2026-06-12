@@ -280,7 +280,7 @@ class Economy:
             ψ = ψ * (1-damp) + ψ_new * damp
             
             Eqbm = sp.optimize.root(rt.Eqbm_Root, E,
-                          args=(θ, τ_k, Ψ, ψ, τ_k, *args),
+                          args=(θ, τ_k, Ψ, ψ, *args),
                           jac=pr.δH_δclx)
             
             E = Eqbm.x

@@ -526,8 +526,12 @@ class Processor:
         
         θ_sq = self.E.Para_Solver(1, 0, 0)
         τ_k_sq = self.E.Para_Solver(0, 1, 0)
+        (θ_sq_both, τ_k_sq_both) = self.E.Para_Solver(1, 1, 0)
         
         Parametric_Results.add('Optimal Status Quo Threshold Rule', gpf.clean_round(θ_sq*100, 1))
+        Parametric_Results.add('Optimal Status Quo Capital Tax', gpf.clean_round(τ_k_sq*100, 1))
+        Parametric_Results.add('Optimal Status Quo Threshold Rule, Both', gpf.clean_round(θ_sq_both*100, 1))
+        Parametric_Results.add('Optimal Status Quo Capital Tax, Both', gpf.clean_round(τ_k_sq_both*100, 1))
         
         
         # ----------------- #
@@ -535,16 +539,38 @@ class Processor:
         # ----------------- #
         E_sq = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
         
-        Eqbm = sp.optimize.root(rt.Eqbm_Root, E_sq,
-                      args=(θ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0, self.E.Ψ, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
+        Eqbm_θ = sp.optimize.root(rt.Eqbm_Root, E_sq,
+                      args=(θ_sq, self.E.τ_k, self.E.Ψ, self.E.ψ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ),
                       jac=pr.δH_δclx)
         
-        E = Eqbm.x
+        E_θ = Eqbm_θ.x
         
-        c_0 = E[:self.E.J]
-        c_1 = E[self.E.J:2*self.E.J]
-        l = E[2*self.E.J:3*self.E.J]
-        x = E[3*self.E.J:]
+        c_0_θ = E_θ[:self.E.J]
+        c_1_θ = E_θ[self.E.J:2*self.E.J]
+        l_θ = E_θ[2*self.E.J:3*self.E.J]
+        x_θ = E_θ[3*self.E.J:]
+        
+        Eqbm_τ = sp.optimize.root(rt.Eqbm_Root, E_sq,
+                      args=(0, τ_k_sq, self.E.Ψ, self.E.ψ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ),
+                      jac=pr.δH_δclx)
+        
+        E_τ = Eqbm_τ.x
+        
+        c_0_τ = E_τ[:self.E.J]
+        c_1_τ = E_τ[self.E.J:2*self.E.J]
+        l_τ = E_τ[2*self.E.J:3*self.E.J]
+        x_τ = E_τ[3*self.E.J:]
+        
+        Eqbm_both = sp.optimize.root(rt.Eqbm_Root, E_sq,
+                      args=(θ_sq_both, τ_k_sq_both, self.E.Ψ, self.E.ψ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ),
+                      jac=pr.δH_δclx)
+        
+        E_both = Eqbm_both.x
+        
+        c_0_both = E_both[:self.E.J]
+        c_1_both = E_both[self.E.J:2*self.E.J]
+        l_both = E_both[2*self.E.J:3*self.E.J]
+        x_both = E_both[3*self.E.J:]
         
         
         # ------------------ #
@@ -635,6 +661,9 @@ class Processor:
         # Heathcote et al. (2017) tax function optimum.
 
         # ----------------------------------------------------------------
+        
+        (τ_k_H, Ψ_Η, ψ_H) = self.E.Para_Solver(0, 1, 1)
+        (θ_H_both, τ_k_H_both, Ψ_Η_both, ψ_H_both) = self.E.Para_Solver(1, 1, 1)
         
         
         # ----------------------------------------------------------------
