@@ -524,9 +524,10 @@ class Processor:
 
         # ----------------------------------------------------------------
         
-        θ = self.E.StatusQuo_θ(0, 1/3)
+        θ_sq = self.E.Para_Solver(1, 0, 0)
+        τ_k_sq = self.E.Para_Solver(0, 1, 0)
         
-        Parametric_Results.add('Optimal Status Quo Threshold Rule', gpf.clean_round(θ*100, 1))
+        Parametric_Results.add('Optimal Status Quo Threshold Rule', gpf.clean_round(θ_sq*100, 1))
         
         
         # ----------------- #

@@ -90,13 +90,13 @@ def compute_decile_shares(df, value_col, weight_col='Weight', n_groups=10):
 
 
 
-def bisect_scalar(func, a, b, args, tol=1e-8):
+def bisect_scalar(func, a, b, args=(), tol=1e-8):
     "Scalar Bisection"
     
     # ------------- #
     # Find Interval #
     # ------------- #
-    for _ in range(10):
+    for _ in range(20):
         fa, fb = func(a, *args), func(b, *args)
         if fa*fb < 0.0:
             break
