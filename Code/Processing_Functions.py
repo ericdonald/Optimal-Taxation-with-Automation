@@ -90,34 +90,36 @@ def compute_decile_shares(df, value_col, weight_col='Weight', n_groups=10):
 
 
 
-def bisect_scalar(func, a, b, args=(), tol=1e-8):
+def bisect_scalar(func, a=0, b=0.1, args=(), expansion='multiplicative'):
     "Scalar Bisection"
     
-    # ------------- #
-    # Find Interval #
-    # ------------- #
-    for _ in range(20):
-        fa, fb = func(a, *args), func(b, *args)
-        if fa*fb < 0.0:
-            break
-        a *= 0.5
-        b *= 2.0
-        
+    if expansion == 'unit':           # [0, 1)
+        for _ in range(10):
+            fa, fb = func(a, *args), func(b, *args)
+            if fa * fb < 0:
+                break
+            
+            a += 0.1
+            b += 0.1
+            
+    else:
+        for _ in range(20):
+            fa, fb = func(a, *args), func(b, *args)
+            if fa * fb < 0:
+                break
+            if expansion == 'multiplicative':   # (0, inf)
+                a *= 0.5
+                b *= 2.0
+            elif expansion == 'additive':       # (-inf, inf)
+                mid = 0.5 * (a + b)
+                step = b - a
+                a = mid - step
+                b = mid + step
+
     if fa * fb > 0:
         raise ValueError("Bisection interval does not bracket a root.")
 
-
-    # ----------------- #
-    # Classic Bisection #
-    # ----------------- #
-    while abs(fa) > tol:
-        c  = 0.5 * (a + b)
-        fc = func(c, *args)
-        if fa * fc <= 0:          # root is in [a,c]
-            b, fb = c, fc
-        else:                     # root is in (c,b]
-            a, fa = c, fc
-    return 0.5 * (a + b)
+    return sp.optimize.brentq(func, a, b, args=args)
 
 
 

@@ -196,7 +196,7 @@ class Economy:
         
         
         
-    def Para_Solver(self, θ_on, τ_on, HC_on, damp=1/5, tol=1e-4, max_iter=10_000):
+    def Para_Solver(self, θ_on, τ_on, HC_on, damp=0.66, tol=1e-4, max_iter=10_000):
         "Solve Parametric Policy Problem"
         
         args = (self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.J, self.n, self.y_0, self.β, self.var_θ, self.ε, self.δ, self.g, self.φ)
@@ -220,7 +220,7 @@ class Economy:
             # ---------------- #
             if θ_on == 1:
                 Optimal_θ_Root = lambda x: rt.Optimal_Para_Root(x, τ_k, Ψ, ψ, 'theta', E, *args)
-                θ_new = gpf.bisect_scalar(Optimal_θ_Root, θ/2, θ*3/2+tol)
+                θ_new = gpf.bisect_scalar(Optimal_θ_Root, θ/2, θ*3/2+tol, expansion='additive')
             else:
                 θ_new = 0
             
@@ -230,7 +230,7 @@ class Economy:
             # ------------------ #
             if τ_on == 1:
                 Optimal_τ_Root = lambda x: rt.Optimal_Para_Root(θ, x, Ψ, ψ, 'tau', E, *args)
-                τ_new = gpf.bisect_scalar(Optimal_τ_Root, τ_k/2, τ_k*3/2)
+                τ_new = gpf.bisect_scalar(Optimal_τ_Root, expansion='unit')
             else:
                 τ_new = self.τ_k
             
@@ -243,7 +243,7 @@ class Economy:
                 Ψ_new = gpf.bisect_scalar(Optimal_Ψ_Root, Ψ/2, Ψ*3/2)
                 
                 Optimal_ψ_Root = lambda x: rt.Optimal_Para_Root(θ, τ_k, Ψ, x, 'psi', E, *args)
-                ψ_new = gpf.bisect_scalar(Optimal_ψ_Root, ψ/2, ψ*3/2)
+                ψ_new = gpf.bisect_scalar(Optimal_ψ_Root, expansion='unit')
             else:
                 Ψ_new = self.Ψ
                 ψ_new = self.ψ
@@ -352,7 +352,7 @@ class Economy:
             # -------------------- #
             if θ_on == 1:
                 θ_args = (E, x, w, r, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J, self.x_bar, self.ζ, self.ν, self.σ)
-                θ_new = gpf.bisect_scalar(rt.Optimalθ_NL_Root, θ/2, θ*3/2+tol, θ_args)
+                θ_new = gpf.bisect_scalar(rt.Optimalθ_NL_Root, θ/2, θ*3/2+tol, θ_args, 'additive')
             else:
                 θ_new = 0
             

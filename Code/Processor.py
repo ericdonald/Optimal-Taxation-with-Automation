@@ -518,32 +518,16 @@ class Processor:
         Parametric_Results = gpf.ResultsTable()
         
         
-        # ----------------------------------------------------------------
-
-        # Status quo tax function optimum.
-
-        # ----------------------------------------------------------------
-        
-        θ_sq = self.E.Para_Solver(1, 0, 0)
-        τ_k_sq = self.E.Para_Solver(0, 1, 0)
-        (θ_sq_both, τ_k_sq_both) = self.E.Para_Solver(1, 1, 0)
-        
-        Parametric_Results.add('Optimal Status Quo Threshold Rule', gpf.clean_round(θ_sq*100, 1))
-        Parametric_Results.add('Optimal Status Quo Capital Tax', gpf.clean_round(τ_k_sq*100, 1))
-        Parametric_Results.add('Optimal Status Quo Threshold Rule, Both', gpf.clean_round(θ_sq_both*100, 1))
-        Parametric_Results.add('Optimal Status Quo Capital Tax, Both', gpf.clean_round(τ_k_sq_both*100, 1))
-        
-        
         # ---------------- #
         # Helper Functions #
         # ---------------- #
         x_sq = self.E.var_κ * self.E.x_bar
         E_init = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, x_sq))
 
-        def _solve_eqbm(θ, τ_k):
+        def _solve_eqbm(θ, τ_k, Ψ, ψ):
             sol = sp.optimize.root(
                 rt.Eqbm_Root, E_init,
-                args=(θ, τ_k, self.E.Ψ, self.E.ψ, self.E.A_j, self.E.A_k,
+                args=(θ, τ_k, Ψ, ψ, self.E.A_j, self.E.A_k,
                       self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ,
                       self.E.J, self.E.n, self.E.y_0, self.E.β, self.E.var_θ,
                       self.E.ε, self.E.δ, self.E.g, self.E.φ),
@@ -551,7 +535,6 @@ class Processor:
             E = sol.x
             J = self.E.J
             return E[:J], E[J:2*J], E[2*J:3*J], E[3*J:]
-        
         
         def _alloc_stats(c_0, c_1, l, x):
             n = self.E.n
@@ -575,7 +558,6 @@ class Processor:
         
             return dict(var_λ=var_λ, E_ln_Λ=E_ln_Λ, ln_w=ln_w, Σ_j=Σ_j, cov=cov)
         
-        
         def _consumption_equiv(c_0_new, c_1_new, l_new, c_0_base, c_1_base, l_base):
             CE = sp.optimize.root(
                 rt.CERoot, 1,
@@ -585,16 +567,13 @@ class Processor:
                 method='lm')
             return (CE.x[0] - 1) * 100
         
-        
         def _deltas(stats_new, stats_base):
             Δ_ln_Λ  = (stats_new['E_ln_Λ'] - stats_base['E_ln_Λ']) * 100
             Δ_var_λ = (stats_new['var_λ']  - stats_base['var_λ'])  * 100 / stats_base['var_λ']
             Δ_cov   = (stats_new['cov']    - stats_base['cov'])    * 100 / stats_base['cov']
             return Δ_ln_Λ, Δ_var_λ, Δ_cov
         
-        
         def _cov_dataframe(stats_A, label_A, stats_B, label_B):
-            """Build OLS-fit covariance dataframe for two allocations."""
             n = self.E.n
         
             def _ols_fit(Σ, ln_w):
@@ -619,12 +598,28 @@ class Processor:
             return df.sort_values('Weight', ascending=False)
         
         
+        # ----------------------------------------------------------------
+
+        # Status quo tax function optimum.
+
+        # ----------------------------------------------------------------
+        
+        θ_sq = self.E.Para_Solver(1, 0, 0)
+        τ_k_sq = self.E.Para_Solver(0, 1, 0)
+        (θ_sq_both, τ_k_sq_both) = self.E.Para_Solver(1, 1, 0)
+        
+        Parametric_Results.add('Optimal Status Quo Threshold Rule', gpf.clean_round(θ_sq*100, 1))
+        Parametric_Results.add('Optimal Status Quo Capital Tax', gpf.clean_round(τ_k_sq*100, 1))
+        Parametric_Results.add('Optimal Status Quo Threshold Rule, Both', gpf.clean_round(θ_sq_both*100, 1))
+        Parametric_Results.add('Optimal Status Quo Capital Tax, Both', gpf.clean_round(τ_k_sq_both*100, 1))
+        
+        
         # ----------------- #
         # Derive Equilibria #
         # ----------------- #
-        c_0_θ,    c_1_θ,    l_θ,    x_θ    = _solve_eqbm(θ_sq,     self.E.τ_k)
-        c_0_τ,    c_1_τ,    l_τ,    x_τ    = _solve_eqbm(0,         τ_k_sq)
-        c_0_both, c_1_both, l_both, x_both = _solve_eqbm(θ_sq_both, τ_k_sq_both)
+        c_0_θ,    c_1_θ,    l_θ,    x_θ    = _solve_eqbm(θ_sq, self.E.τ_k, self.E.Ψ, self.E.ψ)
+        c_0_τ,    c_1_τ,    l_τ,    x_τ    = _solve_eqbm(0, τ_k_sq, self.E.Ψ, self.E.ψ)
+        c_0_both, c_1_both, l_both, x_both = _solve_eqbm(θ_sq_both, τ_k_sq_both, self.E.Ψ, self.E.ψ)
 
         stats_τ    = _alloc_stats(c_0_τ,    c_1_τ,    l_τ,    x_τ)
         stats_both = _alloc_stats(c_0_both, c_1_both, l_both, x_both)
@@ -643,7 +638,7 @@ class Processor:
         
         Δ_ln_Λ_both, Δ_var_λ_both, Δ_cov_both = _deltas(stats_both, stats_τ)
         ConEquiv_both = _consumption_equiv(c_0_both, c_1_both, l_both,
-                                 c_0_τ, c_1_τ, l_τ)
+                                           c_0_τ, c_1_τ, l_τ)
         
         Parametric_Results.add('Optimal Status Quo DLambda, Both', gpf.clean_round(Δ_ln_Λ_both, 1))
         Parametric_Results.add('Optimal Status Quo DvarWW, Both', gpf.clean_round(Δ_var_λ_both, 1))
