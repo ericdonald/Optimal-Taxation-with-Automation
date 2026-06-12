@@ -512,6 +512,9 @@ class Processor:
         Optimal Parametric Policy Tools
         
         Output: Results/Figures/StatusQuo_Covariance.csv
+                Results/Figures/Heathcote_Covariance.csv
+                Results/Figures/Heathcote_VAT25_Covariance.csv
+                Results/Figures/Heathcote_VAT_Graph.csv
                 Results/Tables/Parametric_Results.csv
         """""
         
@@ -524,12 +527,12 @@ class Processor:
         x_sq = self.E.var_κ * self.E.x_bar
         E_init = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, x_sq))
 
-        def _solve_eqbm(θ, τ_k, Ψ, ψ):
+        def _solve_eqbm(θ, τ_k, Ψ, ψ, y_0=self.E.y_0):
             sol = sp.optimize.root(
                 rt.Eqbm_Root, E_init,
                 args=(θ, τ_k, Ψ, ψ, self.E.A_j, self.E.A_k,
                       self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ,
-                      self.E.J, self.E.n, self.E.y_0, self.E.β, self.E.var_θ,
+                      self.E.J, self.E.n, y_0, self.E.β, self.E.var_θ,
                       self.E.ε, self.E.δ, self.E.g, self.E.φ),
                 jac=pr.δH_δclx)
             E = sol.x
@@ -604,8 +607,8 @@ class Processor:
 
         # ----------------------------------------------------------------
         
-        θ_sq = self.E.Para_Solver(1, 0, 0)
-        τ_k_sq = self.E.Para_Solver(0, 1, 0)
+        (θ_sq,) = self.E.Para_Solver(1, 0, 0)
+        (τ_k_sq,) = self.E.Para_Solver(0, 1, 0)
         (θ_sq_both, τ_k_sq_both) = self.E.Para_Solver(1, 1, 0)
         
         Parametric_Results.add('Optimal Status Quo Threshold Rule', gpf.clean_round(θ_sq*100, 1))
@@ -695,8 +698,50 @@ class Processor:
 
         # ----------------------------------------------------------------
         
+        avg_y_0 = np.sum(self.E.n * self.E.y_0)
         
-        Parametric_Results.to_csv(f'{self.Directory}/Results/Tables/StatusQuo_Results.csv')
+        VAT_cases = [25, 50, 75, 100]
+        vat_rows  = []
+        
+        for τ_vat in VAT_cases:
+            y_0 = self.E.y_0 * (100 - τ_vat)/100 + avg_y_0 * τ_vat/100
+            
+            (τ_k_H_vat, Ψ_Η_vat, ψ_H_vat) = self.E.Para_Solver(0, 1, 1, y_0)
+            (θ_H_vat_both, τ_k_H_vat_both, Ψ_Η_vat_both, ψ_H_vat_both) = self.E.Para_Solver(1, 1, 1, y_0)
+            
+            dτ_k = τ_k_H_vat - τ_k_H_vat_both
+            
+            
+            # ----------------- #
+            # Derive Equilibria #
+            # ----------------- #
+            c_0_H_vat,    c_1_H_vat,    l_H_vat,    x_H_vat    = _solve_eqbm(0, τ_k_H_vat, Ψ_Η_vat, ψ_H_vat, y_0)
+            c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both, x_H_vat_both = _solve_eqbm(θ_H_vat_both, τ_k_H_vat_both, Ψ_Η_vat_both, ψ_H_vat_both, y_0)
+
+            stats_H_vat    = _alloc_stats(c_0_H_vat,    c_1_H_vat,    l_H_vat,    x_H_vat)
+            stats_H_vat_both = _alloc_stats(c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both, x_H_vat_both)
+            
+            
+            # ---------- #
+            # Comparison #
+            # ---------- #
+            ConEquiv_H_vat = _consumption_equiv(c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both,
+                                               c_0_H_vat, c_1_H_vat, l_H_vat)
+            
+            vat_rows.append({'VAT': τ_vat,
+                            'Capital Tax Reduction': gpf.clean_round(dτ_k*100, 1),
+                            'Threshold Rule':   gpf.clean_round(θ_H_vat_both*100, 1),
+                            'CE Welfare Gain':  gpf.clean_round(ConEquiv_H_vat, 2),})
+            if τ_vat == 25:
+                _cov_dataframe(stats_H_vat_both, 'Both', stats_H_vat, 'tau_k').to_csv(
+                                f'{self.Directory}/Results/Figures/Heathcote_VAT25_Covariance.csv', index=False)
+
+
+        pd.DataFrame(vat_rows).to_csv(
+                        f'{self.Directory}/Results/Figures/Heathcote_VAT_Graph.csv', index=False)
+        
+        
+        Parametric_Results.to_csv(f'{self.Directory}/Results/Tables/Parametric_Results.csv')
         
         
         

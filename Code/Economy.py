@@ -196,10 +196,12 @@ class Economy:
         
         
         
-    def Para_Solver(self, θ_on, τ_on, HC_on, damp=2/3, tol=1e-4, max_iter=10_000):
+    def Para_Solver(self, θ_on, τ_on, HC_on, y_0=0, damp=2/3, tol=1e-4, max_iter=10_000):
         "Solve Parametric Policy Problem"
         
-        args = (self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.J, self.n, self.y_0, self.β, self.var_θ, self.ε, self.δ, self.g, self.φ)
+        if y_0 == 0:
+            y_0 = self.y_0
+        args = (self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.J, self.n, y_0, self.β, self.var_θ, self.ε, self.δ, self.g, self.φ)
 
         E = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, self.var_κ * self.x_bar))
         θ = 0
@@ -220,7 +222,9 @@ class Economy:
             # ---------------- #
             if θ_on == 1:
                 Optimal_θ_Root = lambda x: rt.Optimal_Para_Root(x, τ_k, Ψ, ψ, 'theta', E, *args)
-                θ_new = gpf.bisect_scalar(Optimal_θ_Root, θ/2, θ*3/2+tol, expansion='additive')
+                θ_lower = θ/2
+                θ_upper = np.maximum(θ*3/2, 1/3)
+                θ_new = gpf.bisect_scalar(Optimal_θ_Root, θ_lower, θ_upper, expansion='additive')
             else:
                 θ_new = 0
             
@@ -352,7 +356,9 @@ class Economy:
             # -------------------- #
             if θ_on == 1:
                 θ_args = (E, x, w, r, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J, self.x_bar, self.ζ, self.ν, self.σ)
-                θ_new = gpf.bisect_scalar(rt.Optimalθ_NL_Root, θ/2, θ*3/2+tol, θ_args, 'additive')
+                θ_lower = θ/2
+                θ_upper = np.maximum(θ*3/2, 1/3)
+                θ_new = gpf.bisect_scalar(rt.Optimalθ_NL_Root, θ_lower, θ_upper, θ_args, 'additive')
             else:
                 θ_new = 0
             
