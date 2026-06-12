@@ -308,7 +308,7 @@ def δH_δΨ(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ):
     K = np.sum(n * (y_0 - c_0))
     
     w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    keep_l = fn.Heath_keep(w, l, Ψ, ψ)
+    keep_l = fn.Heath_keep(w, l, Ψ, ψ).reshape((J,1))
     
     dD = - np.sum(n * (w * l)**(1-ψ))
     y = (w * l).reshape((J,1))

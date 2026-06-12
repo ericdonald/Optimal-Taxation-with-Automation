@@ -534,126 +534,124 @@ class Processor:
         Parametric_Results.add('Optimal Status Quo Capital Tax, Both', gpf.clean_round(τ_k_sq_both*100, 1))
         
         
+        # ---------------- #
+        # Helper Functions #
+        # ---------------- #
+        x_sq = self.E.var_κ * self.E.x_bar
+        E_init = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, x_sq))
+
+        def _solve_eqbm(θ, τ_k):
+            sol = sp.optimize.root(
+                rt.Eqbm_Root, E_init,
+                args=(θ, τ_k, self.E.Ψ, self.E.ψ, self.E.A_j, self.E.A_k,
+                      self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ,
+                      self.E.J, self.E.n, self.E.y_0, self.E.β, self.E.var_θ,
+                      self.E.ε, self.E.δ, self.E.g, self.E.φ),
+                jac=pr.δH_δclx)
+            E = sol.x
+            J = self.E.J
+            return E[:J], E[J:2*J], E[2*J:3*J], E[3*J:]
+        
+        
+        def _alloc_stats(c_0, c_1, l, x):
+            n = self.E.n
+            λ     = c_1**(-self.E.var_θ) / np.sum(n * c_1**(-self.E.var_θ))
+            var_λ = np.sum(n * λ**2) - 1
+        
+            E_ln_Λ = (np.sum(n * np.log(fn.Lamba_l(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)))
+                      / self.E.σ)
+        
+            L    = n * l
+            K    = np.sum(n * (self.E.y_0 - c_0))
+            ln_w = np.log(fn.Wages(x, L, K, self.E.A_j, self.E.A_k,
+                                   self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
+            z_j  = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x
+            z_jk = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x
+            Σ_j  = self.E.σ + (z_j + z_jk) / self.E.ζ
+        
+            E_ln_w = np.sum(n * ln_w)
+            E_Σ_j  = np.sum(n * Σ_j)
+            cov    = np.sum(n * Σ_j * ln_w) - E_Σ_j * E_ln_w
+        
+            return dict(var_λ=var_λ, E_ln_Λ=E_ln_Λ, ln_w=ln_w, Σ_j=Σ_j, cov=cov)
+        
+        
+        def _consumption_equiv(c_0_new, c_1_new, l_new, c_0_base, c_1_base, l_base):
+            CE = sp.optimize.root(
+                rt.CERoot, 1,
+                args=(c_0_new, c_1_new, l_new,
+                      c_0_base, c_1_base, l_base,
+                      self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
+                method='lm')
+            return (CE.x[0] - 1) * 100
+        
+        
+        def _deltas(stats_new, stats_base):
+            Δ_ln_Λ  = (stats_new['E_ln_Λ'] - stats_base['E_ln_Λ']) * 100
+            Δ_var_λ = (stats_new['var_λ']  - stats_base['var_λ'])  * 100 / stats_base['var_λ']
+            Δ_cov   = (stats_new['cov']    - stats_base['cov'])    * 100 / stats_base['cov']
+            return Δ_ln_Λ, Δ_var_λ, Δ_cov
+        
+        
+        def _cov_dataframe(stats_A, label_A, stats_B, label_B):
+            """Build OLS-fit covariance dataframe for two allocations."""
+            n = self.E.n
+        
+            def _ols_fit(Σ, ln_w):
+                X = np.hstack((np.ones((self.E.J, 1)), Σ.reshape((-1, 1))))
+                W = np.diag(n)
+                β = np.linalg.inv(X.T @ W @ X) @ X.T @ W @ ln_w.reshape((-1, 1))
+                return (X @ β).ravel()
+        
+            df = pd.DataFrame(np.hstack((
+                n.reshape((-1, 1)),
+                stats_A['Σ_j'].reshape((-1, 1)),
+                stats_A['ln_w'].reshape((-1, 1)),
+                _ols_fit(stats_A['Σ_j'], stats_A['ln_w']).reshape((-1, 1)),
+                stats_B['Σ_j'].reshape((-1, 1)),
+                stats_B['ln_w'].reshape((-1, 1)),
+                _ols_fit(stats_B['Σ_j'], stats_B['ln_w']).reshape((-1, 1)),
+            )), columns=[
+                'Weight',
+                f'ES {label_A}',         f'Log Wages {label_A}', f'Log Wages_hat {label_A}',
+                f'ES {label_B}',         f'Log Wages {label_B}', f'Log Wages_hat {label_B}',
+            ])
+            return df.sort_values('Weight', ascending=False)
+        
+        
         # ----------------- #
         # Derive Equilibria #
         # ----------------- #
-        E_sq = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
-        
-        Eqbm_θ = sp.optimize.root(rt.Eqbm_Root, E_sq,
-                      args=(θ_sq, self.E.τ_k, self.E.Ψ, self.E.ψ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ),
-                      jac=pr.δH_δclx)
-        
-        E_θ = Eqbm_θ.x
-        
-        c_0_θ = E_θ[:self.E.J]
-        c_1_θ = E_θ[self.E.J:2*self.E.J]
-        l_θ = E_θ[2*self.E.J:3*self.E.J]
-        x_θ = E_θ[3*self.E.J:]
-        
-        Eqbm_τ = sp.optimize.root(rt.Eqbm_Root, E_sq,
-                      args=(0, τ_k_sq, self.E.Ψ, self.E.ψ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ),
-                      jac=pr.δH_δclx)
-        
-        E_τ = Eqbm_τ.x
-        
-        c_0_τ = E_τ[:self.E.J]
-        c_1_τ = E_τ[self.E.J:2*self.E.J]
-        l_τ = E_τ[2*self.E.J:3*self.E.J]
-        x_τ = E_τ[3*self.E.J:]
-        
-        Eqbm_both = sp.optimize.root(rt.Eqbm_Root, E_sq,
-                      args=(θ_sq_both, τ_k_sq_both, self.E.Ψ, self.E.ψ, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.y_0, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ),
-                      jac=pr.δH_δclx)
-        
-        E_both = Eqbm_both.x
-        
-        c_0_both = E_both[:self.E.J]
-        c_1_both = E_both[self.E.J:2*self.E.J]
-        l_both = E_both[2*self.E.J:3*self.E.J]
-        x_both = E_both[3*self.E.J:]
-        
-        
-        # ------------------ #
-        # Optimal Allocation #
-        # ------------------ #
-        L = self.E.n * l
-        κ = self.E.y_0 - c_0
-        K = np.sum(self.E.n * κ)
-        
-        λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
-        var_λ = np.sum(self.E.n * λ**2) - 1
-        
-        ln_Λ_l = np.log(fn.Lamba_l(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
-        E_ln_Λ = np.sum(self.E.n * ln_Λ_l) / self.E.σ
-        
-        ln_w = np.log(fn.Wages(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
-        z_j = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x
-        z_jk = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x
-        Σ_j = (self.E.σ + (z_j + z_jk) / self.E.ζ)
-        
-        E_ln_w = np.sum(self.E.n * ln_w)
-        E_Σ_j = np.sum(self.E.n * Σ_j)
-        cov = np.sum(self.E.n * Σ_j * ln_w) - E_Σ_j * E_ln_w
-        
-        
-        # --------------------- #
-        # Status Quo Allocation #
-        # --------------------- #
-        λ_sq = self.E.c_1_sq**(-self.E.var_θ) / np.sum(self.E.n * self.E.c_1_sq**(-self.E.var_θ))
-        var_λ_sq = np.sum(self.E.n * λ_sq**2) - 1
-        
-        x_sq = self.E.var_κ * self.E.x_bar
-        ln_Λ_l_sq = np.log(fn.Lamba_l(x_sq, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
-        E_ln_Λ_sq = np.sum(self.E.n * ln_Λ_l_sq) / self.E.σ
-        
-        ln_w_sq = np.log(self.E.w_j_sq)
-        z_j_sq = fn.relα(x_sq, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x_sq
-        z_jk_sq = fn.relα(x_sq, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x_sq
-        Σ_j_sq = (self.E.σ + (z_j_sq + z_jk_sq) / self.E.ζ)
-        
-        E_ln_w_sq = np.sum(self.E.n * ln_w_sq)
-        E_Σ_j_sq = np.sum(self.E.n * Σ_j_sq)
-        cov_sq = np.sum(self.E.n * Σ_j_sq * ln_w_sq) - E_Σ_j_sq * E_ln_w_sq
-        
-        
-        # ---------------- #
-        # Comparison Table #
-        # ---------------- #
-        Δoptln_Λ = (E_ln_Λ - E_ln_Λ_sq) * 100
-        Δoptvar_λ = (var_λ - var_λ_sq) * 100 / var_λ_sq
-        ΔoptCOV = (cov - cov_sq) * 100 / cov_sq
-        
-        CE = sp.optimize.root(rt.CERoot, 1,
-                      args=(c_0, c_1, l, self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
-                      method='lm')
-        
-        ConEquiv = (CE.x[0] - 1) * 100
-        
-        Parametric_Results.add('Optimal Status Quo DLambda', gpf.clean_round(Δoptln_Λ, 1))
-        Parametric_Results.add('Optimal Status Quo DvarWW', gpf.clean_round(Δoptvar_λ, 1))
-        Parametric_Results.add('Optimal Status Quo DCOV', gpf.clean_round(ΔoptCOV, 1))
-        Parametric_Results.add('Optimal Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
+        c_0_θ,    c_1_θ,    l_θ,    x_θ    = _solve_eqbm(θ_sq,     self.E.τ_k)
+        c_0_τ,    c_1_τ,    l_τ,    x_τ    = _solve_eqbm(0,         τ_k_sq)
+        c_0_both, c_1_both, l_both, x_both = _solve_eqbm(θ_sq_both, τ_k_sq_both)
 
+        stats_τ    = _alloc_stats(c_0_τ,    c_1_τ,    l_τ,    x_τ)
+        stats_both = _alloc_stats(c_0_both, c_1_both, l_both, x_both)
         
-        # ----------------- #
-        # Covariance Figure #
-        # ----------------- #
-        X = np.hstack((np.ones((self.E.J,1)), Σ_j.reshape((-1,1))))
-        X_sq = np.hstack((np.ones((self.E.J,1)), Σ_j_sq.reshape((-1,1))))
-        y = ln_w.reshape((-1,1))
-        y_sq = ln_w_sq.reshape((-1,1))
-        W = np.diag(self.E.n)
+       
+        # ------------------- #
+        # Status Quo to Theta #
+        # ------------------- #
+        ConEquiv_θ = _consumption_equiv(c_0_θ, c_1_θ, l_θ,
+                                self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq)
+        Parametric_Results.add('Optimal Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv_θ, 2))
         
-        β = np.linalg.inv(X.T @ W @ X) @ X.T @ W @ y
-        β_sq = np.linalg.inv(X_sq.T @ W @ X_sq) @ X_sq.T @ W @ y_sq
+        # ------------------- #
+        # Capital Tax to Both #
+        # ------------------- #
         
-        ln_w_hat = X @ β
-        ln_w_hat_sq = X_sq @ β_sq
+        Δ_ln_Λ_both, Δ_var_λ_both, Δ_cov_both = _deltas(stats_both, stats_τ)
+        ConEquiv_both = _consumption_equiv(c_0_both, c_1_both, l_both,
+                                 c_0_τ, c_1_τ, l_τ)
         
-        DF_Cov_sq = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), Σ_j.reshape((-1,1)), y, ln_w_hat, Σ_j_sq.reshape((-1,1)), y_sq, ln_w_hat_sq)), 
-                             columns=['Weight', 'ES Optimal', 'Log Wages Optimal', 'Log Wages_hat Optimal', 'ES Status Quo', 'Log Wages Status Quo', 'Log Wages_hat Status Quo'])
-        DF_Cov_sq = DF_Cov_sq.sort_values("Weight", ascending=False)
-        DF_Cov_sq.to_csv(f'{self.Directory}/Results/Figures/StatusQuo_Covariance.csv', index=False)
+        Parametric_Results.add('Optimal Status Quo DLambda, Both', gpf.clean_round(Δ_ln_Λ_both, 1))
+        Parametric_Results.add('Optimal Status Quo DvarWW, Both', gpf.clean_round(Δ_var_λ_both, 1))
+        Parametric_Results.add('Optimal Status Quo DCOV, Both', gpf.clean_round(Δ_cov_both, 1))
+        Parametric_Results.add('Optimal Status Quo Consumption Equivalence, Both', gpf.clean_round(ConEquiv_both, 2))
+
+        _cov_dataframe(stats_both, 'Both', stats_τ, 'tau_k').to_csv(
+                        f'{self.Directory}/Results/Figures/StatusQuo_Covariance.csv', index=False)
         
         
         # ----------------------------------------------------------------
