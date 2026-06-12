@@ -672,8 +672,8 @@ class Processor:
         c_0_H,    c_1_H,    l_H,    x_H    = _solve_eqbm(0, τ_k_H, Ψ_Η, ψ_H)
         c_0_H_both, c_1_H_both, l_H_both, x_H_both = _solve_eqbm(θ_H_both, τ_k_H_both, Ψ_Η_both, ψ_H_both)
 
-        stats_H    = _alloc_stats(c_0_τ,    c_1_τ,    l_τ,    x_τ)
-        stats_H_both = _alloc_stats(c_0_both, c_1_both, l_both, x_both)
+        stats_H    = _alloc_stats(c_0_H,    c_1_H,    l_H,    x_H)
+        stats_H_both = _alloc_stats(c_0_H_both, c_1_H_both, l_H_both, x_H_both)
         
         
         # ---------- #
