@@ -196,22 +196,113 @@ class Economy:
         
         
         
-    def StatusQuo_θ(self, θ_lower, θ_upper):
-        "Optimal Threshold Rule Finder with Status Quo Taxes"
+    def Para_Solver(self, θ_on, τ_on, HC_on, damp=1/5, tol=1e-4, max_iter=10_000):
+        "Solve Parametric Policy Problem"
         
-        E_sq = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, self.var_κ * self.x_bar))
-        args = (E_sq, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.J, self.n, self.y_0, self.Ψ, self.ψ, self.β, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ)
+        args = (self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.J, self.n, self.y_0, self.β, self.var_θ, self.ε, self.δ, self.g, self.φ)
+
+        E = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, self.var_κ * self.x_bar))
+        θ = 0
+        τ_k = self.τ_k
+        Ψ = self.Ψ
+        ψ = self.ψ
         
         qe.tic()
-        θ = gpf.bisect_scalar(rt.Optimalθ_SQ_Root, θ_lower, θ_upper, args)
+        
+        
+        # ---------- #
+        # Outer Loop #
+        # ---------- #
+        for _ in range(max_iter):
+            
+            # ---------------- #
+            # Update Threshold #
+            # ---------------- #
+            if θ_on == 1:
+                Optimal_θ_Root = lambda x, args: rt.Optimal_Para_Root(x, τ_k, Ψ, ψ, 'theta', E, *args)
+                θ_new = gpf.bisect_scalar(Optimal_θ_Root, θ/2, θ*3/2+tol, args)
+            else:
+                θ_new = 0
+            
+            
+            # ------------------ #
+            # Update Capital Tax #
+            # ------------------ #
+            if τ_on == 1:
+                Optimal_τ_Root = lambda x, args: rt.Optimal_Para_Root(θ, x, Ψ, ψ, 'tau', E, *args)
+                τ_new = gpf.bisect_scalar(Optimal_τ_Root, τ_k/2, τ_k*3/2, args)
+            else:
+                τ_new = self.τ_k
+            
+            
+            # ---------------- #
+            # Update Labor Tax #
+            # ---------------- #
+            if HC_on == 1:
+                Optimal_Ψ_Root = lambda x, args: rt.Optimal_Para_Root(θ, τ_k, x, ψ, 'Psi', E, *args)
+                Ψ_new = gpf.bisect_scalar(Optimal_Ψ_Root, Ψ/2, Ψ*3/2, args)
+                
+                Optimal_ψ_Root = lambda x, args: rt.Optimal_Para_Root(θ, τ_k, Ψ, x, 'psi', E, *args)
+                ψ_new = gpf.bisect_scalar(Optimal_ψ_Root, ψ/2, ψ*3/2, args)
+            else:
+                Ψ_new = self.Ψ
+                ψ_new = self.ψ
+                
+            # ---------------------------- #
+            # Check Convergence and Update #
+            # ---------------------------- #
+            single = θ_on + τ_on + HC_on
+            if single == 1:
+                θ = θ_new
+                τ_k = τ_new
+                Ψ = Ψ_new
+                ψ = ψ_new
+                break
+            
+            error_θ = np.abs(θ - θ_new)
+            #print(f'Threshold Rule Error: {error_θ}')
+            
+            error_τ = np.abs(τ_k - τ_new)
+            #print(f'Capital Tax Error: {error_τ}')
+            
+            error_Ψ = np.abs(Ψ - Ψ_new)
+            #print(f'Labor Tax Scale Error: {error_Ψ}')
+            
+            error_ψ = np.abs(ψ - ψ_new)
+            #print(f'Labor Tax Curvature Error: {error_ψ}')
+                
+            if error_θ < tol and error_τ < tol and error_Ψ < tol and error_ψ < tol:
+                break
+            
+            θ = θ * (1-damp) + θ_new * damp
+            τ_k = τ_k * (1-damp) + τ_new * damp
+            Ψ = Ψ * (1-damp) + Ψ_new * damp
+            ψ = ψ * (1-damp) + ψ_new * damp
+            
+            Eqbm = sp.optimize.root(rt.Eqbm_Root, E,
+                          args=(θ, τ_k, Ψ, ψ, τ_k, *args),
+                          jac=pr.δH_δclx)
+            
+            E = Eqbm.x
+            
         qe.toc()
-        print("Status Quo θ Found")
+        print("Parametric Policy Found")
         
-        return θ
+        Out = ()
+        
+        if θ_on == 1:
+            Out += (θ,)
+        if τ_on == 1:
+            Out += (τ_k,)
+        if HC_on == 1:
+            Out += (Ψ,)
+            Out += (ψ,)
+        
+        return Out
         
         
         
-    def Mirrlees_Lagr(self, E, x, θ_on=1, damp=1/5, tol=1e-4, max_iter=10_000):
+    def Mirrlees_Lagr(self, E, x, θ_on, damp=1/5, tol=1e-4, max_iter=10_000):
         "Solve Non-Linear Tax Problem"
                     
         Y_0 = self.Y_sq / (1+self.g)
@@ -231,6 +322,8 @@ class Economy:
         error = 1.0
         
         qe.tic()
+        
+        
         # ---------- #
         # Outer Loop #
         # ---------- #
@@ -259,7 +352,7 @@ class Economy:
             # -------------------- #
             if θ_on == 1:
                 θ_args = (E, x, w, r, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J, self.x_bar, self.ζ, self.ν, self.σ)
-                θ_new = gpf.bisect_scalar(rt.Optimalθ_NL_Root, -0.25, 0.5, θ_args)
+                θ_new = gpf.bisect_scalar(rt.Optimalθ_NL_Root, θ/2, θ*3/2+tol, θ_args)
             else:
                 θ_new = 0
             
@@ -284,6 +377,7 @@ class Economy:
             
             w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+        
         
         qe.toc()
         print("Mirrlees Solution Found")

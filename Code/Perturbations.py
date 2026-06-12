@@ -14,7 +14,7 @@ import Roots as rt
 
 
 @njit
-def δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ):
+def δH_δclx(E, θ, τ_k, Ψ, ψ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, β, var_θ, ε, δ, g, φ):
     "Jacobian of H wrt Equilibrium Allocation"
     
     c_0 = E[:J]
@@ -245,6 +245,140 @@ def δH_δθ(θ, J):
     # Derivative of Log Automation Thresholds #
     # --------------------------------------- #
     δlnAT = np.ones((J,1)) / (1+θ)
+    
+    
+    return np.vstack((δlnLS, δlnEE, δHB, δlnAT))
+
+
+@njit
+def δH_δτ(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, τ_k, δ, g):
+    "Jacobian of H wrt Capital Tax"
+    
+    c_0 = E[:J]
+    l = E[2*J:3*J]
+    x = E[3*J:]
+    
+    L = n * l
+    K = np.sum(n * (y_0 - c_0))
+    
+    r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
+    R_tilde = (1-τ_k)*(r-δ) - g
+    
+    dD = (r - δ) * K
+    
+    
+    # ---------------------------------------- #
+    # Derivative of Log Labor Supply Condition #
+    # ---------------------------------------- #
+    δlnLS = np.zeros((J,1))
+    
+    
+    # -------------------------------- #
+    # Derivative of Log Euler Equation #
+    # -------------------------------- #
+    δlnEE = np.ones((J,1)) * (r-δ) / R_tilde
+    
+    
+    # ------------------------------ #
+    # Derivative of Household Budget #
+    # ------------------------------ #
+    δHB = - (r-δ) * (c_0 - y_0) - dD
+    
+    
+    # --------------------------------------- #
+    # Derivative of Log Automation Thresholds #
+    # --------------------------------------- #
+    δlnAT = np.zeros((J,1))
+    
+    
+    return np.vstack((δlnLS, δlnEE, δHB, δlnAT))
+
+
+
+@njit
+def δH_δΨ(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ):
+    "Jacobian of H wrt Labor Tax Scale"
+    
+    c_0 = E[:J]
+    l = E[2*J:3*J]
+    x = E[3*J:]
+    
+    L = n * l
+    K = np.sum(n * (y_0 - c_0))
+    
+    w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
+    keep_l = fn.Heath_keep(w, l, Ψ, ψ)
+    
+    dD = - np.sum(n * (w * l)**(1-ψ))
+    
+    
+    # ---------------------------------------- #
+    # Derivative of Log Labor Supply Condition #
+    # ---------------------------------------- #
+    δlnLS = - (1-ψ) * (w * l)**(-ψ) / keep_l
+    
+    
+    # -------------------------------- #
+    # Derivative of Log Euler Equation #
+    # -------------------------------- #
+    δlnEE = np.zeros((J,1))
+    
+    
+    # ------------------------------ #
+    # Derivative of Household Budget #
+    # ------------------------------ #
+    δHB = - ((w * l)**(1-ψ) + dD)
+    
+    
+    # --------------------------------------- #
+    # Derivative of Log Automation Thresholds #
+    # --------------------------------------- #
+    δlnAT = np.zeros((J,1))
+    
+    
+    return np.vstack((δlnLS, δlnEE, δHB, δlnAT))
+
+
+
+@njit
+def δH_δψ(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ):
+    "Jacobian of H wrt Labor Tax Curvature"
+    
+    c_0 = E[:J]
+    l = E[2*J:3*J]
+    x = E[3*J:]
+    
+    L = n * l
+    K = np.sum(n * (y_0 - c_0))
+    
+    w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
+    keep_l = fn.Heath_keep(w, l, Ψ, ψ)
+        
+    dD = np.sum(n * Ψ * (w * l)**(1-ψ) * np.log(w * l))
+    
+    
+    # ---------------------------------------- #
+    # Derivative of Log Labor Supply Condition #
+    # ---------------------------------------- #
+    δlnLS = (1 + (1-ψ) * np.log(w * l)) * Ψ * (w * l)**(-ψ) / keep_l
+    
+    
+    # -------------------------------- #
+    # Derivative of Log Euler Equation #
+    # -------------------------------- #
+    δlnEE = np.zeros((J,1))
+    
+    
+    # ------------------------------ #
+    # Derivative of Household Budget #
+    # ------------------------------ #
+    δHB = - (- Ψ * (w * l)**(1-ψ) * np.log(w * l) + dD)
+    
+    
+    # --------------------------------------- #
+    # Derivative of Log Automation Thresholds #
+    # --------------------------------------- #
+    δlnAT = np.zeros((J,1))
     
     
     return np.vstack((δlnLS, δlnEE, δHB, δlnAT))

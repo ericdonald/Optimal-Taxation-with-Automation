@@ -93,7 +93,7 @@ def GammaRoot(Γ, E_sq, w_j_sq, r_sq, COR, var_κ, Σ_k, χ, x_bar, σ, S_k, S_j
     c_0 = E_sq[:J]
     l = E_sq[2*J:3*J]
     
-    ΔH_ΔΕ = pr.δH_δclx(E_sq, 0, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ)
+    ΔH_ΔΕ = pr.δH_δclx(E_sq, 0, τ_k, Ψ, ψ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, β, var_θ, ε, δ, g, φ)
     ΔH_ΔIST = pr.δH_δIST(E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, κ_0, Ψ, ψ, var_θ, ε, τ_k, δ, g, φ)
 
     dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_ΔIST
@@ -136,7 +136,7 @@ def νRoot(ν, Γ, χ, var_κ, x_bar, σ, S_j, S_k):
 
 
 @njit
-def Eqbm_Root(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ):
+def Eqbm_Root(E, θ, τ_k, Ψ, ψ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, β, var_θ, ε, δ, g, φ):
     "Equilibrium Root"
     
     c_0 = E[:J]
@@ -186,14 +186,14 @@ def Eqbm_Root(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ,
 
 
 
-def Optimalθ_SQ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ):
-    "Root for Optimal Threshold Rule with Status Quo Taxes"
+def Optimal_Para_Root(θ, τ_k, Ψ, ψ, digamma, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, β, var_θ, ε, δ, g, φ):
+    "Root for Parametric Policy Tools"
     
     # -------------------------------- #
     # Solve for Equilibrium Allocation #
     # -------------------------------- #
     Eqbm = sp.optimize.root(Eqbm_Root, E_sq,
-                  args=(θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ),
+                  args=(θ, τ_k, Ψ, ψ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, β, var_θ, ε, δ, g, φ),
                   jac=pr.δH_δclx)
     
     E = Eqbm.x
@@ -207,10 +207,23 @@ def Optimalθ_SQ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, 
     # ------------------------------------ #
     # Compute Threshold Rule Perturbations #
     # ------------------------------------ #
-    ΔH_ΔΕ = pr.δH_δclx(E, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, β, var_θ, ε, τ_k, δ, g, φ)
-    ΔH_Δθ = pr.δH_δθ(θ, J)
-
-    dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_Δθ
+    ΔH_ΔΕ = pr.δH_δclx(E, θ, τ_k, Ψ, ψ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, β, var_θ, ε, δ, g, φ)
+    
+    if digamma == 'theta':
+        ΔH_Δθ = pr.δH_δθ(θ, J)
+        dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_Δθ
+        
+    if digamma == 'tau':
+        ΔH_Δτ = pr.δH_δτ(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, τ_k, δ, g)
+        dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_Δτ
+        
+    if digamma == 'Psi':
+        ΔH_ΔΨ = pr.δH_δΨ(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ)
+        dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_ΔΨ
+        
+    if digamma == 'psi':
+        ΔH_Δψ = pr.δH_δψ(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ)
+        dE = - np.linalg.inv(ΔH_ΔΕ) @ ΔH_Δψ
     
     dc_0 = dE[:J,0]
     dl = dE[2*J:3*J,0]
@@ -251,11 +264,23 @@ def Optimalθ_SQ_Root(θ, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ, 
     # -------------------- #
     # Optimality Condition #
     # -------------------- #
+    if digamma == 'theta':
+        dT = 0
+        
+    if digamma == 'tau':
+        dT = np.sum(n * (λ-1) * (r - δ) * κ)
+        
+    if digamma == 'Psi':
+        dT = - np.sum(n * (λ-1) * (w * l)**(1-ψ))
+        
+    if digamma == 'psi':
+        dT = np.sum(n * (λ-1) * Ψ * (w * l)**(1-ψ) * np.log(w * l))
+
     MC = -np.sum(δY_δX * dx)
     cov = np.sum(n * (λ-1) * (MRS_l * l * δlnw + MRS_c * κ * δlnR))
     Expect = np.sum(n * ((w - MRS_l) * l * δlnl + (R - MRS_c) * κ * δlnκ))
     
-    δW = MC - cov - Expect
+    δW = dT + MC - cov - Expect
     
     return δW
 
