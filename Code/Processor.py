@@ -628,12 +628,16 @@ class Processor:
         stats_both = _alloc_stats(c_0_both, c_1_both, l_both, x_both)
         
        
-        # ------------------- #
-        # Status Quo to Theta #
-        # ------------------- #
+        # -------------------- #
+        # Status Quo to Policy #
+        # -------------------- #
         ConEquiv_θ = _consumption_equiv(c_0_θ, c_1_θ, l_θ,
                                 self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq)
-        Parametric_Results.add('Optimal Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv_θ, 2))
+        Parametric_Results.add('Optimal Status Quo Consumption Equivalence, Theta', gpf.clean_round(ConEquiv_θ, 2))
+        
+        ConEquiv_τ = _consumption_equiv(c_0_τ, c_1_τ, l_τ,
+                                self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq)
+        Parametric_Results.add('Optimal Status Quo Consumption Equivalence, Capital Tax', gpf.clean_round(ConEquiv_τ, 2))
         
         
         # ------------------- #

@@ -90,7 +90,7 @@ def compute_decile_shares(df, value_col, weight_col='Weight', n_groups=10):
 
 
 
-def secant_scalar(func, x0, x1, lb=None, ub=None, tol=1e-7, max_iter=50):
+def secant_scalar(func, x0, x1, lb=None, ub=None, tol=1e-7, max_iter=50, expansion='multiplicative'):
     "Secant Root Finder with Bisection Fallback"
 
     try:
@@ -109,7 +109,7 @@ def secant_scalar(func, x0, x1, lb=None, ub=None, tol=1e-7, max_iter=50):
             x0, f0, x1 = x1, f1, x2
             f1 = func(x1)
 
-            if abs(f1) < tol or abs(x1 - x0) < tol:
+            if abs(f1) < tol:
                 return x1
 
         if abs(f1) < tol * 100:
@@ -118,7 +118,7 @@ def secant_scalar(func, x0, x1, lb=None, ub=None, tol=1e-7, max_iter=50):
 
     except (ValueError, FloatingPointError):
     
-        return bisect_scalar(func, x0, x1)
+        return bisect_scalar(func, x0, x1, expansion=expansion)
 
 
 

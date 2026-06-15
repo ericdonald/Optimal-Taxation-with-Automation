@@ -229,7 +229,7 @@ class Economy:
                 Optimal_θ_Root = lambda x: rt.Optimal_Para_Root(x, τ_k, Ψ, ψ, 'theta', E, *args, _cache=cache_θ)
                 θ_lower = θ/2
                 θ_upper = np.maximum(θ * 1.5, 1/3)
-                θ_new = gpf.secant_scalar(Optimal_θ_Root, θ_lower, θ_upper)
+                θ_new = gpf.secant_scalar(Optimal_θ_Root, θ_lower, θ_upper, expansion='additive')
             else:
                 θ_new = 0
             
@@ -239,7 +239,7 @@ class Economy:
             # ------------------ #
             if τ_on == 1:
                 Optimal_τ_Root = lambda x: rt.Optimal_Para_Root(θ, x, Ψ, ψ, 'tau', E, *args, _cache=cache_τ)
-                τ_new = gpf.bisect_scalar(Optimal_τ_Root, expansion='unit')
+                τ_new = gpf.secant_scalar(Optimal_τ_Root, τ_k, τ_k * 1.5, lb=0, ub=1, expansion='unit')
             else:
                 τ_new = self.τ_k
             
@@ -252,7 +252,7 @@ class Economy:
                 Ψ_new = gpf.secant_scalar(Optimal_Ψ_Root, Ψ/2, Ψ*1.5, lb=0)
                 
                 Optimal_ψ_Root = lambda x: rt.Optimal_Para_Root(θ, τ_k, Ψ, x, 'psi', E, *args, _cache=cache_ψ)
-                ψ_new = gpf.secant_scalar(Optimal_ψ_Root, ψ, ψ * 1.5, lb=0, ub=1)
+                ψ_new = gpf.secant_scalar(Optimal_ψ_Root, ψ, ψ * 1.5, lb=0, ub=1, expansion='unit')
             else:
                 Ψ_new = self.Ψ
                 ψ_new = self.ψ

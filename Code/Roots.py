@@ -246,10 +246,11 @@ def Optimal_Para_Root(θ, τ_k, Ψ, ψ, digamma, E_sq, A_j, A_k, x_bar, ζ, ν, 
     
     δ_tilde = 1 + δ + g
     R = 1 + r - δ_tilde
+    R_tilde = (1-τ_k)*(r-δ) - g
     
     δlnw = pr.dlnw(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0)
     δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0)
-    δlnR = r * δlnr / R
+    δlnR_tilde = (1-τ_k) * r * δlnr / R_tilde
     
     α_k = x**(ζ*(ν-1))
     
@@ -281,7 +282,7 @@ def Optimal_Para_Root(θ, τ_k, Ψ, ψ, digamma, E_sq, A_j, A_k, x_bar, ζ, ν, 
         dT = np.sum(n * (λ-1) * Ψ * (w * l)**(1-ψ) * np.log(w * l))
 
     MC = -np.sum(δY_δX * dx)
-    cov = np.sum(n * (λ-1) * (MRS_l * l * δlnw + MRS_c * κ * δlnR))
+    cov = np.sum(n * (λ-1) * (MRS_l * l * δlnw + MRS_c * κ * δlnR_tilde))
     Expect = np.sum(n * ((w - MRS_l) * l * δlnl + (R - MRS_c) * κ * δlnκ))
     
     δW = dT + MC - cov - Expect
