@@ -90,6 +90,38 @@ def compute_decile_shares(df, value_col, weight_col='Weight', n_groups=10):
 
 
 
+def secant_scalar(func, x0, x1, lb=None, ub=None, tol=1e-7, max_iter=50):
+    "Secant Root Finder with Bisection Fallback"
+
+    try:
+        f0 = func(x0)
+        f1 = func(x1)
+        for _ in range(max_iter):
+            if abs(f1 - f0) < 1e-14:
+                break
+            x2 = x1 - f1 * (x1 - x0) / (f1 - f0)
+
+            if lb is not None:
+                x2 = max(x2, lb)
+            if ub is not None:
+                x2 = min(x2, ub)
+
+            x0, f0, x1 = x1, f1, x2
+            f1 = func(x1)
+
+            if abs(f1) < tol or abs(x1 - x0) < tol:
+                return x1
+
+        if abs(f1) < tol * 100:
+            return x1
+        raise ValueError("Secant did not converge")
+
+    except (ValueError, FloatingPointError):
+    
+        return bisect_scalar(func, x0, x1)
+
+
+
 def bisect_scalar(func, a=0, b=0.1, args=(), expansion='multiplicative'):
     "Scalar Bisection"
     

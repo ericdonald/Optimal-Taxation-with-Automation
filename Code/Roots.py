@@ -186,17 +186,21 @@ def Eqbm_Root(E, θ, τ_k, Ψ, ψ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, β, v
 
 
 
-def Optimal_Para_Root(θ, τ_k, Ψ, ψ, digamma, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, β, var_θ, ε, δ, g, φ):
+def Optimal_Para_Root(θ, τ_k, Ψ, ψ, digamma, E_sq, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, β, var_θ, ε, δ, g, φ, _cache=None):
     "Root for Parametric Policy Tools"
     
     # -------------------------------- #
     # Solve for Equilibrium Allocation #
     # -------------------------------- #
-    Eqbm = sp.optimize.root(Eqbm_Root, E_sq,
+    warm = E_sq if (_cache is None or _cache[0] is None) else _cache[0]
+    
+    Eqbm = sp.optimize.root(Eqbm_Root, warm,
                   args=(θ, τ_k, Ψ, ψ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, β, var_θ, ε, δ, g, φ),
                   jac=pr.δH_δclx)
     
     E = Eqbm.x
+    if _cache is not None:
+       _cache[0] = E
     
     c_0 = E[:J]
     c_1 = E[J:2*J]

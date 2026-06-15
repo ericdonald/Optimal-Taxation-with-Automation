@@ -217,14 +217,19 @@ class Economy:
         # ---------- #
         for _ in range(max_iter):
             
+            cache_θ = [E.copy()]
+            cache_τ = [E.copy()]
+            cache_Ψ = [E.copy()]
+            cache_ψ = [E.copy()]
+            
             # ---------------- #
             # Update Threshold #
             # ---------------- #
             if θ_on == 1:
-                Optimal_θ_Root = lambda x: rt.Optimal_Para_Root(x, τ_k, Ψ, ψ, 'theta', E, *args)
+                Optimal_θ_Root = lambda x: rt.Optimal_Para_Root(x, τ_k, Ψ, ψ, 'theta', E, *args, _cache=cache_θ)
                 θ_lower = θ/2
-                θ_upper = np.maximum(θ*3/2, 1/3)
-                θ_new = gpf.bisect_scalar(Optimal_θ_Root, θ_lower, θ_upper, expansion='additive')
+                θ_upper = np.maximum(θ * 1.5, 1/3)
+                θ_new = gpf.secant_scalar(Optimal_θ_Root, θ_lower, θ_upper)
             else:
                 θ_new = 0
             
@@ -233,7 +238,7 @@ class Economy:
             # Update Capital Tax #
             # ------------------ #
             if τ_on == 1:
-                Optimal_τ_Root = lambda x: rt.Optimal_Para_Root(θ, x, Ψ, ψ, 'tau', E, *args)
+                Optimal_τ_Root = lambda x: rt.Optimal_Para_Root(θ, x, Ψ, ψ, 'tau', E, *args, _cache=cache_τ)
                 τ_new = gpf.bisect_scalar(Optimal_τ_Root, expansion='unit')
             else:
                 τ_new = self.τ_k
@@ -243,11 +248,11 @@ class Economy:
             # Update Labor Tax #
             # ---------------- #
             if HC_on == 1:
-                Optimal_Ψ_Root = lambda x: rt.Optimal_Para_Root(θ, τ_k, x, ψ, 'Psi', E, *args)
-                Ψ_new = gpf.bisect_scalar(Optimal_Ψ_Root, Ψ/2, Ψ*3/2)
+                Optimal_Ψ_Root = lambda x: rt.Optimal_Para_Root(θ, τ_k, x, ψ, 'Psi', E, *args, _cache=cache_Ψ)
+                Ψ_new = gpf.secant_scalar(Optimal_Ψ_Root, Ψ/2, Ψ*1.5, lb=0)
                 
-                Optimal_ψ_Root = lambda x: rt.Optimal_Para_Root(θ, τ_k, Ψ, x, 'psi', E, *args)
-                ψ_new = gpf.bisect_scalar(Optimal_ψ_Root, expansion='unit')
+                Optimal_ψ_Root = lambda x: rt.Optimal_Para_Root(θ, τ_k, Ψ, x, 'psi', E, *args, _cache=cache_ψ)
+                ψ_new = gpf.secant_scalar(Optimal_ψ_Root, ψ, ψ * 1.5, lb=0, ub=1)
             else:
                 Ψ_new = self.Ψ
                 ψ_new = self.ψ
@@ -263,16 +268,16 @@ class Economy:
                 ψ = ψ_new
                 break
             
-            error_θ = np.abs(np.arcsinh(θ) - np.arcsinh(θ_new))
-            #print(f'Threshold Rule Error: {error_θ}')
+            error_θ = np.abs(θ - θ_new)
+            print(f'Threshold Rule Error: {error_θ}')
             
-            error_τ = np.abs(np.log(τ_k) - np.log(τ_new))
-            #print(f'Capital Tax Error: {error_τ}')
+            error_τ = np.abs(τ_k - τ_new)
+            print(f'Capital Tax Error: {error_τ}')
             
-            error_Ψ = np.abs(np.log(Ψ) - np.log(Ψ_new))
+            error_Ψ = np.abs(Ψ - Ψ_new)
             #print(f'Labor Tax Scale Error: {error_Ψ}')
             
-            error_ψ = np.abs(np.log(ψ) - np.log(ψ_new))
+            error_ψ = np.abs(ψ - ψ_new)
             #print(f'Labor Tax Curvature Error: {error_ψ}')
                 
             if error_θ < tol and error_τ < tol and error_Ψ < tol and error_ψ < tol:
