@@ -199,7 +199,7 @@ class Economy:
     def Para_Solver(self, θ_on, τ_on, HC_on, y_0=None, damp=2/3, tol=1e-4, max_iter=10_000):
         "Solve Parametric Policy Problem"
         
-        if y_0 == None:
+        if y_0 is None:
             y_0 = self.y_0
         args = (self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.J, self.n, y_0, self.β, self.var_θ, self.ε, self.δ, self.g, self.φ)
 

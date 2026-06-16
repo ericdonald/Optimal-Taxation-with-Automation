@@ -512,9 +512,7 @@ class Processor:
         Optimal Parametric Policy Tools
         
         Output: Results/Figures/StatusQuo_Covariance.csv
-                Results/Figures/Heathcote_Covariance.csv
-                Results/Figures/Heathcote_VAT25_Covariance.csv
-                Results/Figures/Heathcote_VAT_Graph.csv
+                Results/Figures/StatusQuo_VAT_Graph.csv
                 Results/Tables/Parametric_Results.csv
         """""
         
@@ -671,7 +669,7 @@ class Processor:
             y_0 = self.E.y_0 * (100 - τ_vat)/100 + avg_y_0 * τ_vat/100
             
             (τ_k_sq_vat,) = self.E.Para_Solver(0, 1, 0, y_0)
-            (θ_sq_vat_both, τ_k_sq_vat_both) = self.E.Para_Solver(1, 1, 1, y_0)
+            (θ_sq_vat_both, τ_k_sq_vat_both) = self.E.Para_Solver(1, 1, 0, y_0)
             
             dτ_k = τ_k_sq_vat - τ_k_sq_vat_both
             
@@ -710,7 +708,7 @@ class Processor:
 
 
         pd.DataFrame(vat_rows).to_csv(
-                        f'{self.Directory}/Results/Figures/Heathcote_VAT_Graph.csv', index=False)
+                        f'{self.Directory}/Results/Figures/StatusQuo_VAT_Graph.csv', index=False)
         
         
         # ----------------------------------------------------------------
@@ -720,21 +718,37 @@ class Processor:
         # ----------------------------------------------------------------
         
         (τ_k_H, Ψ_Η, ψ_H) = self.E.Para_Solver(0, 1, 1)
-        (θ_H_both, τ_k_H_both, Ψ_Η_both, ψ_H_both) = self.E.Para_Solver(1, 1, 1)
+        (θ_H_both, τ_k_H_both, Ψ_H_both, ψ_H_both) = self.E.Para_Solver(1, 1, 1)
         
         Parametric_Results.add('Optimal Heathcote Capital Tax', gpf.clean_round(τ_k_H*100, 1))
         Parametric_Results.add('Optimal Heathcote Threshold Rule, Both', gpf.clean_round(θ_H_both*100, 1))
         Parametric_Results.add('Optimal Heathcote Capital Tax, Both', gpf.clean_round(τ_k_H_both*100, 1))
+        
+        τ_H_vat = 25
+        y_H_0 = self.E.y_0 * (100 - τ_H_vat)/100 + avg_y_0 * τ_H_vat/100
+        
+        (τ_k_H_vat, Ψ_Η_vat, ψ_H_vat) = self.E.Para_Solver(0, 1, 1, y_H_0)
+        (θ_H_vat_both, τ_k_H_vat_both, Ψ_H_vat_both, ψ_H_vat_both) = self.E.Para_Solver(1, 1, 1, y_H_0)
+        
+        Parametric_Results.add('Optimal Heathcote VAT Capital Tax', gpf.clean_round(τ_k_H_vat*100, 1))
+        Parametric_Results.add('Optimal Heathcote VAT Threshold Rule, Both', gpf.clean_round(θ_H_vat_both*100, 1))
+        Parametric_Results.add('Optimal Heathcote VAT Capital Tax, Both', gpf.clean_round(τ_k_H_vat_both*100, 1))
         
         
         # ----------------- #
         # Derive Equilibria #
         # ----------------- #
         c_0_H,    c_1_H,    l_H,    x_H    = _solve_eqbm(0, τ_k_H, Ψ_Η, ψ_H)
-        c_0_H_both, c_1_H_both, l_H_both, x_H_both = _solve_eqbm(θ_H_both, τ_k_H_both, Ψ_Η_both, ψ_H_both)
+        c_0_H_both, c_1_H_both, l_H_both, x_H_both = _solve_eqbm(θ_H_both, τ_k_H_both, Ψ_H_both, ψ_H_both)
 
         stats_H    = _alloc_stats(c_0_H,    c_1_H,    l_H,    x_H)
         stats_H_both = _alloc_stats(c_0_H_both, c_1_H_both, l_H_both, x_H_both)
+        
+        c_0_H_vat,    c_1_H_vat,    l_H_vat,    x_H_vat    = _solve_eqbm(0, τ_k_H_vat, Ψ_Η, ψ_H_vat)
+        c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both, x_H_vat_both = _solve_eqbm(θ_H_vat_both, τ_k_H_vat_both, Ψ_H_vat_both, ψ_H_vat_both)
+
+        stats_H_vat    = _alloc_stats(c_0_H_vat,    c_1_H_vat,    l_H_vat,    x_H_vat)
+        stats_H_vat_both = _alloc_stats(c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both, x_H_vat_both)
         
         
         # ---------- #
@@ -748,9 +762,17 @@ class Processor:
         Parametric_Results.add('Optimal Heathcote DvarWW', gpf.clean_round(Δ_var_λ_H, 1))
         Parametric_Results.add('Optimal Heathcote DCOV', gpf.clean_round(Δ_cov_H, 1))
         Parametric_Results.add('Optimal Heathcote Consumption Equivalence', gpf.clean_round(ConEquiv_H, 2))
+        
+        Δ_ln_Λ_H_vat, Δ_var_λ_H_vat, Δ_cov_H_vat = _deltas(stats_H_vat_both, stats_H_vat)
+        ConEquiv_H_vat = _consumption_equiv(c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both,
+                                           c_0_H_vat, c_1_H_vat, l_H_vat)
+        
+        Parametric_Results.add('Optimal Heathcote VAT DLambda', gpf.clean_round(Δ_ln_Λ_H_vat, 1))
+        Parametric_Results.add('Optimal Heathcote VAT DvarWW', gpf.clean_round(Δ_var_λ_H_vat, 1))
+        Parametric_Results.add('Optimal Heathcote VAT DCOV', gpf.clean_round(Δ_cov_H_vat, 1))
+        Parametric_Results.add('Optimal Heathcote VAT Consumption Equivalence', gpf.clean_round(ConEquiv_H_vat, 2))
 
-        _cov_dataframe(stats_H_both, 'Both', stats_H, 'tau_k').to_csv(
-                        f'{self.Directory}/Results/Figures/Heathcote_Covariance.csv', index=False)
+       
         
         
         Parametric_Results.to_csv(f'{self.Directory}/Results/Tables/Parametric_Results.csv')
