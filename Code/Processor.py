@@ -592,9 +592,7 @@ class Processor:
             
             (τ_k_sq_vat,) = self.E.Para_Solver(0, 1, 0, y_0)
             (θ_sq_vat_both, τ_k_sq_vat_both) = self.E.Para_Solver(1, 1, 0, y_0)
-            
-            dτ_k = τ_k_sq_vat - τ_k_sq_vat_both
-            
+                        
             
             # ----------------- #
             # Derive Equilibria #
@@ -613,7 +611,8 @@ class Processor:
                                                c_0_sq_vat, c_1_sq_vat, l_sq_vat, *EQ_args)
             
             vat_rows.append({'VAT': τ_vat,
-                            'Capital Tax Reduction': gpf.clean_round(dτ_k*100, 1),
+                            'Capital Tax': gpf.clean_round(τ_k_sq_vat*100, 1),
+                            'Capital Tax Both': gpf.clean_round(τ_k_sq_vat_both*100, 1),
                             'Threshold Rule':   gpf.clean_round(θ_sq_vat_both*100, 1),
                             'CE Welfare Gain':  gpf.clean_round(ConEquiv_sq_vat, 2),})
             if τ_vat == 25:
