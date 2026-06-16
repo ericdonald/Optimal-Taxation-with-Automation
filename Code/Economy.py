@@ -219,7 +219,6 @@ class Economy:
             
             cache_θ = [E.copy()]
             cache_τ = [E.copy()]
-            cache_Ψ = [E.copy()]
             cache_ψ = [E.copy()]
             
             # ---------------- #
@@ -240,7 +239,7 @@ class Economy:
             # ------------------ #
             if τ_on == 1:
                 Optimal_τ_Root = lambda x: rt.Optimal_Para_Root(θ, x, Ψ, ψ, 'tau', E, *args, _cache=cache_τ)
-                τ_new = gpf.secant_scalar(Optimal_τ_Root, τ_k, τ_k * 1.5, lb=0, ub=1, expansion='unit')
+                τ_new = gpf.secant_scalar(Optimal_τ_Root, τ_k/2, τ_k * 1.5, ub=1, expansion='additive')
                 print(τ_new)
             else:
                 τ_new = self.τ_k
@@ -250,12 +249,12 @@ class Economy:
             # Update Labor Tax #
             # ---------------- #
             if HC_on == 1:
-                Optimal_Ψ_Root = lambda x: rt.Optimal_Para_Root(θ, τ_k, x, ψ, 'Psi', E, *args, _cache=cache_Ψ)
-                Ψ_new = gpf.secant_scalar(Optimal_Ψ_Root, Ψ/2, Ψ*1.5, lb=0)
+                Optimal_Ψ_Root = lambda x: rt.Optimal_Para_Root(θ, τ_k, x, ψ, 'Psi', E, *args)
+                Ψ_new = gpf.secant_scalar(Optimal_Ψ_Root, Ψ/2, Ψ * 1.5, lb=0)
                 print(Ψ_new)
                 
                 Optimal_ψ_Root = lambda x: rt.Optimal_Para_Root(θ, τ_k, Ψ, x, 'psi', E, *args, _cache=cache_ψ)
-                ψ_new = gpf.secant_scalar(Optimal_ψ_Root, ψ, ψ * 1.5, lb=0, ub=1, expansion='unit')
+                ψ_new = gpf.secant_scalar(Optimal_ψ_Root, ψ/2, ψ * 1.5, ub=1, expansion='additive')
                 print(ψ_new)
             else:
                 Ψ_new = self.Ψ
