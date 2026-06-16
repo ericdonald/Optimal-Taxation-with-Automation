@@ -209,17 +209,17 @@ class Economy:
         Ψ = self.Ψ
         ψ = self.ψ
         
-        qe.tic()
-        
         
         # ---------- #
         # Outer Loop #
         # ---------- #
+        qe.tic()
         for _ in range(max_iter):
             
             cache_θ = [E.copy()]
             cache_τ = [E.copy()]
             cache_ψ = [E.copy()]
+            
             
             # ---------------- #
             # Update Threshold #
@@ -332,13 +332,12 @@ class Economy:
         w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
         r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
         error = 1.0
-        
-        qe.tic()
-        
+                
         
         # ---------- #
         # Outer Loop #
         # ---------- #
+        qe.tic()
         for _ in range(max_iter):
         
             # ---------------- #
@@ -405,7 +404,7 @@ class Economy:
         
         
         
-    def AI_economy(self, ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, G_k, LAT_frac, N_g):
+    def AI_economy(self, θ_on, τ_on, ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, LAT_frac, y_0, G_k, N_g, damp=2/3, tol=1e-4, max_iter=10_000):
         "Solve for Post-AI Economy"
 
         # -------------------------- #
@@ -413,32 +412,113 @@ class Economy:
         # -------------------------- #
         
         AI_growth = np.linspace(0, G_k, N_g)
-        θ_AI = np.empty(N_g)
-        
         E = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, self.var_κ * self.x_bar))
+        θ_AI = np.zeros(N_g)
+        τ_k_AI = self.τ_k * np.ones(N_g)
         
+        
+        # ---------- #
+        # Outer Loop #
+        # ---------- #
         qe.tic()
-        for g in range(N_g):
-            A_k_AI = A_k_AI_base * (1 + AI_growth[g])
-            A_j_AI = A_j_AI_base * (1 + AI_growth[g] * LAT_frac)
+        for n in range(N_g):
             
-            g_y = self.S_k * AI_growth[g] + (1-self.S_k) * AI_growth[g] * LAT_frac
+            A_k_AI = A_k_AI_base * (1 + AI_growth[n])
+            A_j_AI = A_j_AI_base * (1 + AI_growth[n] * LAT_frac)
+            
+            g_y = self.S_k * AI_growth[n] + (1-self.S_k) * AI_growth[n] * LAT_frac
             Ψ_AI = self.Ψ * (1+g_y)**(self.ψ)
             
-            args = (E, A_j_AI, A_k_AI, self.x_bar, ζ_AI, ν_AI, self.σ, self.J, self.n, self.y_0, Ψ_AI, self.ψ, self.β, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ)
+            args = (A_j_AI, A_k_AI, self.x_bar, ζ_AI, ν_AI, self.σ, self.J, self.n, y_0, self.β, self.var_θ, self.ε, self.δ, self.g, self.φ)
             
-            θ_AI[g] = gpf.bisect_scalar(rt.Optimalθ_SQ_Root, 0.1, 1, args)
-            #print(f'AI Experiment Threshold Rule: {θ_AI[g]}')
+            θ = θ_AI[n-1]
+            τ_k = τ_k_AI[n-1]
             
-            Eqbm = sp.optimize.root(rt.Eqbm_Root, E,
-                          args=(θ_AI[g], A_j_AI, A_k_AI, self.x_bar, ζ_AI, ν_AI, self.σ, self.J, self.n, self.y_0, Ψ_AI, self.ψ, self.β, self.var_θ, self.ε, self.τ_k, self.δ, self.g, self.φ),
-                          jac=pr.δH_δclx)
-            E = Eqbm.x
-        
+            for _ in range(max_iter):
+                
+                cache_θ = [E.copy()]
+                cache_τ = [E.copy()]
+
+                
+                # ---------------- #
+                # Update Threshold #
+                # ---------------- #
+                if θ_on == 1:
+                    Optimal_θ_Root = lambda x: rt.Optimal_Para_Root(x, τ_k, Ψ_AI, self.ψ, 'theta', E, *args, _cache=cache_θ)
+                    θ_lower = θ/2
+                    θ_upper = np.maximum(θ * 1.5, 1/3)
+                    θ_new = gpf.secant_scalar(Optimal_θ_Root, θ_lower, θ_upper, expansion='additive')
+                    #print(θ_new)
+                else:
+                    θ_new = 0
+                
+                
+                # ------------------ #
+                # Update Capital Tax #
+                # ------------------ #
+                if τ_on == 1:
+                    Optimal_τ_Root = lambda x: rt.Optimal_Para_Root(θ, x, Ψ_AI, self.ψ, 'tau', E, *args, _cache=cache_τ)
+                    τ_new = gpf.secant_scalar(Optimal_τ_Root, τ_k/2, τ_k * 1.5, ub=1, expansion='additive')
+                    #print(τ_new)
+                else:
+                    τ_new = self.τ_k
+                    
+                # ---------------------------- #
+                # Check Convergence and Update #
+                # ---------------------------- #
+                single = θ_on + τ_on
+                if single == 1:
+                    θ_AI[n] = θ_new
+                    τ_k_AI[n] = τ_new
+                    break
+                
+                error_θ = np.abs(θ - θ_new)
+                #print(f'Threshold Rule Error: {error_θ}')
+                
+                error_τ = np.abs(τ_k - τ_new)
+                #print(f'Capital Tax Error: {error_τ}')
+                    
+                if error_θ < tol and error_τ < tol:
+                    break
+                
+                θ = θ * (1-damp) + θ_new * damp
+                τ_k = τ_k * (1-damp) + τ_new * damp
+                
+                Eqbm = sp.optimize.root(rt.Eqbm_Root, E,
+                              args=(θ, τ_k, Ψ_AI, self.ψ, *args),
+                              jac=pr.δH_δclx)
+                
+                E = Eqbm.x
+                
+            θ_AI[n] = θ_new
+            #print(f'AI Experiment Threshold Rule: {θ_AI[n]}')
+            τ_k_AI[n] = τ_new
+            #print(f'AI Experiment Threshold Rule: {τ_k_AI[n]}')
+            
+            
         qe.toc()
         print("AI Experiment Policy Path Computed")
         
-        return θ_AI
+        Out = ()
+        
+        if θ_on == 1:
+            Out += (θ_AI,)
+        if τ_on == 1:
+            Out += (τ_k_AI,)
+        
+        return Out
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         
         
