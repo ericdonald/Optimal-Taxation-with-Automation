@@ -185,17 +185,18 @@ def broadcast_col_to_matrix(col):
 
 
 
-def inner_solve(w, r, E_0, args, viol_frac, max_inner_iter=1000):
+def inner_solve(w, r, E_0, args, error, max_inner_iter=1000):
     "Solve Inner Loop"
     
     Pen_N = 1
+    Pen_0 = np.sum(np.minimum(rt.Inequal_Constr(E_0, w, *args), 0)**2)
     
     for _ in range(max_inner_iter):
 
         # ----- #
         # Solve #
         # ----- #
-        alloc = solve_planner(w, r, E_0, args, Pen_N)
+        alloc = solve_planner(w, r, E_0, args, Pen_N, Pen_0, error)
 
 
         # --------------------- #
@@ -206,12 +207,13 @@ def inner_solve(w, r, E_0, args, viol_frac, max_inner_iter=1000):
         
         IC_full = -np.minimum(rt.Inequal_Constr(alloc, w, *args), 0.0)
         IC_max = IC_full.max(axis=1)
+        Pen_0 = np.sum(IC_full**2)
         c_0 = alloc[:J]
         MU_0 = c_0**(-var_θ)
         
         deviat = IC_max / (MU_0 * c_0)
 
-        viols = (deviat > np.minimum(viol_frac, 1.0))
+        viols = (deviat > np.minimum(error, 1.0))
         #print(f'IC Violation: {np.max(deviat)}')
 
         if not viols.any():
@@ -229,13 +231,13 @@ def inner_solve(w, r, E_0, args, viol_frac, max_inner_iter=1000):
 
 
 
-def solve_planner(w, r, E_0, args, Pen_N):
+def solve_planner(w, r, E_0, args, Pen_N, Pen_0, error):
     "Solve Mirrlees with Normalized Penalty"
     
     J = args[-1]
     W_0 = rt.Mir_obj(E_0, *args)
-    Pen_0 = np.sum(np.minimum(rt.Inequal_Constr(E_0, w, *args), 0)**2)
     Δ = Pen_N * np.abs(W_0) / (Pen_0 + 1e-12)
+    maxiter = 20 if error > 1e-2 else 100
     
     
     # ------------------ #
@@ -258,7 +260,10 @@ def solve_planner(w, r, E_0, args, Pen_N):
 
     opt = cp.minimize_ipopt(obj_pen_fun, E_0, jac=obj_pen_jac,
                             bounds=bounds, constraints=[eq_cons],
-                            options={'maxiter':100})
+                            options={'maxiter': maxiter,
+                                 'hessian_approximation': 'limited-memory',
+                                 'print_level': 0,
+                                 'sb': 'yes'})
     
     return opt.x
 
