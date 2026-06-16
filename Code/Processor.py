@@ -1269,87 +1269,40 @@ class Processor:
         # ---------------- #
         # Mirrlees Problem #
         # ---------------- #
-        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr_NT(damp=1/10)
+        E_eq = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq))
+        x_eq = self.var_κ * self.x_bar
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr(E_eq, x_eq, 0)
+        
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
-        
-        (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr_θ(E_NT, x_NT, -0.25, 0.5, damp=1/10)
-        
-        # Threshold Mirrlees Optimum
-        L = self.E.n * l
-        
-        λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
-        var_λ = np.sum(self.E.n * λ**2) - 1
-        
-        ln_Λ_l = np.log(fn.Lamba_l(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
-        E_ln_Λ = np.sum(self.E.n * ln_Λ_l) / self.E.σ
-        
-        ln_w = np.log(fn.Wages(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
-        z_j = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x
-        z_jk = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x
-        Σ_j = (self.E.σ + (z_j + z_jk) / self.E.ζ)
-        
-        E_ln_w = np.sum(self.E.n * ln_w)
-        E_Σ_j = np.sum(self.E.n * Σ_j)
-        cov = np.sum(self.E.n * Σ_j * ln_w) - E_Σ_j * E_ln_w
-        
-        ES_robust_Results.add('Low ES Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
-        
-        # Capital Tax Mirrlees Optimum
-        L_NT = self.E.n * l_NT
-        
-        λ_NT = c_1_NT**(-self.E.var_θ) / np.sum(self.E.n * c_1_NT**(-self.E.var_θ))
-        var_λ_NT = np.sum(self.E.n * λ_NT**2) - 1
-        
-        ln_Λ_l_NT = np.log(fn.Lamba_l(x_NT, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
-        E_ln_Λ_NT = np.sum(self.E.n * ln_Λ_l_NT) / self.E.σ
-        
-        ln_w_NT = np.log(fn.Wages(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
-        z_j_NT = fn.relα(x_NT, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x_NT
-        z_jk_NT = fn.relα(x_NT, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x_NT
-        Σ_j_NT = (self.E.σ + (z_j_NT + z_jk_NT) / self.E.ζ)
-        
-        E_ln_w_NT = np.sum(self.E.n * ln_w_NT)
-        E_Σ_j_NT = np.sum(self.E.n * Σ_j_NT)
-        cov_NT = np.sum(self.E.n * Σ_j_NT * ln_w_NT) - E_Σ_j_NT * E_ln_w_NT
+        (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr(E_NT, x_NT, 1)
         
         MRS_c_NT = fn.cap_MRS(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
+        L_NT = self.E.n * l_NT
         r_NT = fn.Rents(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         τ_K_NT = np.median(1 - (MRS_c_NT + self.E.g) / (r_NT - self.E.δ))
         ES_robust_Results.add('Low ES Mirrlees Capital Tax', gpf.clean_round(τ_K_NT*100, 1))
+        
+        
+        ES_robust_Results.add('Low ES Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
     
         # Comparison Table 
-        Δoptln_Λ = (E_ln_Λ - E_ln_Λ_NT) * 100
-        Δoptvar_λ = (var_λ - var_λ_NT) * 100 / var_λ_NT
-        ΔoptCOV = (cov - cov_NT) * 100 / cov_NT
+        avg_y_0 = np.sum(self.E.n * self.E.y_0)
+        alloc_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
+
+        stats_NT    = gpf.alloc_stats(c_0_NT, c_1_NT, l_NT, x_NT, avg_y_0, *alloc_args)
+        stats = gpf.alloc_stats(c_0, c_1, l, x, avg_y_0, *alloc_args)
         
-        CE = sp.optimize.root(rt.CERoot, 1,
-                      args=(c_0, c_1, l, c_0_NT, c_1_NT, l_NT, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
-                      method='lm')
+        Δ_ln_Λ, Δ_var_λ, Δ_cov = gpf.deltas(stats, stats_NT)
+        ConEquiv = gpf.consumption_equiv(c_0, c_1, l,
+                                           c_0_NT, c_1_NT, l_NT, *alloc_args)
         
-        ConEquiv = (CE.x[0] - 1) * 100
-        
-        ES_robust_Results.add('Low ES Mirrlees DLambda', gpf.clean_round(Δoptln_Λ, 1))
-        ES_robust_Results.add('Low ES Mirrlees DvarWW', gpf.clean_round(Δoptvar_λ, 1))
-        ES_robust_Results.add('Low ES Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 1))
+        ES_robust_Results.add('Low ES Mirrlees DLambda', gpf.clean_round(Δ_ln_Λ, 1))
+        ES_robust_Results.add('Low ES Mirrlees DvarWW', gpf.clean_round(Δ_var_λ, 1))
+        ES_robust_Results.add('Low ES Mirrlees DCOV', gpf.clean_round(Δ_cov, 1))
         ES_robust_Results.add('Low ES Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
         
-        # Covariance Figure
-        X = np.hstack((np.ones((self.E.J,1)), Σ_j.reshape((-1,1))))
-        X_NT = np.hstack((np.ones((self.E.J,1)), Σ_j_NT.reshape((-1,1))))
-        y = ln_w.reshape((-1,1))
-        y_NT = ln_w_NT.reshape((-1,1))
-        W = np.diag(self.E.n)
-        
-        β = np.linalg.inv(X.T @ W @ X) @ X.T @ W @ y
-        β_NT = np.linalg.inv(X_NT.T @ W @ X_NT) @ X_NT.T @ W @ y_NT
-        
-        ln_w_hat = X @ β
-        ln_w_hat_NT = X_NT @ β_NT
-        
-        DF_Cov_NT = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), Σ_j.reshape((-1,1)), y, ln_w_hat, Σ_j_NT.reshape((-1,1)), y_NT, ln_w_hat_NT)), 
-                             columns=['Weight', 'ES Optimal', 'Log Wages Optimal', 'Log Wages_hat Optimal', 'ES Capital Tax', 'Log Wages Capital Tax', 'Log Wages_hat Capital Tax'])
-        DF_Cov_NT = DF_Cov_NT.sort_values("Weight", ascending=False)
-        DF_Cov_NT.to_csv(f'{self.Directory}/Results/Figures/ES_robust_Mirrlees_Covariance.csv', index=False)
+        gpf.cov_dataframe(stats, 'Both', stats_NT, 'tau_k', self.E.n, self.E.J).to_csv(
+                        f'{self.Directory}/Results/Figures/ES_robust_Mirrlees_Covariance.csv', index=False)
         
         
         ES_robust_Results.to_csv(f'{self.Directory}/Results/Tables/ES_robust_Results.csv')
