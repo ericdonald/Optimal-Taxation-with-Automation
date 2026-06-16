@@ -588,20 +588,20 @@ class Processor:
         vat_rows  = []
         
         for τ_vat in VAT_cases:
-            y_0 = self.E.y_0 * (100 - τ_vat)/100 + avg_y_0 * τ_vat/100
+            y_0_vat = self.E.y_0 * (100 - τ_vat)/100 + avg_y_0 * τ_vat/100
             
-            (τ_k_sq_vat,) = self.E.Para_Solver(0, 1, 0, y_0)
-            (θ_sq_vat_both, τ_k_sq_vat_both) = self.E.Para_Solver(1, 1, 0, y_0)
+            (τ_k_sq_vat,) = self.E.Para_Solver(0, 1, 0, y_0_vat)
+            (θ_sq_vat_both, τ_k_sq_vat_both) = self.E.Para_Solver(1, 1, 0, y_0_vat)
                         
             
             # ----------------- #
             # Derive Equilibria #
             # ----------------- #
-            c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat    = gpf.solve_eqbm(0, τ_k_sq_vat, self.E.Ψ, self.E.ψ, y_0, E_init, *EQ_args)
-            c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both = gpf.solve_eqbm(θ_sq_vat_both, τ_k_sq_vat_both, self.E.Ψ, self.E.ψ, y_0, E_init, *EQ_args)
+            c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat    = gpf.solve_eqbm(0, τ_k_sq_vat, self.E.Ψ, self.E.ψ, y_0_vat, E_init, *EQ_args)
+            c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both = gpf.solve_eqbm(θ_sq_vat_both, τ_k_sq_vat_both, self.E.Ψ, self.E.ψ, y_0_vat, E_init, *EQ_args)
 
-            stats_sq_vat    = gpf.alloc_stats(c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat, y_0, *EQ_args)
-            stats_sq_vat_both = gpf.alloc_stats(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both, y_0, *EQ_args)
+            stats_sq_vat    = gpf.alloc_stats(c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat, y_0_vat, *EQ_args)
+            stats_sq_vat_both = gpf.alloc_stats(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both, y_0_vat, *EQ_args)
             
             
             # ---------- #
@@ -645,10 +645,10 @@ class Processor:
         Parametric_Results.add('Optimal Heathcote Capital Tax, Both', gpf.clean_round(τ_k_H_both*100, 1))
         
         τ_H_vat = 25
-        y_H_0 = self.E.y_0 * (100 - τ_H_vat)/100 + avg_y_0 * τ_H_vat/100
+        y_H_0_vat = self.E.y_0 * (100 - τ_H_vat)/100 + avg_y_0 * τ_H_vat/100
         
-        (τ_k_H_vat, Ψ_Η_vat, ψ_H_vat) = self.E.Para_Solver(0, 1, 1, y_H_0)
-        (θ_H_vat_both, τ_k_H_vat_both, Ψ_H_vat_both, ψ_H_vat_both) = self.E.Para_Solver(1, 1, 1, y_H_0)
+        (τ_k_H_vat, Ψ_Η_vat, ψ_H_vat) = self.E.Para_Solver(0, 1, 1, y_H_0_vat)
+        (θ_H_vat_both, τ_k_H_vat_both, Ψ_H_vat_both, ψ_H_vat_both) = self.E.Para_Solver(1, 1, 1, y_H_0_vat)
         
         Parametric_Results.add('Optimal Heathcote VAT Capital Tax', gpf.clean_round(τ_k_H_vat*100, 1))
         Parametric_Results.add('Optimal Heathcote VAT Threshold Rule, Both', gpf.clean_round(θ_H_vat_both*100, 1))
@@ -664,11 +664,11 @@ class Processor:
         stats_H    = gpf.alloc_stats(c_0_H,    c_1_H,    l_H,    x_H, self.E.y_0, *EQ_args)
         stats_H_both = gpf.alloc_stats(c_0_H_both, c_1_H_both, l_H_both, x_H_both, self.E.y_0, *EQ_args)
         
-        c_0_H_vat,    c_1_H_vat,    l_H_vat,    x_H_vat    = gpf.solve_eqbm(0, τ_k_H_vat, Ψ_Η, ψ_H_vat, y_H_0, E_init, *EQ_args)
-        c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both, x_H_vat_both = gpf.solve_eqbm(θ_H_vat_both, τ_k_H_vat_both, Ψ_H_vat_both, ψ_H_vat_both, y_H_0, E_init, *EQ_args)
+        c_0_H_vat,    c_1_H_vat,    l_H_vat,    x_H_vat    = gpf.solve_eqbm(0, τ_k_H_vat, Ψ_Η, ψ_H_vat, y_H_0_vat, E_init, *EQ_args)
+        c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both, x_H_vat_both = gpf.solve_eqbm(θ_H_vat_both, τ_k_H_vat_both, Ψ_H_vat_both, ψ_H_vat_both, y_H_0_vat, E_init, *EQ_args)
 
-        stats_H_vat    = gpf.alloc_stats(c_0_H_vat,    c_1_H_vat,    l_H_vat,    x_H_vat, y_H_0, *EQ_args)
-        stats_H_vat_both = gpf.alloc_stats(c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both, x_H_vat_both, y_H_0, *EQ_args)
+        stats_H_vat    = gpf.alloc_stats(c_0_H_vat,    c_1_H_vat,    l_H_vat,    x_H_vat, y_H_0_vat, *EQ_args)
+        stats_H_vat_both = gpf.alloc_stats(c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both, x_H_vat_both, y_H_0_vat, *EQ_args)
         
         
         # ---------- #
@@ -763,6 +763,8 @@ class Processor:
         Optimal Threshold Rule for AI Scenarios
         
         Output: Results/Figures/AI_Experiment.csv
+                Results/Figures/AI_Experiment_LAT.csv
+                Results/Figures/AI_Experiment_VAT.csv
                 Results/Figures/AI_Experiment_Felten.csv
                 Results/Figures/AI_Experiment_Elondou.csv
                 Results/Tables/AI_Experiment_Results.csv
@@ -778,10 +780,10 @@ class Processor:
             E_init_AI_both = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, x_sq))
             
             for n in range(N_g):
-                A_k_AI = A_k_AI_base * (1 + AI_growth[g])
-                A_j_AI = A_j_AI_base * (1 + AI_growth[g] * LAT_frac)
+                A_k_AI = A_k_AI_base * (1 + AI_growth[n])
+                A_j_AI = A_j_AI_base * (1 + AI_growth[n] * LAT_frac)
                 
-                g_y = self.E.S_k * AI_growth[g] + (1-self.E.S_k) * AI_growth[g] * LAT_frac
+                g_y = self.E.S_k * AI_growth[n] + (1-self.E.S_k) * AI_growth[n] * LAT_frac
                 Ψ_AI = self.E.Ψ * (1+g_y)**(self.E.ψ)
                 
                 EQ_args = (A_j_AI, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
@@ -796,6 +798,14 @@ class Processor:
                 
             return ConEquiv_AI
         
+        AI_growth = np.linspace(0, G_k, N_g)
+        
+        
+        # ----------------------------------------------------------------
+
+        # Webb (2020) AI exposure.
+
+        # ----------------------------------------------------------------
         
         # ------------------- #
         # Post-AI Calibration #
@@ -823,7 +833,6 @@ class Processor:
         # --------- #
         # Base Case #
         # --------- #
-        AI_growth = np.linspace(0, G_k, N_g)
         (τ_k_AI,) = self.E.AI_economy(1, 0, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.25, self.E.y_0, G_k, N_g)
         (θ_AI_both, τ_k_AI_both) = self.E.AI_economy(1, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.25, self.E.y_0, G_k, N_g)
         
@@ -833,7 +842,44 @@ class Processor:
                              columns=['Growth', 'Threshold Rule', 'Capital Tax', 'Capital Tax, Both' 'Consumption Equivalence'])
         DF_AI.to_csv(f'{self.Directory}/Results/Figures/AI_Experiment.csv', index=False)
         
-                
+        
+        # -------------- #
+        # LAT Robustness #
+        # -------------- #
+        (τ_k_AI_10,) = self.E.AI_economy(1, 0, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0, G_k, N_g)
+        (θ_AI_both_10, τ_k_AI_both_10) = self.E.AI_economy(1, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0, G_k, N_g)
+        
+        ConEquiv_AI_10 = _ConEquiv_seq(τ_k_AI_10, θ_AI_both_10, τ_k_AI_both_10, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0)
+        
+        (τ_k_AI_50,) = self.E.AI_economy(1, 0, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0, G_k, N_g)
+        (θ_AI_both_50, τ_k_AI_both_50) = self.E.AI_economy(1, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0, G_k, N_g)
+        
+        ConEquiv_AI_50 = _ConEquiv_seq(τ_k_AI_50, θ_AI_both_50, τ_k_AI_both_50, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0)
+        
+        DF_AI_LAT = pd.DataFrame(100*np.hstack((AI_growth.reshape((-1,1)), θ_AI_both_10.reshape((-1,1)), τ_k_AI_10.reshape((-1,1)), τ_k_AI_both_10.reshape((-1,1)), ConEquiv_AI_10.reshape((-1,1)),
+                                                                        θ_AI_both_50.reshape((-1,1)), τ_k_AI_50.reshape((-1,1)), τ_k_AI_both_50.reshape((-1,1)), ConEquiv_AI_50.reshape((-1,1)))), 
+                             columns=['Growth', 'Threshold Rule, 10', 'Capital Tax, 10', 'Capital Tax, Both, 10' 'Consumption Equivalence, 10', 
+                                                'Threshold Rule, 50', 'Capital Tax, 50', 'Capital Tax, Both, 50' 'Consumption Equivalence, 50'])
+        DF_AI_LAT.to_csv(f'{self.Directory}/Results/Figures/AI_Experiment_LAT.csv', index=False)
+        
+        
+        # -------------- #
+        # VAT Robustness #
+        # -------------- #
+        avg_y_0 = np.sum(self.E.n * self.E.y_0)
+        τ_vat = 25
+        y_0_vat = self.E.y_0 * (100 - τ_vat)/100 + avg_y_0 * τ_vat/100
+            
+        (τ_k_AI_vat,) = self.E.AI_economy(1, 0, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.25, y_0_vat, G_k, N_g)
+        (θ_AI_both_vat, τ_k_AI_both_vat) = self.E.AI_economy(1, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.25, y_0_vat, G_k, N_g)
+        
+        ConEquiv_AI_vat = _ConEquiv_seq(τ_k_AI_vat, θ_AI_both_vat, τ_k_AI_both_vat, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.25, y_0_vat)
+        
+        DF_AI_vat = pd.DataFrame(100*np.hstack((AI_growth.reshape((-1,1)), θ_AI_both_vat.reshape((-1,1)), τ_k_AI_vat.reshape((-1,1)), τ_k_AI_both_vat.reshape((-1,1)), ConEquiv_AI_vat.reshape((-1,1)))), 
+                             columns=['Growth', 'Threshold Rule, VAT', 'Capital Tax, VAT', 'Capital Tax, Both, VAT' 'Consumption Equivalence, VAT'])
+        DF_AI_vat.to_csv(f'{self.Directory}/Results/Figures/AI_Experiment_VAT.csv', index=False)
+        
+    
         # ----------------------------------------------------------------
 
         # Robustness with Felten et al. (2021) exposure.
@@ -843,132 +889,34 @@ class Processor:
         # ------------------- #
         # Post-AI Calibration #
         # ------------------- #
-        Webb_df = pd.read_pickle(f'{self.Directory}/Clean Data/Webb.pkl')
         Felten_df = pd.read_pickle(f'{self.Directory}/Clean Data/Felten.pkl')
-        χ_AI = (Webb_df['pct_software'].to_numpy() + Webb_df['pct_robot'].to_numpy() + Felten_df['percentile'].to_numpy()) / 3
+        χ_AI_Felt = Felten_df['percentile'].to_numpy()
         
-        ζ_AI = np.exp(self.E.Γ * χ_AI)
-       
-        nu_g = np.ones(self.E.J) * self.E.var_κ
-        
+        ζ_AI_Felt = np.exp(self.E.Γ * χ_AI_Felt)
+               
         nu = sp.optimize.root(rt.νRoot, nu_g,
-                      args=(self.E.Γ, χ_AI, self.E.var_κ, self.E.x_bar, self.E.σ, self.E.S_j_sq, self.E.S_k),
+                      args=(self.E.Γ, χ_AI_Felt, self.E.var_κ, self.E.x_bar, self.E.σ, self.E.S_j_sq, self.E.S_k),
                       method='lm')
         
-        ν_AI = nu.x
+        ν_AI_Felt = nu.x
         
-        x_AI = self.E.var_κ * self.E.x_bar
-        Λ_k_AI = fn.Lamba_k(x_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ)
-        A_k_AI_base = self.E.r_sq**(self.E.σ / (self.E.σ-1)) * (self.E.COR / Λ_k_AI)**(1 / (self.E.σ-1))
+        Λ_k_AI_Felt = fn.Lamba_k(x_AI, self.E.x_bar, ζ_AI_Felt, ν_AI_Felt, self.E.σ)
+        A_k_AI_Felt_base = self.E.r_sq**(self.E.σ / (self.E.σ-1)) * (self.E.COR / Λ_k_AI_Felt)**(1 / (self.E.σ-1))
         
-        A_j_AI_base = (self.E.w_j_sq / x_AI**(ζ_AI)) / (self.E.r_sq / A_k_AI_base)
-        
-        
-        # ----------------- #
-        # Solve θ Sequences #
-        # ----------------- #
-        θ_AI_10 = self.E.AI_economy(ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, G_k, 0.1, N_g)
-        θ_AI_25 = self.E.AI_economy(ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, G_k, 0.25, N_g)
-        θ_AI_50 = self.E.AI_economy(ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, G_k, 0.5, N_g)
+        A_j_AI_Felt_base = (self.E.w_j_sq / x_AI**(ζ_AI_Felt)) / (self.E.r_sq / A_k_AI_Felt_base)
         
         
-        # ----------------------- #
-        # Consumption Equivalence #
-        # ----------------------- #
-        ConEquiv_10 = np.empty(N_g)
-        ConEquiv_25 = np.empty(N_g)
-        ConEquiv_50 = np.empty(N_g)
-        AI_growth = np.linspace(0, G_k, N_g)
+        # ----- #
+        # Solve #
+        # ----- #
+        (τ_k_AI_Felt,) = self.E.AI_economy(1, 0, ζ_AI_Felt, ν_AI_Felt, A_k_AI_Felt_base, A_j_AI_Felt_base, 0.25, self.E.y_0, G_k, N_g)
+        (θ_AI_Felt_both, τ_k_AI_Felt_both) = self.E.AI_economy(1, 1, ζ_AI_Felt, ν_AI_Felt, A_k_AI_Felt_base, A_j_AI_Felt_base, 0.25, self.E.y_0, G_k, N_g)
         
-        E_θ_10 = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
-        E_θ_25 = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
-        E_θ_50 = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
+        ConEquiv_AI_Felt = _ConEquiv_seq(τ_k_AI_Felt, θ_AI_Felt_both, τ_k_AI_Felt_both, ζ_AI_Felt, ν_AI_Felt, A_k_AI_Felt_base, A_j_AI_Felt_base, 0.25, self.E.y_0)
         
-        for g in range(N_g):
-            A_k_AI = A_k_AI_base * (1 + AI_growth[g])
-            A_j_AI_10 = A_j_AI_base * (1 + AI_growth[g] * 0.1)
-            A_j_AI_25 = A_j_AI_base * (1 + AI_growth[g] * 0.25)
-            A_j_AI_50 = A_j_AI_base * (1 + AI_growth[g] * 0.5)
-            
-            g_y_10 = self.E.S_k * AI_growth[g] + (1-self.E.S_k) * AI_growth[g] * 0.25
-            Ψ_AI_10 = self.E.Ψ * (1+g_y_10)**(self.E.ψ)
-            g_y_25 = self.E.S_k * AI_growth[g] + (1-self.E.S_k) * AI_growth[g] * 0.25
-            Ψ_AI_25 = self.E.Ψ * (1+g_y_25)**(self.E.ψ)
-            g_y_50 = self.E.S_k * AI_growth[g] + (1-self.E.S_k) * AI_growth[g] * 0.5
-            Ψ_AI_50 = self.E.Ψ * (1+g_y_50)**(self.E.ψ)
-            
-            Eqbm_θ_10 = sp.optimize.root(rt.Eqbm_Root, E_θ_10,
-                          args=(θ_AI_10[g], A_j_AI_10, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_10, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
-                          jac=pr.δH_δclx)
-            E_θ_10 = Eqbm_θ_10.x
-            c_0_θ_10 = E_θ_10[:self.E.J]
-            c_1_θ_10 = E_θ_10[self.E.J:2*self.E.J]
-            l_θ_10 = E_θ_10[2*self.E.J:3*self.E.J]
-            Eqbm_θ_25 = sp.optimize.root(rt.Eqbm_Root, E_θ_25,
-                          args=(θ_AI_25[g], A_j_AI_25, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_25, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
-                          jac=pr.δH_δclx)
-            E_θ_25 = Eqbm_θ_25.x
-            c_0_θ_25 = E_θ_25[:self.E.J]
-            c_1_θ_25 = E_θ_25[self.E.J:2*self.E.J]
-            l_θ_25 = E_θ_25[2*self.E.J:3*self.E.J]
-            Eqbm_θ_50 = sp.optimize.root(rt.Eqbm_Root, E_θ_50,
-                          args=(θ_AI_50[g], A_j_AI_50, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_50, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
-                          jac=pr.δH_δclx)
-            E_θ_50 = Eqbm_θ_50.x
-            c_0_θ_50 = E_θ_50[:self.E.J]
-            c_1_θ_50 = E_θ_50[self.E.J:2*self.E.J]
-            l_θ_50 = E_θ_50[2*self.E.J:3*self.E.J]
-            
-            Eqbm_LF_10 = sp.optimize.root(rt.Eqbm_Root, E_θ_10,
-                          args=(0, A_j_AI_10, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_10, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
-                          jac=pr.δH_δclx)
-            E_LF_10 = Eqbm_LF_10.x
-            c_0_LF_10 = E_LF_10[:self.E.J]
-            c_1_LF_10 = E_LF_10[self.E.J:2*self.E.J]
-            l_LF_10 = E_LF_10[2*self.E.J:3*self.E.J]
-            Eqbm_LF_25 = sp.optimize.root(rt.Eqbm_Root, E_θ_25,
-                          args=(0, A_j_AI_25, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_25, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
-                          jac=pr.δH_δclx)
-            E_LF_25 = Eqbm_LF_25.x
-            c_0_LF_25 = E_LF_25[:self.E.J]
-            c_1_LF_25 = E_LF_25[self.E.J:2*self.E.J]
-            l_LF_25 = E_LF_25[2*self.E.J:3*self.E.J]
-            Eqbm_LF_50 = sp.optimize.root(rt.Eqbm_Root, E_θ_50,
-                          args=(0, A_j_AI_50, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_50, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
-                          jac=pr.δH_δclx)
-            E_LF_50 = Eqbm_LF_50.x
-            c_0_LF_50 = E_LF_50[:self.E.J]
-            c_1_LF_50 = E_LF_50[self.E.J:2*self.E.J]
-            l_LF_50 = E_LF_50[2*self.E.J:3*self.E.J]
-          
-            CE_10 = sp.optimize.root(rt.CERoot, 1,
-                          args=(c_0_θ_10, c_1_θ_10, l_θ_10, c_0_LF_10, c_1_LF_10, l_LF_10, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
-                          method='lm')
-            ConEquiv_10[g] = (CE_10.x[0] - 1) * 100
-            CE_25 = sp.optimize.root(rt.CERoot, 1,
-                          args=(c_0_θ_25, c_1_θ_25, l_θ_25, c_0_LF_25, c_1_LF_25, l_LF_25, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
-                          method='lm')
-            ConEquiv_25[g] = (CE_25.x[0] - 1) * 100
-            CE_50 = sp.optimize.root(rt.CERoot, 1,
-                          args=(c_0_θ_50, c_1_θ_50, l_θ_50, c_0_LF_50, c_1_LF_50, l_LF_50, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
-                          method='lm')
-            ConEquiv_50[g] = (CE_50.x[0] - 1) * 100
-        
-        
-        # ---- #
-        # Plot #
-        # ---- #
-        AI_growth *= 100
-        θ_AI_10 *= 100
-        θ_AI_25 *= 100
-        θ_AI_50 *= 100
-        
-        DF_AI = pd.DataFrame(np.hstack((AI_growth.reshape((-1,1)), θ_AI_10.reshape((-1,1)), ConEquiv_10.reshape((-1,1)), θ_AI_25.reshape((-1,1)), ConEquiv_25.reshape((-1,1)), θ_AI_50.reshape((-1,1)), ConEquiv_50.reshape((-1,1)))), 
-                             columns=['Growth', 'Threshold Rule 10', 'Consumption Equivalence 10', 'Threshold Rule 25', 'Consumption Equivalence 25', 'Threshold Rule 50', 'Consumption Equivalence 50'])
-        DF_AI.to_csv(f'{self.Directory}/Results/Figures/AI_Experiment_Felten.csv', index=False)
-        
-        AI_Experiment_Results.add('Felten Doubling Threshold Rule', gpf.clean_round(θ_AI_25[-1], 1))
-        AI_Experiment_Results.add('Felten Doubling Consumption Equivalence', gpf.clean_round(ConEquiv_25[-1], 1))
+        DF_AI_Felt = pd.DataFrame(100*np.hstack((AI_growth.reshape((-1,1)), θ_AI_Felt_both.reshape((-1,1)), τ_k_AI_Felt.reshape((-1,1)), τ_k_AI_Felt_both.reshape((-1,1)), ConEquiv_AI_Felt.reshape((-1,1)))), 
+                             columns=['Growth', 'Threshold Rule, Felten', 'Capital Tax, Felten', 'Capital Tax, Both, Felten' 'Consumption Equivalence, Felten'])
+        DF_AI_Felt.to_csv(f'{self.Directory}/Results/Figures/AI_Experiment_Felten.csv', index=False)
         
         
         # ----------------------------------------------------------------
@@ -980,132 +928,35 @@ class Processor:
         # ------------------- #
         # Post-AI Calibration #
         # ------------------- #
-        Webb_df = pd.read_pickle(f'{self.Directory}/Clean Data/Webb.pkl')
         Elondou_df = pd.read_pickle(f'{self.Directory}/Clean Data/Elondou.pkl')
-        χ_AI = (Webb_df['pct_software'].to_numpy() + Webb_df['pct_robot'].to_numpy() + Elondou_df['percentile'].to_numpy()) / 3
+        χ_AI_Elond = Elondou_df['percentile'].to_numpy()
         
-        ζ_AI = np.exp(self.E.Γ * χ_AI)
-       
-        nu_g = np.ones(self.E.J) * self.E.var_κ
-        
+        ζ_AI_Elond = np.exp(self.E.Γ * χ_AI_Elond)
+               
         nu = sp.optimize.root(rt.νRoot, nu_g,
-                      args=(self.E.Γ, χ_AI, self.E.var_κ, self.E.x_bar, self.E.σ, self.E.S_j_sq, self.E.S_k),
+                      args=(self.E.Γ, χ_AI_Elond, self.E.var_κ, self.E.x_bar, self.E.σ, self.E.S_j_sq, self.E.S_k),
                       method='lm')
         
-        ν_AI = nu.x
+        ν_AI_Elond = nu.x
         
-        x_AI = self.E.var_κ * self.E.x_bar
-        Λ_k_AI = fn.Lamba_k(x_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ)
-        A_k_AI_base = self.E.r_sq**(self.E.σ / (self.E.σ-1)) * (self.E.COR / Λ_k_AI)**(1 / (self.E.σ-1))
+        Λ_k_AI_Elond = fn.Lamba_k(x_AI, self.E.x_bar, ζ_AI_Elond, ν_AI_Elond, self.E.σ)
+        A_k_AI_Elond_base = self.E.r_sq**(self.E.σ / (self.E.σ-1)) * (self.E.COR / Λ_k_AI_Elond)**(1 / (self.E.σ-1))
         
-        A_j_AI_base = (self.E.w_j_sq / x_AI**(ζ_AI)) / (self.E.r_sq / A_k_AI_base)
-        
-        
-        # ----------------- #
-        # Solve θ Sequences #
-        # ----------------- #
-        θ_AI_10 = self.E.AI_economy(ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, G_k, 0.1, N_g)
-        θ_AI_25 = self.E.AI_economy(ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, G_k, 0.25, N_g)
-        θ_AI_50 = self.E.AI_economy(ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, G_k, 0.5, N_g)
+        A_j_AI_Elond_base = (self.E.w_j_sq / x_AI**(ζ_AI_Elond)) / (self.E.r_sq / A_k_AI_Elond_base)
         
         
-        # ----------------------- #
-        # Consumption Equivalence #
-        # ----------------------- #
-        ConEquiv_10 = np.empty(N_g)
-        ConEquiv_25 = np.empty(N_g)
-        ConEquiv_50 = np.empty(N_g)
-        AI_growth = np.linspace(0, G_k, N_g)
+        # ----- #
+        # Solve #
+        # ----- #
+        (τ_k_AI_Elond,) = self.E.AI_economy(1, 0, ζ_AI_Elond, ν_AI_Elond, A_k_AI_Elond_base, A_j_AI_Elond_base, 0.25, self.E.y_0, G_k, N_g)
+        (θ_AI_Elond_both, τ_k_AI_Elond_both) = self.E.AI_economy(1, 1, ζ_AI_Elond, ν_AI_Elond, A_k_AI_Elond_base, A_j_AI_Elond_base, 0.25, self.E.y_0, G_k, N_g)
         
-        E_θ_10 = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
-        E_θ_25 = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
-        E_θ_50 = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, self.E.var_κ * self.E.x_bar))
+        ConEquiv_AI_Elond = _ConEquiv_seq(τ_k_AI_Elond, θ_AI_Elond_both, τ_k_AI_Elond_both, ζ_AI_Elond, ν_AI_Elond, A_k_AI_Elond_base, A_j_AI_Elond_base, 0.25, self.E.y_0)
         
-        for g in range(N_g):
-            A_k_AI = A_k_AI_base * (1 + AI_growth[g])
-            A_j_AI_10 = A_j_AI_base * (1 + AI_growth[g] * 0.1)
-            A_j_AI_25 = A_j_AI_base * (1 + AI_growth[g] * 0.25)
-            A_j_AI_50 = A_j_AI_base * (1 + AI_growth[g] * 0.5)
-            
-            g_y_10 = self.E.S_k * AI_growth[g] + (1-self.E.S_k) * AI_growth[g] * 0.25
-            Ψ_AI_10 = self.E.Ψ * (1+g_y_10)**(self.E.ψ)
-            g_y_25 = self.E.S_k * AI_growth[g] + (1-self.E.S_k) * AI_growth[g] * 0.25
-            Ψ_AI_25 = self.E.Ψ * (1+g_y_25)**(self.E.ψ)
-            g_y_50 = self.E.S_k * AI_growth[g] + (1-self.E.S_k) * AI_growth[g] * 0.5
-            Ψ_AI_50 = self.E.Ψ * (1+g_y_50)**(self.E.ψ)
-            
-            Eqbm_θ_10 = sp.optimize.root(rt.Eqbm_Root, E_θ_10,
-                          args=(θ_AI_10[g], A_j_AI_10, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_10, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
-                          jac=pr.δH_δclx)
-            E_θ_10 = Eqbm_θ_10.x
-            c_0_θ_10 = E_θ_10[:self.E.J]
-            c_1_θ_10 = E_θ_10[self.E.J:2*self.E.J]
-            l_θ_10 = E_θ_10[2*self.E.J:3*self.E.J]
-            Eqbm_θ_25 = sp.optimize.root(rt.Eqbm_Root, E_θ_25,
-                          args=(θ_AI_25[g], A_j_AI_25, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_25, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
-                          jac=pr.δH_δclx)
-            E_θ_25 = Eqbm_θ_25.x
-            c_0_θ_25 = E_θ_25[:self.E.J]
-            c_1_θ_25 = E_θ_25[self.E.J:2*self.E.J]
-            l_θ_25 = E_θ_25[2*self.E.J:3*self.E.J]
-            Eqbm_θ_50 = sp.optimize.root(rt.Eqbm_Root, E_θ_50,
-                          args=(θ_AI_50[g], A_j_AI_50, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_50, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
-                          jac=pr.δH_δclx)
-            E_θ_50 = Eqbm_θ_50.x
-            c_0_θ_50 = E_θ_50[:self.E.J]
-            c_1_θ_50 = E_θ_50[self.E.J:2*self.E.J]
-            l_θ_50 = E_θ_50[2*self.E.J:3*self.E.J]
-            
-            Eqbm_LF_10 = sp.optimize.root(rt.Eqbm_Root, E_θ_10,
-                          args=(0, A_j_AI_10, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_10, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
-                          jac=pr.δH_δclx)
-            E_LF_10 = Eqbm_LF_10.x
-            c_0_LF_10 = E_LF_10[:self.E.J]
-            c_1_LF_10 = E_LF_10[self.E.J:2*self.E.J]
-            l_LF_10 = E_LF_10[2*self.E.J:3*self.E.J]
-            Eqbm_LF_25 = sp.optimize.root(rt.Eqbm_Root, E_θ_25,
-                          args=(0, A_j_AI_25, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_25, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
-                          jac=pr.δH_δclx)
-            E_LF_25 = Eqbm_LF_25.x
-            c_0_LF_25 = E_LF_25[:self.E.J]
-            c_1_LF_25 = E_LF_25[self.E.J:2*self.E.J]
-            l_LF_25 = E_LF_25[2*self.E.J:3*self.E.J]
-            Eqbm_LF_50 = sp.optimize.root(rt.Eqbm_Root, E_θ_50,
-                          args=(0, A_j_AI_50, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.y_0, Ψ_AI_50, self.E.ψ, self.E.β, self.E.var_θ, self.E.ε, self.E.τ_k, self.E.δ, self.E.g, self.E.φ),
-                          jac=pr.δH_δclx)
-            E_LF_50 = Eqbm_LF_50.x
-            c_0_LF_50 = E_LF_50[:self.E.J]
-            c_1_LF_50 = E_LF_50[self.E.J:2*self.E.J]
-            l_LF_50 = E_LF_50[2*self.E.J:3*self.E.J]
-          
-            CE_10 = sp.optimize.root(rt.CERoot, 1,
-                          args=(c_0_θ_10, c_1_θ_10, l_θ_10, c_0_LF_10, c_1_LF_10, l_LF_10, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
-                          method='lm')
-            ConEquiv_10[g] = (CE_10.x[0] - 1) * 100
-            CE_25 = sp.optimize.root(rt.CERoot, 1,
-                          args=(c_0_θ_25, c_1_θ_25, l_θ_25, c_0_LF_25, c_1_LF_25, l_LF_25, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
-                          method='lm')
-            ConEquiv_25[g] = (CE_25.x[0] - 1) * 100
-            CE_50 = sp.optimize.root(rt.CERoot, 1,
-                          args=(c_0_θ_50, c_1_θ_50, l_θ_50, c_0_LF_50, c_1_LF_50, l_LF_50, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
-                          method='lm')
-            ConEquiv_50[g] = (CE_50.x[0] - 1) * 100
-        
-        
-        # ---- #
-        # Plot #
-        # ---- #
-        AI_growth *= 100
-        θ_AI_10 *= 100
-        θ_AI_25 *= 100
-        θ_AI_50 *= 100
-        
-        DF_AI = pd.DataFrame(np.hstack((AI_growth.reshape((-1,1)), θ_AI_10.reshape((-1,1)), ConEquiv_10.reshape((-1,1)), θ_AI_25.reshape((-1,1)), ConEquiv_25.reshape((-1,1)), θ_AI_50.reshape((-1,1)), ConEquiv_50.reshape((-1,1)))), 
-                             columns=['Growth', 'Threshold Rule 10', 'Consumption Equivalence 10', 'Threshold Rule 25', 'Consumption Equivalence 25', 'Threshold Rule 50', 'Consumption Equivalence 50'])
+        DF_AI = pd.DataFrame(100*np.hstack((AI_growth.reshape((-1,1)), θ_AI_Elond_both.reshape((-1,1)), τ_k_AI_Elond.reshape((-1,1)), τ_k_AI_Elond_both.reshape((-1,1)), ConEquiv_AI_Elond.reshape((-1,1)))), 
+                             columns=['Growth', 'Threshold Rule, Elondou', 'Capital Tax, Elondou', 'Capital Tax, Both, Elondou' 'Consumption Equivalence, Elondou'])
         DF_AI.to_csv(f'{self.Directory}/Results/Figures/AI_Experiment_Elondou.csv', index=False)
         
-        AI_Experiment_Results.add('Elondou Doubling Threshold Rule', gpf.clean_round(θ_AI_25[-1], 1))
-        AI_Experiment_Results.add('Elondou Doubling Consumption Equivalence', gpf.clean_round(ConEquiv_25[-1], 1))
         
         AI_Experiment_Results.to_csv(f'{self.Directory}/Results/Tables/AI_Experiment_Results.csv')
 
@@ -1171,21 +1022,21 @@ class Processor:
         # ------------------------ #
         avg_y_0 = np.sum(self.E.n * self.E.y_0)
         τ_vat = 25
-        y_0 = self.E.y_0 * (100 - τ_vat)/100 + avg_y_0 * τ_vat/100
+        y_0_vat = self.E.y_0 * (100 - τ_vat)/100 + avg_y_0 * τ_vat/100
             
-        (τ_k_sq_vat,) = self.E.Para_Solver(0, 1, 0, y_0)
-        (θ_sq_vat_both, τ_k_sq_vat_both) = self.E.Para_Solver(1, 1, 0, y_0)
+        (τ_k_sq_vat,) = self.E.Para_Solver(0, 1, 0, y_0_vat)
+        (θ_sq_vat_both, τ_k_sq_vat_both) = self.E.Para_Solver(1, 1, 0, y_0_vat)
         
         ES_robust_Results.add('Low ES Status Quo VAT Capital Tax', gpf.clean_round(τ_k_sq_vat*100, 1))
         ES_robust_Results.add('Low ES Status Quo VAT Threshold Rule, Both', gpf.clean_round(θ_sq_vat_both*100, 1))
         ES_robust_Results.add('Low ES Status Quo VAT Capital Tax, Both', gpf.clean_round(τ_k_sq_vat_both*100, 1))
         
         # Derive Equilibria
-        c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat    = gpf.solve_eqbm(0, τ_k_sq_vat, self.E.Ψ, self.E.ψ, y_0, E_init, *EQ_args)
-        c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both = gpf.solve_eqbm(θ_sq_vat_both, τ_k_sq_vat_both, self.E.Ψ, self.E.ψ, y_0, E_init, *EQ_args)
+        c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat    = gpf.solve_eqbm(0, τ_k_sq_vat, self.E.Ψ, self.E.ψ, y_0_vat, E_init, *EQ_args)
+        c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both = gpf.solve_eqbm(θ_sq_vat_both, τ_k_sq_vat_both, self.E.Ψ, self.E.ψ, y_0_vat, E_init, *EQ_args)
 
-        stats_sq_vat    = gpf.alloc_stats(c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat, y_0, *EQ_args)
-        stats_sq_vat_both = gpf.alloc_stats(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both, y_0, *EQ_args)
+        stats_sq_vat    = gpf.alloc_stats(c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat, y_0_vat, *EQ_args)
+        stats_sq_vat_both = gpf.alloc_stats(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both, y_0_vat, *EQ_args)
         
         # Comparison Table
         Δ_ln_Λ_vat_both, Δ_var_λ_vat_both, Δ_cov_vat_both = gpf.deltas(stats_sq_vat_both, stats_sq_vat)
