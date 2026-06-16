@@ -230,6 +230,7 @@ class Economy:
                 θ_lower = θ/2
                 θ_upper = np.maximum(θ * 1.5, 1/3)
                 θ_new = gpf.secant_scalar(Optimal_θ_Root, θ_lower, θ_upper, expansion='additive')
+                print(θ_new)
             else:
                 θ_new = 0
             
@@ -240,6 +241,7 @@ class Economy:
             if τ_on == 1:
                 Optimal_τ_Root = lambda x: rt.Optimal_Para_Root(θ, x, Ψ, ψ, 'tau', E, *args, _cache=cache_τ)
                 τ_new = gpf.secant_scalar(Optimal_τ_Root, τ_k, τ_k * 1.5, lb=0, ub=1, expansion='unit')
+                print(τ_new)
             else:
                 τ_new = self.τ_k
             
@@ -250,9 +252,11 @@ class Economy:
             if HC_on == 1:
                 Optimal_Ψ_Root = lambda x: rt.Optimal_Para_Root(θ, τ_k, x, ψ, 'Psi', E, *args, _cache=cache_Ψ)
                 Ψ_new = gpf.secant_scalar(Optimal_Ψ_Root, Ψ/2, Ψ*1.5, lb=0)
+                print(Ψ_new)
                 
                 Optimal_ψ_Root = lambda x: rt.Optimal_Para_Root(θ, τ_k, Ψ, x, 'psi', E, *args, _cache=cache_ψ)
                 ψ_new = gpf.secant_scalar(Optimal_ψ_Root, ψ, ψ * 1.5, lb=0, ub=1, expansion='unit')
+                print(ψ_new)
             else:
                 Ψ_new = self.Ψ
                 ψ_new = self.ψ
@@ -275,10 +279,10 @@ class Economy:
             print(f'Capital Tax Error: {error_τ}')
             
             error_Ψ = np.abs(Ψ - Ψ_new)
-            #print(f'Labor Tax Scale Error: {error_Ψ}')
+            print(f'Labor Tax Scale Error: {error_Ψ}')
             
             error_ψ = np.abs(ψ - ψ_new)
-            #print(f'Labor Tax Curvature Error: {error_ψ}')
+            print(f'Labor Tax Curvature Error: {error_ψ}')
                 
             if error_θ < tol and error_τ < tol and error_Ψ < tol and error_ψ < tol:
                 break
