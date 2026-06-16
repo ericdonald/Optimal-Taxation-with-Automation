@@ -368,7 +368,7 @@ class Economy:
                 θ_lower = θ/2
                 θ_upper = np.maximum(θ * 1.5, 1/3)
                 θ_new = gpf.secant_scalar(Optimal_θ_Root, θ_lower, θ_upper, expansion='additive')
-                print(θ_new)
+                #print(θ_new)
             else:
                 θ_new = 0
             

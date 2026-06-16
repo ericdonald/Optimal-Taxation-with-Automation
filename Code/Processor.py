@@ -541,23 +541,23 @@ class Processor:
         E_init = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, x_sq))
         EQ_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
         
-        c_0_θ,    c_1_θ,    l_θ,    x_θ    = gpf.solve_eqbm(θ_sq, self.E.τ_k, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, EQ_args)
-        c_0_τ,    c_1_τ,    l_τ,    x_τ    = gpf.solve_eqbm(0, τ_k_sq, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, EQ_args)
-        c_0_both, c_1_both, l_both, x_both = gpf.solve_eqbm(θ_sq_both, τ_k_sq_both, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, EQ_args)
+        c_0_θ,    c_1_θ,    l_θ,    x_θ    = gpf.solve_eqbm(θ_sq, self.E.τ_k, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *EQ_args)
+        c_0_τ,    c_1_τ,    l_τ,    x_τ    = gpf.solve_eqbm(0, τ_k_sq, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *EQ_args)
+        c_0_both, c_1_both, l_both, x_both = gpf.solve_eqbm(θ_sq_both, τ_k_sq_both, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *EQ_args)
 
-        stats_τ    = gpf.alloc_stats(c_0_τ,    c_1_τ,    l_τ,    x_τ, self.E.y_0, EQ_args)
-        stats_both = gpf.alloc_stats(c_0_both, c_1_both, l_both, x_both, self.E.y_0, EQ_args)
+        stats_τ    = gpf.alloc_stats(c_0_τ,    c_1_τ,    l_τ,    x_τ, self.E.y_0, *EQ_args)
+        stats_both = gpf.alloc_stats(c_0_both, c_1_both, l_both, x_both, self.E.y_0, *EQ_args)
         
        
         # -------------------- #
         # Status Quo to Policy #
         # -------------------- #
         ConEquiv_θ = gpf.consumption_equiv(c_0_θ, c_1_θ, l_θ,
-                                self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, EQ_args)
+                                self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, *EQ_args)
         Parametric_Results.add('Optimal Status Quo Consumption Equivalence, Theta', gpf.clean_round(ConEquiv_θ, 2))
         
         ConEquiv_τ = gpf.consumption_equiv(c_0_τ, c_1_τ, l_τ,
-                                self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, EQ_args)
+                                self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, *EQ_args)
         Parametric_Results.add('Optimal Status Quo Consumption Equivalence, Capital Tax', gpf.clean_round(ConEquiv_τ, 2))
         
         
@@ -566,7 +566,7 @@ class Processor:
         # ------------------- #
         Δ_ln_Λ_both, Δ_var_λ_both, Δ_cov_both = gpf.deltas(stats_both, stats_τ)
         ConEquiv_both = gpf.consumption_equiv(c_0_both, c_1_both, l_both,
-                                           c_0_τ, c_1_τ, l_τ, EQ_args)
+                                           c_0_τ, c_1_τ, l_τ, *EQ_args)
         
         Parametric_Results.add('Optimal Status Quo DLambda, Both', gpf.clean_round(Δ_ln_Λ_both, 1))
         Parametric_Results.add('Optimal Status Quo DvarWW, Both', gpf.clean_round(Δ_var_λ_both, 1))
@@ -599,18 +599,18 @@ class Processor:
             # ----------------- #
             # Derive Equilibria #
             # ----------------- #
-            c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat    = gpf.solve_eqbm(0, τ_k_sq_vat, self.E.Ψ, self.E.ψ, y_0, E_init, EQ_args)
-            c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both = gpf.solve_eqbm(θ_sq_vat_both, τ_k_sq_vat_both, self.E.Ψ, self.E.ψ, y_0, E_init, EQ_args)
+            c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat    = gpf.solve_eqbm(0, τ_k_sq_vat, self.E.Ψ, self.E.ψ, y_0, E_init, *EQ_args)
+            c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both = gpf.solve_eqbm(θ_sq_vat_both, τ_k_sq_vat_both, self.E.Ψ, self.E.ψ, y_0, E_init, *EQ_args)
 
-            stats_sq_vat    = gpf.alloc_stats(c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat, y_0, EQ_args)
-            stats_sq_vat_both = gpf.alloc_stats(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both, y_0, EQ_args)
+            stats_sq_vat    = gpf.alloc_stats(c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat, y_0, *EQ_args)
+            stats_sq_vat_both = gpf.alloc_stats(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both, y_0, *EQ_args)
             
             
             # ---------- #
             # Comparison #
             # ---------- #
             ConEquiv_sq_vat = gpf.consumption_equiv(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both,
-                                               c_0_sq_vat, c_1_sq_vat, l_sq_vat, EQ_args)
+                                               c_0_sq_vat, c_1_sq_vat, l_sq_vat, *EQ_args)
             
             vat_rows.append({'VAT': τ_vat,
                             'Capital Tax Reduction': gpf.clean_round(dτ_k*100, 1),
@@ -659,17 +659,17 @@ class Processor:
         # ----------------- #
         # Derive Equilibria #
         # ----------------- #
-        c_0_H,    c_1_H,    l_H,    x_H    = gpf.solve_eqbm(0, τ_k_H, Ψ_Η, ψ_H, self.E.y_0, E_init, EQ_args)
-        c_0_H_both, c_1_H_both, l_H_both, x_H_both = gpf.solve_eqbm(θ_H_both, τ_k_H_both, Ψ_H_both, ψ_H_both, self.E.y_0, E_init, EQ_args)
+        c_0_H,    c_1_H,    l_H,    x_H    = gpf.solve_eqbm(0, τ_k_H, Ψ_Η, ψ_H, self.E.y_0, E_init, *EQ_args)
+        c_0_H_both, c_1_H_both, l_H_both, x_H_both = gpf.solve_eqbm(θ_H_both, τ_k_H_both, Ψ_H_both, ψ_H_both, self.E.y_0, E_init, *EQ_args)
 
-        stats_H    = gpf.alloc_stats(c_0_H,    c_1_H,    l_H,    x_H, self.E.y_0, EQ_args)
-        stats_H_both = gpf.alloc_stats(c_0_H_both, c_1_H_both, l_H_both, x_H_both, self.E.y_0, EQ_args)
+        stats_H    = gpf.alloc_stats(c_0_H,    c_1_H,    l_H,    x_H, self.E.y_0, *EQ_args)
+        stats_H_both = gpf.alloc_stats(c_0_H_both, c_1_H_both, l_H_both, x_H_both, self.E.y_0, *EQ_args)
         
-        c_0_H_vat,    c_1_H_vat,    l_H_vat,    x_H_vat    = gpf.solve_eqbm(0, τ_k_H_vat, Ψ_Η, ψ_H_vat, y_H_0, E_init, EQ_args)
-        c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both, x_H_vat_both = gpf.solve_eqbm(θ_H_vat_both, τ_k_H_vat_both, Ψ_H_vat_both, ψ_H_vat_both, y_H_0, E_init, EQ_args)
+        c_0_H_vat,    c_1_H_vat,    l_H_vat,    x_H_vat    = gpf.solve_eqbm(0, τ_k_H_vat, Ψ_Η, ψ_H_vat, y_H_0, E_init, *EQ_args)
+        c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both, x_H_vat_both = gpf.solve_eqbm(θ_H_vat_both, τ_k_H_vat_both, Ψ_H_vat_both, ψ_H_vat_both, y_H_0, E_init, *EQ_args)
 
-        stats_H_vat    = gpf.alloc_stats(c_0_H_vat,    c_1_H_vat,    l_H_vat,    x_H_vat, y_H_0, EQ_args)
-        stats_H_vat_both = gpf.alloc_stats(c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both, x_H_vat_both, y_H_0, EQ_args)
+        stats_H_vat    = gpf.alloc_stats(c_0_H_vat,    c_1_H_vat,    l_H_vat,    x_H_vat, y_H_0, *EQ_args)
+        stats_H_vat_both = gpf.alloc_stats(c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both, x_H_vat_both, y_H_0, *EQ_args)
         
         
         # ---------- #
@@ -677,7 +677,7 @@ class Processor:
         # ---------- #
         Δ_ln_Λ_H, Δ_var_λ_H, Δ_cov_H = gpf.deltas(stats_H_both, stats_H)
         ConEquiv_H = gpf.consumption_equiv(c_0_H_both, c_1_H_both, l_H_both,
-                                           c_0_H, c_1_H, l_H, EQ_args)
+                                           c_0_H, c_1_H, l_H, *EQ_args)
         
         Parametric_Results.add('Optimal Heathcote DLambda', gpf.clean_round(Δ_ln_Λ_H, 1))
         Parametric_Results.add('Optimal Heathcote DvarWW', gpf.clean_round(Δ_var_λ_H, 1))
@@ -686,7 +686,7 @@ class Processor:
         
         Δ_ln_Λ_H_vat, Δ_var_λ_H_vat, Δ_cov_H_vat = gpf.deltas(stats_H_vat_both, stats_H_vat)
         ConEquiv_H_vat = gpf.consumption_equiv(c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both,
-                                           c_0_H_vat, c_1_H_vat, l_H_vat, EQ_args)
+                                           c_0_H_vat, c_1_H_vat, l_H_vat, *EQ_args)
         
         Parametric_Results.add('Optimal Heathcote VAT DLambda', gpf.clean_round(Δ_ln_Λ_H_vat, 1))
         Parametric_Results.add('Optimal Heathcote VAT DvarWW', gpf.clean_round(Δ_var_λ_H_vat, 1))
@@ -739,12 +739,12 @@ class Processor:
         avg_y_0 = np.sum(self.E.n * self.E.y_0)
         alloc_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
 
-        stats_NT    = gpf.alloc_stats(c_0_NT, c_1_NT, l_NT, x_NT, avg_y_0, alloc_args)
-        stats = gpf.alloc_stats(c_0, c_1, l, x, avg_y_0, alloc_args)
+        stats_NT    = gpf.alloc_stats(c_0_NT, c_1_NT, l_NT, x_NT, avg_y_0, *alloc_args)
+        stats = gpf.alloc_stats(c_0, c_1, l, x, avg_y_0, *alloc_args)
         
         Δ_ln_Λ, Δ_var_λ, Δ_cov = gpf.deltas(stats, stats_NT)
         ConEquiv = gpf.consumption_equiv(c_0, c_1, l,
-                                           c_0_NT, c_1_NT, l_NT, alloc_args)
+                                           c_0_NT, c_1_NT, l_NT, *alloc_args)
         
         Mirrlees_Results.add('Optimal Mirrlees DLambda', gpf.clean_round(Δ_ln_Λ, 1))
         Mirrlees_Results.add('Optimal Mirrlees DvarWW', gpf.clean_round(Δ_var_λ, 1))
