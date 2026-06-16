@@ -519,92 +519,11 @@ class Processor:
         Parametric_Results = gpf.ResultsTable()
         
         
-        # ---------------- #
-        # Helper Functions #
-        # ---------------- #
-        x_sq = self.E.var_κ * self.E.x_bar
-        E_init = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, x_sq))
-
-        def _solve_eqbm(θ, τ_k, Ψ, ψ, y_0=self.E.y_0):
-            sol = sp.optimize.root(
-                rt.Eqbm_Root, E_init,
-                args=(θ, τ_k, Ψ, ψ, self.E.A_j, self.E.A_k,
-                      self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ,
-                      self.E.J, self.E.n, y_0, self.E.β, self.E.var_θ,
-                      self.E.ε, self.E.δ, self.E.g, self.E.φ),
-                jac=pr.δH_δclx)
-            E = sol.x
-            J = self.E.J
-            return E[:J], E[J:2*J], E[2*J:3*J], E[3*J:]
-        
-        def _alloc_stats(c_0, c_1, l, x):
-            n = self.E.n
-            λ     = c_1**(-self.E.var_θ) / np.sum(n * c_1**(-self.E.var_θ))
-            var_λ = np.sum(n * λ**2) - 1
-        
-            E_ln_Λ = (np.sum(n * np.log(fn.Lamba_l(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)))
-                      / self.E.σ)
-        
-            L    = n * l
-            K    = np.sum(n * (self.E.y_0 - c_0))
-            ln_w = np.log(fn.Wages(x, L, K, self.E.A_j, self.E.A_k,
-                                   self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
-            z_j  = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x
-            z_jk = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x
-            Σ_j  = self.E.σ + (z_j + z_jk) / self.E.ζ
-        
-            E_ln_w = np.sum(n * ln_w)
-            E_Σ_j  = np.sum(n * Σ_j)
-            cov    = np.sum(n * Σ_j * ln_w) - E_Σ_j * E_ln_w
-        
-            return dict(var_λ=var_λ, E_ln_Λ=E_ln_Λ, ln_w=ln_w, Σ_j=Σ_j, cov=cov)
-        
-        def _consumption_equiv(c_0_new, c_1_new, l_new, c_0_base, c_1_base, l_base):
-            CE = sp.optimize.root(
-                rt.CERoot, 1,
-                args=(c_0_new, c_1_new, l_new,
-                      c_0_base, c_1_base, l_base,
-                      self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
-                method='lm')
-            return (CE.x[0] - 1) * 100
-        
-        def _deltas(stats_new, stats_base):
-            Δ_ln_Λ  = (stats_new['E_ln_Λ'] - stats_base['E_ln_Λ']) * 100
-            Δ_var_λ = (stats_new['var_λ']  - stats_base['var_λ'])  * 100 / stats_base['var_λ']
-            Δ_cov   = (stats_new['cov']    - stats_base['cov'])    * 100 / stats_base['cov']
-            return Δ_ln_Λ, Δ_var_λ, Δ_cov
-        
-        def _cov_dataframe(stats_A, label_A, stats_B, label_B):
-            n = self.E.n
-        
-            def _ols_fit(Σ, ln_w):
-                X = np.hstack((np.ones((self.E.J, 1)), Σ.reshape((-1, 1))))
-                W = np.diag(n)
-                β = np.linalg.inv(X.T @ W @ X) @ X.T @ W @ ln_w.reshape((-1, 1))
-                return (X @ β).ravel()
-        
-            df = pd.DataFrame(np.hstack((
-                n.reshape((-1, 1)),
-                stats_A['Σ_j'].reshape((-1, 1)),
-                stats_A['ln_w'].reshape((-1, 1)),
-                _ols_fit(stats_A['Σ_j'], stats_A['ln_w']).reshape((-1, 1)),
-                stats_B['Σ_j'].reshape((-1, 1)),
-                stats_B['ln_w'].reshape((-1, 1)),
-                _ols_fit(stats_B['Σ_j'], stats_B['ln_w']).reshape((-1, 1)),
-            )), columns=[
-                'Weight',
-                f'ES {label_A}',         f'Log Wages {label_A}', f'Log Wages_hat {label_A}',
-                f'ES {label_B}',         f'Log Wages {label_B}', f'Log Wages_hat {label_B}',
-            ])
-            return df.sort_values('Weight', ascending=False)
-        
-        
         # ----------------------------------------------------------------
 
         # Status quo tax function optimum.
 
         # ----------------------------------------------------------------
-        
         (θ_sq,) = self.E.Para_Solver(1, 0, 0)
         (τ_k_sq,) = self.E.Para_Solver(0, 1, 0)
         (θ_sq_both, τ_k_sq_both) = self.E.Para_Solver(1, 1, 0)
@@ -618,39 +537,43 @@ class Processor:
         # ----------------- #
         # Derive Equilibria #
         # ----------------- #
-        c_0_θ,    c_1_θ,    l_θ,    x_θ    = _solve_eqbm(θ_sq, self.E.τ_k, self.E.Ψ, self.E.ψ)
-        c_0_τ,    c_1_τ,    l_τ,    x_τ    = _solve_eqbm(0, τ_k_sq, self.E.Ψ, self.E.ψ)
-        c_0_both, c_1_both, l_both, x_both = _solve_eqbm(θ_sq_both, τ_k_sq_both, self.E.Ψ, self.E.ψ)
+        x_sq = self.E.var_κ * self.E.x_bar
+        E_init = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, x_sq))
+        EQ_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
+        
+        c_0_θ,    c_1_θ,    l_θ,    x_θ    = gpf.solve_eqbm(θ_sq, self.E.τ_k, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, EQ_args)
+        c_0_τ,    c_1_τ,    l_τ,    x_τ    = gpf.solve_eqbm(0, τ_k_sq, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, EQ_args)
+        c_0_both, c_1_both, l_both, x_both = gpf.solve_eqbm(θ_sq_both, τ_k_sq_both, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, EQ_args)
 
-        stats_τ    = _alloc_stats(c_0_τ,    c_1_τ,    l_τ,    x_τ)
-        stats_both = _alloc_stats(c_0_both, c_1_both, l_both, x_both)
+        stats_τ    = gpf.alloc_stats(c_0_τ,    c_1_τ,    l_τ,    x_τ, self.E.y_0, EQ_args)
+        stats_both = gpf.alloc_stats(c_0_both, c_1_both, l_both, x_both, self.E.y_0, EQ_args)
         
        
         # -------------------- #
         # Status Quo to Policy #
         # -------------------- #
-        ConEquiv_θ = _consumption_equiv(c_0_θ, c_1_θ, l_θ,
-                                self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq)
+        ConEquiv_θ = gpf.consumption_equiv(c_0_θ, c_1_θ, l_θ,
+                                self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, EQ_args)
         Parametric_Results.add('Optimal Status Quo Consumption Equivalence, Theta', gpf.clean_round(ConEquiv_θ, 2))
         
-        ConEquiv_τ = _consumption_equiv(c_0_τ, c_1_τ, l_τ,
-                                self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq)
+        ConEquiv_τ = gpf.consumption_equiv(c_0_τ, c_1_τ, l_τ,
+                                self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, EQ_args)
         Parametric_Results.add('Optimal Status Quo Consumption Equivalence, Capital Tax', gpf.clean_round(ConEquiv_τ, 2))
         
         
         # ------------------- #
         # Capital Tax to Both #
         # ------------------- #
-        Δ_ln_Λ_both, Δ_var_λ_both, Δ_cov_both = _deltas(stats_both, stats_τ)
-        ConEquiv_both = _consumption_equiv(c_0_both, c_1_both, l_both,
-                                           c_0_τ, c_1_τ, l_τ)
+        Δ_ln_Λ_both, Δ_var_λ_both, Δ_cov_both = gpf.deltas(stats_both, stats_τ)
+        ConEquiv_both = gpf.consumption_equiv(c_0_both, c_1_both, l_both,
+                                           c_0_τ, c_1_τ, l_τ, EQ_args)
         
         Parametric_Results.add('Optimal Status Quo DLambda, Both', gpf.clean_round(Δ_ln_Λ_both, 1))
         Parametric_Results.add('Optimal Status Quo DvarWW, Both', gpf.clean_round(Δ_var_λ_both, 1))
         Parametric_Results.add('Optimal Status Quo DCOV, Both', gpf.clean_round(Δ_cov_both, 1))
         Parametric_Results.add('Optimal Status Quo Consumption Equivalence, Both', gpf.clean_round(ConEquiv_both, 2))
 
-        _cov_dataframe(stats_both, 'Both', stats_τ, 'tau_k').to_csv(
+        gpf.cov_dataframe(stats_both, 'Both', stats_τ, 'tau_k', self.E.n, self.E.J).to_csv(
                         f'{self.Directory}/Results/Figures/StatusQuo_Covariance.csv', index=False)
         
         
@@ -659,7 +582,6 @@ class Processor:
         # Status quo tax function optimum with VAT.
 
         # ----------------------------------------------------------------
-        
         avg_y_0 = np.sum(self.E.n * self.E.y_0)
         
         VAT_cases = [25, 50, 75, 100]
@@ -677,18 +599,18 @@ class Processor:
             # ----------------- #
             # Derive Equilibria #
             # ----------------- #
-            c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat    = _solve_eqbm(0, τ_k_sq_vat, self.E.Ψ, self.E.ψ, y_0)
-            c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both = _solve_eqbm(θ_sq_vat_both, τ_k_sq_vat_both, self.E.Ψ, self.E.ψ, y_0)
+            c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat    = gpf.solve_eqbm(0, τ_k_sq_vat, self.E.Ψ, self.E.ψ, y_0, E_init, EQ_args)
+            c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both = gpf.solve_eqbm(θ_sq_vat_both, τ_k_sq_vat_both, self.E.Ψ, self.E.ψ, y_0, E_init, EQ_args)
 
-            stats_sq_vat    = _alloc_stats(c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat)
-            stats_sq_vat_both = _alloc_stats(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both)
+            stats_sq_vat    = gpf.alloc_stats(c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat, y_0, EQ_args)
+            stats_sq_vat_both = gpf.alloc_stats(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both, y_0, EQ_args)
             
             
             # ---------- #
             # Comparison #
             # ---------- #
-            ConEquiv_sq_vat = _consumption_equiv(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both,
-                                               c_0_sq_vat, c_1_sq_vat, l_sq_vat)
+            ConEquiv_sq_vat = gpf.consumption_equiv(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both,
+                                               c_0_sq_vat, c_1_sq_vat, l_sq_vat, EQ_args)
             
             vat_rows.append({'VAT': τ_vat,
                             'Capital Tax Reduction': gpf.clean_round(dτ_k*100, 1),
@@ -699,7 +621,7 @@ class Processor:
                 Parametric_Results.add('Optimal Status Quo VAT Threshold Rule, Both', gpf.clean_round(θ_sq_vat_both*100, 1))
                 Parametric_Results.add('Optimal Status Quo VAT Capital Tax, Both', gpf.clean_round(τ_k_sq_vat_both*100, 1))
                 
-                Δ_ln_Λ_vat_both, Δ_var_λ_vat_both, Δ_cov_vat_both = _deltas(stats_sq_vat_both, stats_sq_vat)
+                Δ_ln_Λ_vat_both, Δ_var_λ_vat_both, Δ_cov_vat_both = gpf.deltas(stats_sq_vat_both, stats_sq_vat)
                 
                 Parametric_Results.add('Optimal Status Quo VAT DLambda, Both', gpf.clean_round(Δ_ln_Λ_vat_both, 1))
                 Parametric_Results.add('Optimal Status Quo VAT DvarWW, Both', gpf.clean_round(Δ_var_λ_vat_both, 1))
@@ -716,7 +638,6 @@ class Processor:
         # Heathcote et al. (2017) tax function optimum.
 
         # ----------------------------------------------------------------
-        
         (τ_k_H, Ψ_Η, ψ_H) = self.E.Para_Solver(0, 1, 1)
         (θ_H_both, τ_k_H_both, Ψ_H_both, ψ_H_both) = self.E.Para_Solver(1, 1, 1)
         
@@ -738,42 +659,40 @@ class Processor:
         # ----------------- #
         # Derive Equilibria #
         # ----------------- #
-        c_0_H,    c_1_H,    l_H,    x_H    = _solve_eqbm(0, τ_k_H, Ψ_Η, ψ_H)
-        c_0_H_both, c_1_H_both, l_H_both, x_H_both = _solve_eqbm(θ_H_both, τ_k_H_both, Ψ_H_both, ψ_H_both)
+        c_0_H,    c_1_H,    l_H,    x_H    = gpf.solve_eqbm(0, τ_k_H, Ψ_Η, ψ_H, self.E.y_0, E_init, EQ_args)
+        c_0_H_both, c_1_H_both, l_H_both, x_H_both = gpf.solve_eqbm(θ_H_both, τ_k_H_both, Ψ_H_both, ψ_H_both, self.E.y_0, E_init, EQ_args)
 
-        stats_H    = _alloc_stats(c_0_H,    c_1_H,    l_H,    x_H)
-        stats_H_both = _alloc_stats(c_0_H_both, c_1_H_both, l_H_both, x_H_both)
+        stats_H    = gpf.alloc_stats(c_0_H,    c_1_H,    l_H,    x_H, self.E.y_0, EQ_args)
+        stats_H_both = gpf.alloc_stats(c_0_H_both, c_1_H_both, l_H_both, x_H_both, self.E.y_0, EQ_args)
         
-        c_0_H_vat,    c_1_H_vat,    l_H_vat,    x_H_vat    = _solve_eqbm(0, τ_k_H_vat, Ψ_Η, ψ_H_vat)
-        c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both, x_H_vat_both = _solve_eqbm(θ_H_vat_both, τ_k_H_vat_both, Ψ_H_vat_both, ψ_H_vat_both)
+        c_0_H_vat,    c_1_H_vat,    l_H_vat,    x_H_vat    = gpf.solve_eqbm(0, τ_k_H_vat, Ψ_Η, ψ_H_vat, y_H_0, E_init, EQ_args)
+        c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both, x_H_vat_both = gpf.solve_eqbm(θ_H_vat_both, τ_k_H_vat_both, Ψ_H_vat_both, ψ_H_vat_both, y_H_0, E_init, EQ_args)
 
-        stats_H_vat    = _alloc_stats(c_0_H_vat,    c_1_H_vat,    l_H_vat,    x_H_vat)
-        stats_H_vat_both = _alloc_stats(c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both, x_H_vat_both)
+        stats_H_vat    = gpf.alloc_stats(c_0_H_vat,    c_1_H_vat,    l_H_vat,    x_H_vat, y_H_0, EQ_args)
+        stats_H_vat_both = gpf.alloc_stats(c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both, x_H_vat_both, y_H_0, EQ_args)
         
         
         # ---------- #
         # Comparison #
         # ---------- #
-        Δ_ln_Λ_H, Δ_var_λ_H, Δ_cov_H = _deltas(stats_H_both, stats_H)
-        ConEquiv_H = _consumption_equiv(c_0_H_both, c_1_H_both, l_H_both,
-                                           c_0_H, c_1_H, l_H)
+        Δ_ln_Λ_H, Δ_var_λ_H, Δ_cov_H = gpf.deltas(stats_H_both, stats_H)
+        ConEquiv_H = gpf.consumption_equiv(c_0_H_both, c_1_H_both, l_H_both,
+                                           c_0_H, c_1_H, l_H, EQ_args)
         
         Parametric_Results.add('Optimal Heathcote DLambda', gpf.clean_round(Δ_ln_Λ_H, 1))
         Parametric_Results.add('Optimal Heathcote DvarWW', gpf.clean_round(Δ_var_λ_H, 1))
         Parametric_Results.add('Optimal Heathcote DCOV', gpf.clean_round(Δ_cov_H, 1))
         Parametric_Results.add('Optimal Heathcote Consumption Equivalence', gpf.clean_round(ConEquiv_H, 2))
         
-        Δ_ln_Λ_H_vat, Δ_var_λ_H_vat, Δ_cov_H_vat = _deltas(stats_H_vat_both, stats_H_vat)
-        ConEquiv_H_vat = _consumption_equiv(c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both,
-                                           c_0_H_vat, c_1_H_vat, l_H_vat)
+        Δ_ln_Λ_H_vat, Δ_var_λ_H_vat, Δ_cov_H_vat = gpf.deltas(stats_H_vat_both, stats_H_vat)
+        ConEquiv_H_vat = gpf.consumption_equiv(c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both,
+                                           c_0_H_vat, c_1_H_vat, l_H_vat, EQ_args)
         
         Parametric_Results.add('Optimal Heathcote VAT DLambda', gpf.clean_round(Δ_ln_Λ_H_vat, 1))
         Parametric_Results.add('Optimal Heathcote VAT DvarWW', gpf.clean_round(Δ_var_λ_H_vat, 1))
         Parametric_Results.add('Optimal Heathcote VAT DCOV', gpf.clean_round(Δ_cov_H_vat, 1))
         Parametric_Results.add('Optimal Heathcote VAT Consumption Equivalence', gpf.clean_round(ConEquiv_H_vat, 2))
 
-       
-        
         
         Parametric_Results.to_csv(f'{self.Directory}/Results/Tables/Parametric_Results.csv')
         
@@ -795,56 +714,13 @@ class Processor:
         # --------------------------------- #
         E_eq = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq))
         x_eq = self.var_κ * self.x_bar
-        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr_NT(E_eq, x_eq, 0)
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr(E_eq, x_eq, 0)
         
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
-        (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr_θ(E_NT, x_NT, 1)
-        
-        
-        # -------------------------- #
-        # Threshold Mirrlees Optimum #
-        # -------------------------- #        
-        L = self.E.n * l
-        
-        λ = c_1**(-self.E.var_θ) / np.sum(self.E.n * c_1**(-self.E.var_θ))
-        var_λ = np.sum(self.E.n * λ**2) - 1
-        
-        ln_Λ_l = np.log(fn.Lamba_l(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
-        E_ln_Λ = np.sum(self.E.n * ln_Λ_l) / self.E.σ
-        
-        ln_w = np.log(fn.Wages(x, L, K, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
-        z_j = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x
-        z_jk = fn.relα(x, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x
-        Σ_j = (self.E.σ + (z_j + z_jk) / self.E.ζ)
-        
-        E_ln_w = np.sum(self.E.n * ln_w)
-        E_Σ_j = np.sum(self.E.n * Σ_j)
-        cov = np.sum(self.E.n * Σ_j * ln_w) - E_Σ_j * E_ln_w
-        
-        Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
-        
-        
-        # ---------------------------- #
-        # Capital Tax Mirrlees Optimum #
-        # ---------------------------- #
-        L_NT = self.E.n * l_NT
-        
-        λ_NT = c_1_NT**(-self.E.var_θ) / np.sum(self.E.n * c_1_NT**(-self.E.var_θ))
-        var_λ_NT = np.sum(self.E.n * λ_NT**2) - 1
-        
-        ln_Λ_l_NT = np.log(fn.Lamba_l(x_NT, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
-        E_ln_Λ_NT = np.sum(self.E.n * ln_Λ_l_NT) / self.E.σ
-        
-        ln_w_NT = np.log(fn.Wages(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ))
-        z_j_NT = fn.relα(x_NT, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 0) * x_NT
-        z_jk_NT = fn.relα(x_NT, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x_NT
-        Σ_j_NT = (self.E.σ + (z_j_NT + z_jk_NT) / self.E.ζ)
-        
-        E_ln_w_NT = np.sum(self.E.n * ln_w_NT)
-        E_Σ_j_NT = np.sum(self.E.n * Σ_j_NT)
-        cov_NT = np.sum(self.E.n * Σ_j_NT * ln_w_NT) - E_Σ_j_NT * E_ln_w_NT
+        (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr(E_NT, x_NT, 1)
         
         MRS_c_NT = fn.cap_MRS(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
+        L_NT = self.E.n * l_NT
         r_NT = fn.Rents(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         τ_K_NT = np.median(1 - (MRS_c_NT + self.E.g) / (r_NT - self.E.δ))
         Mirrlees_Results.add('Optimal Mirrlees Capital Tax', gpf.clean_round(τ_K_NT*100, 1))
@@ -854,48 +730,33 @@ class Processor:
         τ_wealth_NT = 1 - Return_tilde_NT / Return_NT
         Mirrlees_Results.add('Optimal Mirrlees Wealth Tax', gpf.clean_round(τ_wealth_NT*100, 2))
         
+        Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
+        
         
         # ---------------- #
         # Comparison Table #
         # ---------------- #
-        Δoptln_Λ = (E_ln_Λ - E_ln_Λ_NT) * 100
-        Δoptvar_λ = (var_λ - var_λ_NT) * 100 / var_λ_NT
-        ΔoptCOV = (cov - cov_NT) * 100 / cov_NT
+        avg_y_0 = np.sum(self.E.n * self.E.y_0)
+        alloc_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
+
+        stats_NT    = gpf.alloc_stats(c_0_NT, c_1_NT, l_NT, x_NT, avg_y_0, alloc_args)
+        stats = gpf.alloc_stats(c_0, c_1, l, x, avg_y_0, alloc_args)
         
-        CE = sp.optimize.root(rt.CERoot, 1,
-                      args=(c_0, c_1, l, c_0_NT, c_1_NT, l_NT, self.E.n, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g),
-                      method='lm')
+        Δ_ln_Λ, Δ_var_λ, Δ_cov = gpf.deltas(stats, stats_NT)
+        ConEquiv = gpf.consumption_equiv(c_0, c_1, l,
+                                           c_0_NT, c_1_NT, l_NT, alloc_args)
         
-        ConEquiv = (CE.x[0] - 1) * 100
-        
-        Mirrlees_Results.add('Optimal Mirrlees DLambda', gpf.clean_round(Δoptln_Λ, 1))
-        Mirrlees_Results.add('Optimal Mirrlees DvarWW', gpf.clean_round(Δoptvar_λ, 1))
-        Mirrlees_Results.add('Optimal Mirrlees DCOV', gpf.clean_round(ΔoptCOV, 1))
+        Mirrlees_Results.add('Optimal Mirrlees DLambda', gpf.clean_round(Δ_ln_Λ, 1))
+        Mirrlees_Results.add('Optimal Mirrlees DvarWW', gpf.clean_round(Δ_var_λ, 1))
+        Mirrlees_Results.add('Optimal Mirrlees DCOV', gpf.clean_round(Δ_cov, 1))
         Mirrlees_Results.add('Optimal Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
         
-        
-        # ----------------- #
-        # Covariance Figure #
-        # ----------------- #
-        X = np.hstack((np.ones((self.E.J,1)), Σ_j.reshape((-1,1))))
-        X_NT = np.hstack((np.ones((self.E.J,1)), Σ_j_NT.reshape((-1,1))))
-        y = ln_w.reshape((-1,1))
-        y_NT = ln_w_NT.reshape((-1,1))
-        W = np.diag(self.E.n)
-        
-        β = np.linalg.inv(X.T @ W @ X) @ X.T @ W @ y
-        β_NT = np.linalg.inv(X_NT.T @ W @ X_NT) @ X_NT.T @ W @ y_NT
-        
-        ln_w_hat = X @ β
-        ln_w_hat_NT = X_NT @ β_NT
-        
-        DF_Cov_NT = pd.DataFrame(np.hstack((self.E.n.reshape((-1,1)), Σ_j.reshape((-1,1)), y, ln_w_hat, Σ_j_NT.reshape((-1,1)), y_NT, ln_w_hat_NT)), 
-                             columns=['Weight', 'ES Optimal', 'Log Wages Optimal', 'Log Wages_hat Optimal', 'ES Capital Tax', 'Log Wages Capital Tax', 'Log Wages_hat Capital Tax'])
-        DF_Cov_NT = DF_Cov_NT.sort_values("Weight", ascending=False)
-        DF_Cov_NT.to_csv(f'{self.Directory}/Results/Figures/Mirrlees_Covariance.csv', index=False)
+        gpf.cov_dataframe(stats, 'Both', stats_NT, 'tau_k', self.E.n, self.E.J).to_csv(
+                        f'{self.Directory}/Results/Figures/Mirrlees_Covariance.csv', index=False)
         
 
         Mirrlees_Results.to_csv(f'{self.Directory}/Results/Tables/Mirrlees_Results.csv')
+        
         
     
     def AI_Experiment(self, G_k, N_g):

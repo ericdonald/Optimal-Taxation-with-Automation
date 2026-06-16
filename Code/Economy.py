@@ -364,9 +364,11 @@ class Economy:
             # -------------------- #
             if θ_on == 1:
                 θ_args = (E, x, w, r, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J, self.x_bar, self.ζ, self.ν, self.σ)
+                Optimal_θ_Root = lambda x: rt.Optimalθ_NL_Root(x, *θ_args)
                 θ_lower = θ/2
-                θ_upper = np.maximum(θ*3/2, 1/3)
-                θ_new = gpf.bisect_scalar(rt.Optimalθ_NL_Root, θ_lower, θ_upper, θ_args, 'additive')
+                θ_upper = np.maximum(θ * 1.5, 1/3)
+                θ_new = gpf.secant_scalar(Optimal_θ_Root, θ_lower, θ_upper, expansion='additive')
+                print(θ_new)
             else:
                 θ_new = 0
             
@@ -376,10 +378,10 @@ class Economy:
             # ---------------------------- #
             # Check Convergence and Update #
             # ---------------------------- #
-            error_x = np.max(np.abs(np.log(x) - np.log(x_new)))
+            error_x = np.max(np.abs(x - x_new))
             #print(f'Automation Error: {error_x}')
             
-            error_θ = np.abs(np.arcsinh(θ) - np.arcsinh(θ_new))
+            error_θ = np.abs(θ - θ_new)
             #print(f'Threshold Rule Error: {error_θ}')
                 
             if error_θ < tol and error_x < tol:

@@ -12,6 +12,7 @@ import scipy as sp
 import cyipopt as cp
 import Roots as rt
 import Perturbations as pr
+import Production_Functions as fn
 
 
 
@@ -122,31 +123,21 @@ def secant_scalar(func, x0, x1, lb=None, ub=None, tol=1e-7, max_iter=50, expansi
 
 
 
-def bisect_scalar(func, a=0, b=0.1, args=(), expansion='multiplicative'):
+def bisect_scalar(func, a, b, args=(), expansion='multiplicative'):
     "Scalar Bisection"
     
-    if expansion == 'unit':           # [0, 1)
-        for _ in range(10):
-            fa, fb = func(a, *args), func(b, *args)
-            if fa * fb < 0:
-                break
-            
-            a += 0.1
-            b += 0.1
-            
-    else:
-        for _ in range(20):
-            fa, fb = func(a, *args), func(b, *args)
-            if fa * fb < 0:
-                break
-            if expansion == 'multiplicative':   # (0, inf)
-                a *= 0.5
-                b *= 2.0
-            elif expansion == 'additive':       # (-inf, inf)
-                mid = 0.5 * (a + b)
-                step = b - a
-                a = mid - step
-                b = mid + step
+    for _ in range(20):
+        fa, fb = func(a, *args), func(b, *args)
+        if fa * fb < 0:
+            break
+        if expansion == 'multiplicative':   # (0, inf)
+            a *= 0.5
+            b *= 2.0
+        elif expansion == 'additive':       # (-inf, inf)
+            mid = 0.5 * (a + b)
+            step = b - a
+            a = mid - step
+            b = mid + step
 
     if fa * fb > 0:
         raise ValueError("Bisection interval does not bracket a root.")
@@ -273,7 +264,85 @@ def solve_planner(w, r, E_0, args, Pen_N):
 
 
 
+def solve_eqbm(θ, τ_k, Ψ, ψ, y_0, E_init, A_j, A_k, x_bar, ζ, ν, σ, J, n, β, var_θ, ε, δ, g, φ):
+    sol = sp.optimize.root(
+        rt.Eqbm_Root, E_init,
+        args=(θ, τ_k, Ψ, ψ, A_j, A_k,
+              x_bar, ζ, ν, σ,
+              J, n, y_0, β, var_θ,
+              ε, δ, g, φ),
+        jac=pr.δH_δclx)
+    E = sol.x
+    J = J
+    return E[:J], E[J:2*J], E[2*J:3*J], E[3*J:]
 
+
+
+def alloc_stats(c_0, c_1, l, x, y_0, A_j, A_k, x_bar, ζ, ν, σ, J, n, β, var_θ, ε, δ, g, φ):
+    n = n
+    λ     = c_1**(-var_θ) / np.sum(n * c_1**(-var_θ))
+    var_λ = np.sum(n * λ**2) - 1
+
+    E_ln_Λ = (np.sum(n * np.log(fn.Lamba_l(x, x_bar, ζ, ν, σ))) / σ)
+
+    L    = n * l
+    K    = np.sum(n * (y_0 - c_0))
+    ln_w = np.log(fn.Wages(x, L, K, A_j, A_k,
+                           x_bar, ζ, ν, σ))
+    z_j  = fn.relα(x, x_bar, ζ, ν, σ, 0) * x
+    z_jk = fn.relα(x, x_bar, ζ, ν, σ, 1) * x
+    Σ_j  = σ + (z_j + z_jk) / ζ
+
+    E_ln_w = np.sum(n * ln_w)
+    E_Σ_j  = np.sum(n * Σ_j)
+    cov    = np.sum(n * Σ_j * ln_w) - E_Σ_j * E_ln_w
+
+    return dict(var_λ=var_λ, E_ln_Λ=E_ln_Λ, ln_w=ln_w, Σ_j=Σ_j, cov=cov)
+
+
+
+def consumption_equiv(c_0_new, c_1_new, l_new, c_0_base, c_1_base, l_base, A_j, A_k, x_bar, ζ, ν, σ, J, n, β, var_θ, ε, δ, g, φ):
+    CE = sp.optimize.root(
+        rt.CERoot, 1,
+        args=(c_0_new, c_1_new, l_new,
+              c_0_base, c_1_base, l_base,
+              n, β, var_θ, φ, ε, g),
+        method='lm')
+    return (CE.x[0] - 1) * 100
+
+
+
+def deltas(stats_new, stats_base):
+    Δ_ln_Λ  = (stats_new['E_ln_Λ'] - stats_base['E_ln_Λ']) * 100
+    Δ_var_λ = (stats_new['var_λ']  - stats_base['var_λ'])  * 100 / stats_base['var_λ']
+    Δ_cov   = (stats_new['cov']    - stats_base['cov'])    * 100 / stats_base['cov']
+    return Δ_ln_Λ, Δ_var_λ, Δ_cov
+
+
+
+def cov_dataframe(stats_A, label_A, stats_B, label_B, n, J):
+    n = n
+
+    def _ols_fit(Σ, ln_w):
+        X = np.hstack((np.ones((J, 1)), Σ.reshape((-1, 1))))
+        W = np.diag(n)
+        β = np.linalg.inv(X.T @ W @ X) @ X.T @ W @ ln_w.reshape((-1, 1))
+        return (X @ β).ravel()
+
+    df = pd.DataFrame(np.hstack((
+        n.reshape((-1, 1)),
+        stats_A['Σ_j'].reshape((-1, 1)),
+        stats_A['ln_w'].reshape((-1, 1)),
+        _ols_fit(stats_A['Σ_j'], stats_A['ln_w']).reshape((-1, 1)),
+        stats_B['Σ_j'].reshape((-1, 1)),
+        stats_B['ln_w'].reshape((-1, 1)),
+        _ols_fit(stats_B['Σ_j'], stats_B['ln_w']).reshape((-1, 1)),
+    )), columns=[
+        'Weight',
+        f'ES {label_A}',         f'Log Wages {label_A}', f'Log Wages_hat {label_A}',
+        f'ES {label_B}',         f'Log Wages {label_B}', f'Log Wages_hat {label_B}',
+    ])
+    return df.sort_values('Weight', ascending=False)
 
 
 
