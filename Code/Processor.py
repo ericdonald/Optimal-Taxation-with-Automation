@@ -15,7 +15,6 @@ import sys
 import importlib.metadata as md
 import Roots as rt
 import Production_Functions as fn
-import Perturbations as pr
 import Processing_Functions as gpf
 
 
@@ -524,9 +523,9 @@ class Processor:
         # Status quo tax function optimum.
 
         # ----------------------------------------------------------------
-        (θ_sq,) = self.E.Para_Solver(1, 0, 0)
-        (τ_k_sq,) = self.E.Para_Solver(0, 1, 0)
-        (θ_sq_both, τ_k_sq_both) = self.E.Para_Solver(1, 1, 0)
+        (θ_sq,) = self.E.Para_Solver(1, 0)
+        (τ_k_sq,) = self.E.Para_Solver(0, 1)
+        (θ_sq_both, τ_k_sq_both) = self.E.Para_Solver(1, 1)
         
         Parametric_Results.add('Optimal Status Quo Threshold Rule', gpf.clean_round(θ_sq*100, 1))
         Parametric_Results.add('Optimal Status Quo Capital Tax', gpf.clean_round(τ_k_sq*100, 1))
@@ -590,8 +589,8 @@ class Processor:
         for τ_vat in VAT_cases:
             y_0_vat = self.E.y_0 * (100 - τ_vat)/100 + avg_y_0 * τ_vat/100
             
-            (τ_k_sq_vat,) = self.E.Para_Solver(0, 1, 0, y_0_vat)
-            (θ_sq_vat_both, τ_k_sq_vat_both) = self.E.Para_Solver(1, 1, 0, y_0_vat)
+            (τ_k_sq_vat,) = self.E.Para_Solver(0, 1, y_0=y_0_vat)
+            (θ_sq_vat_both, τ_k_sq_vat_both) = self.E.Para_Solver(1, 1, y_0=y_0_vat)
                         
             
             # ----------------- #
@@ -631,67 +630,6 @@ class Processor:
         pd.DataFrame(vat_rows).to_csv(
                         f'{self.Directory}/Results/Figures/StatusQuo_VAT_Graph.csv', index=False)
         
-        
-        # ----------------------------------------------------------------
-
-        # Heathcote et al. (2017) tax function optimum.
-
-        # ----------------------------------------------------------------
-        (τ_k_H, Ψ_Η, ψ_H) = self.E.Para_Solver(0, 1, 1)
-        (θ_H_both, τ_k_H_both, Ψ_H_both, ψ_H_both) = self.E.Para_Solver(1, 1, 1)
-        
-        Parametric_Results.add('Optimal Heathcote Capital Tax', gpf.clean_round(τ_k_H*100, 1))
-        Parametric_Results.add('Optimal Heathcote Threshold Rule, Both', gpf.clean_round(θ_H_both*100, 1))
-        Parametric_Results.add('Optimal Heathcote Capital Tax, Both', gpf.clean_round(τ_k_H_both*100, 1))
-        
-        τ_H_vat = 25
-        y_H_0_vat = self.E.y_0 * (100 - τ_H_vat)/100 + avg_y_0 * τ_H_vat/100
-        
-        (τ_k_H_vat, Ψ_Η_vat, ψ_H_vat) = self.E.Para_Solver(0, 1, 1, y_H_0_vat)
-        (θ_H_vat_both, τ_k_H_vat_both, Ψ_H_vat_both, ψ_H_vat_both) = self.E.Para_Solver(1, 1, 1, y_H_0_vat)
-        
-        Parametric_Results.add('Optimal Heathcote VAT Capital Tax', gpf.clean_round(τ_k_H_vat*100, 1))
-        Parametric_Results.add('Optimal Heathcote VAT Threshold Rule, Both', gpf.clean_round(θ_H_vat_both*100, 1))
-        Parametric_Results.add('Optimal Heathcote VAT Capital Tax, Both', gpf.clean_round(τ_k_H_vat_both*100, 1))
-        
-        
-        # ----------------- #
-        # Derive Equilibria #
-        # ----------------- #
-        c_0_H,    c_1_H,    l_H,    x_H    = gpf.solve_eqbm(0, τ_k_H, Ψ_Η, ψ_H, self.E.y_0, E_init, *EQ_args)
-        c_0_H_both, c_1_H_both, l_H_both, x_H_both = gpf.solve_eqbm(θ_H_both, τ_k_H_both, Ψ_H_both, ψ_H_both, self.E.y_0, E_init, *EQ_args)
-
-        stats_H    = gpf.alloc_stats(c_0_H,    c_1_H,    l_H,    x_H, self.E.y_0, *EQ_args)
-        stats_H_both = gpf.alloc_stats(c_0_H_both, c_1_H_both, l_H_both, x_H_both, self.E.y_0, *EQ_args)
-        
-        c_0_H_vat,    c_1_H_vat,    l_H_vat,    x_H_vat    = gpf.solve_eqbm(0, τ_k_H_vat, Ψ_Η, ψ_H_vat, y_H_0_vat, E_init, *EQ_args)
-        c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both, x_H_vat_both = gpf.solve_eqbm(θ_H_vat_both, τ_k_H_vat_both, Ψ_H_vat_both, ψ_H_vat_both, y_H_0_vat, E_init, *EQ_args)
-
-        stats_H_vat    = gpf.alloc_stats(c_0_H_vat,    c_1_H_vat,    l_H_vat,    x_H_vat, y_H_0_vat, *EQ_args)
-        stats_H_vat_both = gpf.alloc_stats(c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both, x_H_vat_both, y_H_0_vat, *EQ_args)
-        
-        
-        # ---------- #
-        # Comparison #
-        # ---------- #
-        Δ_ln_Λ_H, Δ_var_λ_H, Δ_cov_H = gpf.deltas(stats_H_both, stats_H)
-        ConEquiv_H = gpf.consumption_equiv(c_0_H_both, c_1_H_both, l_H_both,
-                                           c_0_H, c_1_H, l_H, *EQ_args)
-        
-        Parametric_Results.add('Optimal Heathcote DLambda', gpf.clean_round(Δ_ln_Λ_H, 1))
-        Parametric_Results.add('Optimal Heathcote DvarWW', gpf.clean_round(Δ_var_λ_H, 1))
-        Parametric_Results.add('Optimal Heathcote DCOV', gpf.clean_round(Δ_cov_H, 1))
-        Parametric_Results.add('Optimal Heathcote Consumption Equivalence', gpf.clean_round(ConEquiv_H, 2))
-        
-        Δ_ln_Λ_H_vat, Δ_var_λ_H_vat, Δ_cov_H_vat = gpf.deltas(stats_H_vat_both, stats_H_vat)
-        ConEquiv_H_vat = gpf.consumption_equiv(c_0_H_vat_both, c_1_H_vat_both, l_H_vat_both,
-                                           c_0_H_vat, c_1_H_vat, l_H_vat, *EQ_args)
-        
-        Parametric_Results.add('Optimal Heathcote VAT DLambda', gpf.clean_round(Δ_ln_Λ_H_vat, 1))
-        Parametric_Results.add('Optimal Heathcote VAT DvarWW', gpf.clean_round(Δ_var_λ_H_vat, 1))
-        Parametric_Results.add('Optimal Heathcote VAT DCOV', gpf.clean_round(Δ_cov_H_vat, 1))
-        Parametric_Results.add('Optimal Heathcote VAT Consumption Equivalence', gpf.clean_round(ConEquiv_H_vat, 2))
-
         
         Parametric_Results.to_csv(f'{self.Directory}/Results/Tables/Parametric_Results.csv')
         
@@ -985,8 +923,8 @@ class Processor:
         # ------------------ #
         # Status Quo Optimum #
         # ------------------ #
-        (τ_k_sq,) = self.E.Para_Solver(0, 1, 0)
-        (θ_sq_both, τ_k_sq_both) = self.E.Para_Solver(1, 1, 0)
+        (τ_k_sq,) = self.E.Para_Solver(0, 1)
+        (θ_sq_both, τ_k_sq_both) = self.E.Para_Solver(1, 1)
         
         ES_robust_Results.add('Low ES Status Quo Capital Tax', gpf.clean_round(τ_k_sq*100, 1))
         ES_robust_Results.add('Low ES Status Quo Threshold Rule, Both', gpf.clean_round(θ_sq_both*100, 1))
@@ -1024,8 +962,8 @@ class Processor:
         τ_vat = 25
         y_0_vat = self.E.y_0 * (100 - τ_vat)/100 + avg_y_0 * τ_vat/100
             
-        (τ_k_sq_vat,) = self.E.Para_Solver(0, 1, 0, y_0_vat)
-        (θ_sq_vat_both, τ_k_sq_vat_both) = self.E.Para_Solver(1, 1, 0, y_0_vat)
+        (τ_k_sq_vat,) = self.E.Para_Solver(0, 1, y_0=y_0_vat)
+        (θ_sq_vat_both, τ_k_sq_vat_both) = self.E.Para_Solver(1, 1, y_0=y_0_vat)
         
         ES_robust_Results.add('Low ES Status Quo VAT Capital Tax', gpf.clean_round(τ_k_sq_vat*100, 1))
         ES_robust_Results.add('Low ES Status Quo VAT Threshold Rule, Both', gpf.clean_round(θ_sq_vat_both*100, 1))

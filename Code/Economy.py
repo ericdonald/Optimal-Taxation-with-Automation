@@ -196,7 +196,7 @@ class Economy:
         
         
         
-    def Para_Solver(self, θ_on, τ_on, HC_on, y_0=None, damp=2/3, tol=1e-4, max_iter=10_000):
+    def Para_Solver(self, θ_on, τ_on, HC_on=0, y_0=None, damp=2/3, tol=1e-4, max_iter=10_000):
         "Solve Parametric Policy Problem"
         
         if y_0 is None:
@@ -278,10 +278,10 @@ class Economy:
             print(f'Capital Tax Error: {error_τ}')
             
             error_Ψ = np.abs(Ψ - Ψ_new)
-            print(f'Labor Tax Scale Error: {error_Ψ}')
+            #print(f'Labor Tax Scale Error: {error_Ψ}')
             
             error_ψ = np.abs(ψ - ψ_new)
-            print(f'Labor Tax Curvature Error: {error_ψ}')
+            #print(f'Labor Tax Curvature Error: {error_ψ}')
                 
             if error_θ < tol and error_τ < tol and error_Ψ < tol and error_ψ < tol:
                 break
