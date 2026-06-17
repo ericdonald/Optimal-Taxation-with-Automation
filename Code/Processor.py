@@ -583,7 +583,7 @@ class Processor:
         # ----------------------------------------------------------------
         avg_y_0 = np.sum(self.E.n * self.E.y_0)
         
-        VAT_cases = [25, 50, 75, 100]
+        VAT_cases = [5, 15, 25, 35, 45, 55]
         vat_rows  = []
         
         for τ_vat in VAT_cases:
