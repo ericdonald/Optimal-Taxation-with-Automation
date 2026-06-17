@@ -583,8 +583,9 @@ class Processor:
         # ----------------------------------------------------------------
         avg_y_0 = np.sum(self.E.n * self.E.y_0)
         
-        VAT_cases = [5, 15, 25, 35, 45, 55]
+        VAT_cases = [5, 25, 45, 65]
         vat_rows  = []
+        dτ_k = ()
         
         for τ_vat in VAT_cases:
             y_0_vat = self.E.y_0 * (100 - τ_vat)/100 + avg_y_0 * τ_vat/100
@@ -592,6 +593,8 @@ class Processor:
             (τ_k_sq_vat,) = self.E.Para_Solver(0, 1, y_0=y_0_vat)
             (θ_sq_vat_both, τ_k_sq_vat_both) = self.E.Para_Solver(1, 1, y_0=y_0_vat)
                         
+            dτ_k += (τ_k_sq_vat - τ_k_sq_vat_both,)
+            
             
             # ----------------- #
             # Derive Equilibria #
@@ -627,6 +630,9 @@ class Processor:
                 Parametric_Results.add('Optimal Status Quo VAT Consumption Equivalence, Both', gpf.clean_round(ConEquiv_sq_vat, 2))
 
 
+        Parametric_Results.add('Optimal Status Quo VAT Capital Tax Difference, Start', gpf.clean_round(dτ_k[0]*100, 1))
+        Parametric_Results.add('Optimal Status Quo VAT Capital Tax Difference, End', gpf.clean_round(dτ_k[-1]*100, 1))
+        
         pd.DataFrame(vat_rows).to_csv(
                         f'{self.Directory}/Results/Figures/StatusQuo_VAT_Graph.csv', index=False)
         
@@ -649,8 +655,8 @@ class Processor:
         # --------------------------------- #
         # Solve for Two Planner Allocations #
         # --------------------------------- #
-        E_eq = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq))
-        x_eq = self.var_κ * self.x_bar
+        E_eq = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq))
+        x_eq = self.E.var_κ * self.E.x_bar
         (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr(E_eq, x_eq, 0)
         
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
@@ -990,9 +996,8 @@ class Processor:
         # ---------------- #
         # Mirrlees Problem #
         # ---------------- #
-        E_eq = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq))
-        x_eq = self.var_κ * self.x_bar
-        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr(E_eq, x_eq, 0)
+        E_eq = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq))
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr(E_eq, x_sq, 0)
         
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
         (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr(E_NT, x_NT, 1)

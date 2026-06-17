@@ -278,13 +278,11 @@ def solve_eqbm(θ, τ_k, Ψ, ψ, y_0, E_init, A_j, A_k, x_bar, ζ, ν, σ, J, n,
               ε, δ, g, φ),
         jac=pr.δH_δclx)
     E = sol.x
-    J = J
     return E[:J], E[J:2*J], E[2*J:3*J], E[3*J:]
 
 
 
 def alloc_stats(c_0, c_1, l, x, y_0, A_j, A_k, x_bar, ζ, ν, σ, J, n, β, var_θ, ε, δ, g, φ):
-    n = n
     λ     = c_1**(-var_θ) / np.sum(n * c_1**(-var_θ))
     var_λ = np.sum(n * λ**2) - 1
 
@@ -326,7 +324,6 @@ def deltas(stats_new, stats_base):
 
 
 def cov_dataframe(stats_A, label_A, stats_B, label_B, n, J):
-    n = n
 
     def _ols_fit(Σ, ln_w):
         X = np.hstack((np.ones((J, 1)), Σ.reshape((-1, 1))))

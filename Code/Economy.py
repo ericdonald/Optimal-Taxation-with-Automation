@@ -251,11 +251,11 @@ class Economy:
             if HC_on == 1:
                 Optimal_Ψ_Root = lambda x: rt.Optimal_Para_Root(θ, τ_k, x, ψ, 'Psi', E, *args)
                 Ψ_new = gpf.secant_scalar(Optimal_Ψ_Root, Ψ/2, Ψ * 1.5, lb=0)
-                print(Ψ_new)
+                #print(Ψ_new)
                 
                 Optimal_ψ_Root = lambda x: rt.Optimal_Para_Root(θ, τ_k, Ψ, x, 'psi', E, *args, _cache=cache_ψ)
                 ψ_new = gpf.secant_scalar(Optimal_ψ_Root, ψ/2, ψ * 1.5, ub=1, expansion='additive')
-                print(ψ_new)
+                #print(ψ_new)
             else:
                 Ψ_new = self.Ψ
                 ψ_new = self.ψ
