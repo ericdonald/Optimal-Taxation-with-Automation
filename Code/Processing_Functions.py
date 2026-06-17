@@ -94,32 +94,27 @@ def compute_decile_shares(df, value_col, weight_col='Weight', n_groups=10):
 def secant_scalar(func, x0, x1, lb=None, ub=None, tol=1e-7, max_iter=50, expansion='multiplicative'):
     "Secant Root Finder with Bisection Fallback"
 
-    try:
-        f0 = func(x0)
+    x0_orig, x1_orig = x0, x1
+
+    f0 = func(x0)
+    f1 = func(x1)
+    for _ in range(max_iter):
+        if abs(f1 - f0) < 1e-14:
+            break
+        x2 = x1 - f1 * (x1 - x0) / (f1 - f0)
+
+        if lb is not None:
+            x2 = max(x2, lb)
+        if ub is not None:
+            x2 = min(x2, ub)
+
+        x0, f0, x1 = x1, f1, x2
         f1 = func(x1)
-        for _ in range(max_iter):
-            if abs(f1 - f0) < 1e-14:
-                break
-            x2 = x1 - f1 * (x1 - x0) / (f1 - f0)
 
-            if lb is not None:
-                x2 = max(x2, lb)
-            if ub is not None:
-                x2 = min(x2, ub)
-
-            x0, f0, x1 = x1, f1, x2
-            f1 = func(x1)
-
-            if abs(f1) < tol:
-                return x1
-
-        if abs(f1) < tol * 100:
+        if abs(f1) < tol:
             return x1
-        raise ValueError("Secant did not converge")
-
-    except (ValueError, FloatingPointError):
     
-        return bisect_scalar(func, x0, x1, expansion=expansion)
+    return bisect_scalar(func, x0_orig, x1_orig, expansion=expansion)
 
 
 
@@ -140,7 +135,17 @@ def bisect_scalar(func, a, b, args=(), expansion='multiplicative'):
             b = mid + step
 
     if fa * fb > 0:
-        raise ValueError("Bisection interval does not bracket a root.")
+        ε = 0.01
+        grid = np.arange(0.0, 1.0 - ε, 0.1)
+        f_grid = np.array([func(pt, *args) for pt in grid])
+        bracket_found = False
+        for i in range(len(grid) - 1):
+            if f_grid[i] * f_grid[i+1] < 0:
+                a, b = grid[i], grid[i+1]
+                bracket_found = True
+                break
+        if not bracket_found:
+            return grid[np.argmin(np.abs(f_grid))]
 
     return sp.optimize.brentq(func, a, b, args=args)
 

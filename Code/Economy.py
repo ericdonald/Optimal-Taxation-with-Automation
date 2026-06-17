@@ -493,7 +493,7 @@ class Economy:
             θ_AI[n] = θ_new
             #print(f'AI Experiment Threshold Rule: {θ_AI[n]}')
             τ_k_AI[n] = τ_new
-            #print(f'AI Experiment Threshold Rule: {τ_k_AI[n]}')
+            #print(f'AI Experiment Capital Tax: {τ_k_AI[n]}')
             
             
         qe.toc()

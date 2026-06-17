@@ -633,8 +633,13 @@ class Processor:
         Parametric_Results.add('Optimal Status Quo VAT Capital Tax Difference, Start', gpf.clean_round(dτ_k[0]*100, 1))
         Parametric_Results.add('Optimal Status Quo VAT Capital Tax Difference, End', gpf.clean_round(dτ_k[-1]*100, 1))
         
-        pd.DataFrame(vat_rows).to_csv(
-                        f'{self.Directory}/Results/Figures/StatusQuo_VAT_Graph.csv', index=False)
+        VAT_df = pd.DataFrame(vat_rows)
+        VAT_df.to_csv(f'{self.Directory}/Results/Figures/StatusQuo_VAT_Graph.csv', index=False)
+        
+        θ_vat_mean = VAT_df['Threshold Rule'].mean()
+        CE_vat_mean = VAT_df['CE Welfare Gain'].mean()
+        Parametric_Results.add('Optimal Status Quo VAT Threshold Rule, Average', gpf.clean_round(θ_vat_mean, 1))
+        Parametric_Results.add('Optimal Status Quo VAT Consumption Equivalence, Average', gpf.clean_round(CE_vat_mean, 2))
         
         
         Parametric_Results.to_csv(f'{self.Directory}/Results/Tables/Parametric_Results.csv')
@@ -738,7 +743,7 @@ class Processor:
                 E_init_AI_both = np.concatenate((c_0_AI_both, c_1_AI_both, l_AI_both, x_AI_both))
                 
                 ConEquiv_AI[n] = gpf.consumption_equiv(c_0_AI_both, c_1_AI_both, l_AI_both,
-                                                       c_0_AI, c_1_AI, l_AI, x_AI, *EQ_args)
+                                                       c_0_AI, c_1_AI, l_AI, *EQ_args)
                 
             return ConEquiv_AI
         
@@ -777,7 +782,7 @@ class Processor:
         # --------- #
         # Base Case #
         # --------- #
-        (τ_k_AI,) = self.E.AI_economy(1, 0, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.25, self.E.y_0, G_k, N_g)
+        (τ_k_AI,) = self.E.AI_economy(0, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.25, self.E.y_0, G_k, N_g)
         (θ_AI_both, τ_k_AI_both) = self.E.AI_economy(1, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.25, self.E.y_0, G_k, N_g)
         
         ConEquiv_AI = _ConEquiv_seq(τ_k_AI, θ_AI_both, τ_k_AI_both, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.25, self.E.y_0)
@@ -790,12 +795,12 @@ class Processor:
         # -------------- #
         # LAT Robustness #
         # -------------- #
-        (τ_k_AI_10,) = self.E.AI_economy(1, 0, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0, G_k, N_g)
+        (τ_k_AI_10,) = self.E.AI_economy(0, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0, G_k, N_g)
         (θ_AI_both_10, τ_k_AI_both_10) = self.E.AI_economy(1, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0, G_k, N_g)
         
         ConEquiv_AI_10 = _ConEquiv_seq(τ_k_AI_10, θ_AI_both_10, τ_k_AI_both_10, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0)
         
-        (τ_k_AI_50,) = self.E.AI_economy(1, 0, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0, G_k, N_g)
+        (τ_k_AI_50,) = self.E.AI_economy(0, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0, G_k, N_g)
         (θ_AI_both_50, τ_k_AI_both_50) = self.E.AI_economy(1, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0, G_k, N_g)
         
         ConEquiv_AI_50 = _ConEquiv_seq(τ_k_AI_50, θ_AI_both_50, τ_k_AI_both_50, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0)
@@ -814,7 +819,7 @@ class Processor:
         τ_vat = 25
         y_0_vat = self.E.y_0 * (100 - τ_vat)/100 + avg_y_0 * τ_vat/100
             
-        (τ_k_AI_vat,) = self.E.AI_economy(1, 0, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.25, y_0_vat, G_k, N_g)
+        (τ_k_AI_vat,) = self.E.AI_economy(0, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.25, y_0_vat, G_k, N_g)
         (θ_AI_both_vat, τ_k_AI_both_vat) = self.E.AI_economy(1, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.25, y_0_vat, G_k, N_g)
         
         ConEquiv_AI_vat = _ConEquiv_seq(τ_k_AI_vat, θ_AI_both_vat, τ_k_AI_both_vat, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.25, y_0_vat)
@@ -853,7 +858,7 @@ class Processor:
         # ----- #
         # Solve #
         # ----- #
-        (τ_k_AI_Felt,) = self.E.AI_economy(1, 0, ζ_AI_Felt, ν_AI_Felt, A_k_AI_Felt_base, A_j_AI_Felt_base, 0.25, self.E.y_0, G_k, N_g)
+        (τ_k_AI_Felt,) = self.E.AI_economy(0, 1, ζ_AI_Felt, ν_AI_Felt, A_k_AI_Felt_base, A_j_AI_Felt_base, 0.25, self.E.y_0, G_k, N_g)
         (θ_AI_Felt_both, τ_k_AI_Felt_both) = self.E.AI_economy(1, 1, ζ_AI_Felt, ν_AI_Felt, A_k_AI_Felt_base, A_j_AI_Felt_base, 0.25, self.E.y_0, G_k, N_g)
         
         ConEquiv_AI_Felt = _ConEquiv_seq(τ_k_AI_Felt, θ_AI_Felt_both, τ_k_AI_Felt_both, ζ_AI_Felt, ν_AI_Felt, A_k_AI_Felt_base, A_j_AI_Felt_base, 0.25, self.E.y_0)
@@ -892,7 +897,7 @@ class Processor:
         # ----- #
         # Solve #
         # ----- #
-        (τ_k_AI_Elond,) = self.E.AI_economy(1, 0, ζ_AI_Elond, ν_AI_Elond, A_k_AI_Elond_base, A_j_AI_Elond_base, 0.25, self.E.y_0, G_k, N_g)
+        (τ_k_AI_Elond,) = self.E.AI_economy(0, 1, ζ_AI_Elond, ν_AI_Elond, A_k_AI_Elond_base, A_j_AI_Elond_base, 0.25, self.E.y_0, G_k, N_g)
         (θ_AI_Elond_both, τ_k_AI_Elond_both) = self.E.AI_economy(1, 1, ζ_AI_Elond, ν_AI_Elond, A_k_AI_Elond_base, A_j_AI_Elond_base, 0.25, self.E.y_0, G_k, N_g)
         
         ConEquiv_AI_Elond = _ConEquiv_seq(τ_k_AI_Elond, θ_AI_Elond_both, τ_k_AI_Elond_both, ζ_AI_Elond, ν_AI_Elond, A_k_AI_Elond_base, A_j_AI_Elond_base, 0.25, self.E.y_0)
