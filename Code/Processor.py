@@ -585,16 +585,13 @@ class Processor:
         
         VAT_cases = [5, 25, 45, 65]
         vat_rows  = []
-        dτ_k = ()
         
         for τ_vat in VAT_cases:
             y_0_vat = self.E.y_0 * (100 - τ_vat)/100 + avg_y_0 * τ_vat/100
             
             (τ_k_sq_vat,) = self.E.Para_Solver(0, 1, y_0=y_0_vat)
             (θ_sq_vat_both, τ_k_sq_vat_both) = self.E.Para_Solver(1, 1, y_0=y_0_vat)
-                        
-            dτ_k += (τ_k_sq_vat - τ_k_sq_vat_both,)
-            
+                                    
             
             # ----------------- #
             # Derive Equilibria #
@@ -615,6 +612,7 @@ class Processor:
             vat_rows.append({'VAT': τ_vat,
                             'Capital Tax': gpf.clean_round(τ_k_sq_vat*100, 1),
                             'Capital Tax Both': gpf.clean_round(τ_k_sq_vat_both*100, 1),
+                            'dτ_k':             gpf.clean_round((τ_k_sq_vat - τ_k_sq_vat_both)*100, 1),
                             'Threshold Rule':   gpf.clean_round(θ_sq_vat_both*100, 1),
                             'CE Welfare Gain':  gpf.clean_round(ConEquiv_sq_vat, 2),})
             if τ_vat == 25:
@@ -629,17 +627,20 @@ class Processor:
                 Parametric_Results.add('Optimal Status Quo VAT DCOV, Both', gpf.clean_round(Δ_cov_vat_both, 1))
                 Parametric_Results.add('Optimal Status Quo VAT Consumption Equivalence, Both', gpf.clean_round(ConEquiv_sq_vat, 2))
 
-
-        Parametric_Results.add('Optimal Status Quo VAT Capital Tax Difference, Start', gpf.clean_round(dτ_k[0]*100, 1))
-        Parametric_Results.add('Optimal Status Quo VAT Capital Tax Difference, End', gpf.clean_round(dτ_k[-1]*100, 1))
         
         VAT_df = pd.DataFrame(vat_rows)
         VAT_df.to_csv(f'{self.Directory}/Results/Figures/StatusQuo_VAT_Graph.csv', index=False)
         
         θ_vat_mean = VAT_df['Threshold Rule'].mean()
+        dτ_k_vat_mean = VAT_df['dτ_k'].mean()
         CE_vat_mean = VAT_df['CE Welfare Gain'].mean()
+        
         Parametric_Results.add('Optimal Status Quo VAT Threshold Rule, Average', gpf.clean_round(θ_vat_mean, 1))
+        Parametric_Results.add('Optimal Status Quo VAT Capital Tax Difference, Average', gpf.clean_round(dτ_k_vat_mean, 1))
         Parametric_Results.add('Optimal Status Quo VAT Consumption Equivalence, Average', gpf.clean_round(CE_vat_mean, 2))
+        Parametric_Results.add('Optimal Status Quo VAT Capital Tax Difference, Start', gpf.clean_round(VAT_df['dτ_k'].iloc[0], 1))
+        Parametric_Results.add('Optimal Status Quo VAT Capital Tax Difference, End', gpf.clean_round(VAT_df['dτ_k'].iloc[-1], 1))
+        Parametric_Results.add('Optimal Status Quo VAT Consumption Equivalence, Change', gpf.clean_round(VAT_df['CE_vat_mean'].iloc[-1] - VAT_df['CE_vat_mean'].iloc[0], 2))
         
         
         Parametric_Results.to_csv(f'{self.Directory}/Results/Tables/Parametric_Results.csv')
@@ -748,6 +749,22 @@ class Processor:
                 
             return ConEquiv_AI / 100
         
+        
+        def _stat_helper(τ_k_AI, τ_k_AI_both, θ_AI_both, ConEquiv_AI, case=''):
+            
+            dτ_k_AI = τ_k_AI - τ_k_AI_both
+            θ_AI_mean = θ_AI_both.mean()
+            dτ_k_AI_mean = dτ_k_AI.mean()
+            CE_AI_mean = ConEquiv_AI.mean()
+            
+            AI_Experiment_Results.add(f'Optimal AI {case}Threshold Rule, Average', gpf.clean_round(θ_AI_mean, 1))
+            AI_Experiment_Results.add(f'Optimal AI {case}Capital Tax Difference, Average', gpf.clean_round(dτ_k_AI_mean, 1))
+            AI_Experiment_Results.add(f'Optimal AI {case}Consumption Equivalence, Average', gpf.clean_round(CE_AI_mean, 2))
+            AI_Experiment_Results.add(f'Optimal AI {case}Capital Tax Difference, Start', gpf.clean_round(dτ_k_AI[0], 1))
+            AI_Experiment_Results.add(f'Optimal AI {case}Capital Tax Difference, End', gpf.clean_round(dτ_k_AI[-1], 1))
+            AI_Experiment_Results.add(f'Optimal AI {case}Consumption Equivalence, Change', gpf.clean_round(ConEquiv_AI[-1] - ConEquiv_AI[0], 2))
+            
+        
         AI_growth = np.linspace(0, G_k, N_g)
         
         
@@ -789,8 +806,10 @@ class Processor:
         ConEquiv_AI = _ConEquiv_seq(τ_k_AI, θ_AI_both, τ_k_AI_both, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.25, self.E.y_0)
         
         DF_AI = pd.DataFrame(100*np.hstack((AI_growth.reshape((-1,1)), θ_AI_both.reshape((-1,1)), τ_k_AI.reshape((-1,1)), τ_k_AI_both.reshape((-1,1)), ConEquiv_AI.reshape((-1,1)))), 
-                             columns=['Growth', 'Threshold Rule', 'Capital Tax', 'Capital Tax, Both', 'Consumption Equivalence'])
+                             columns=['Growth', 'Threshold Rule', 'Capital Tax', 'Capital Tax Both', 'Consumption Equivalence'])
         DF_AI.to_csv(f'{self.Directory}/Results/Figures/AI_Experiment.csv', index=False)
+        
+        _stat_helper(τ_k_AI, τ_k_AI_both, θ_AI_both, ConEquiv_AI)
         
         
         # -------------- #
@@ -808,9 +827,12 @@ class Processor:
         
         DF_AI_LAT = pd.DataFrame(100*np.hstack((AI_growth.reshape((-1,1)), θ_AI_both_10.reshape((-1,1)), τ_k_AI_10.reshape((-1,1)), τ_k_AI_both_10.reshape((-1,1)), ConEquiv_AI_10.reshape((-1,1)),
                                                                         θ_AI_both_50.reshape((-1,1)), τ_k_AI_50.reshape((-1,1)), τ_k_AI_both_50.reshape((-1,1)), ConEquiv_AI_50.reshape((-1,1)))), 
-                             columns=['Growth', 'Threshold Rule, 10', 'Capital Tax, 10', 'Capital Tax, Both, 10', 'Consumption Equivalence, 10', 
-                                                'Threshold Rule, 50', 'Capital Tax, 50', 'Capital Tax, Both, 50', 'Consumption Equivalence, 50'])
+                             columns=['Growth', 'Threshold Rule 10', 'Capital Tax 10', 'Capital Tax Both 10', 'Consumption Equivalence 10', 
+                                                'Threshold Rule 50', 'Capital Tax 50', 'Capital Tax Both 50', 'Consumption Equivalence 50'])
         DF_AI_LAT.to_csv(f'{self.Directory}/Results/Figures/AI_Experiment_LAT.csv', index=False)
+        
+        _stat_helper(τ_k_AI_10, τ_k_AI_both_10, θ_AI_both_10, ConEquiv_AI_10, case='LAT 10 ')
+        _stat_helper(τ_k_AI_50, τ_k_AI_both_50, θ_AI_both_50, ConEquiv_AI_50, case='LAT 50 ')
         
         
         # -------------- #
@@ -826,8 +848,10 @@ class Processor:
         ConEquiv_AI_vat = _ConEquiv_seq(τ_k_AI_vat, θ_AI_both_vat, τ_k_AI_both_vat, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.25, y_0_vat)
         
         DF_AI_vat = pd.DataFrame(100*np.hstack((AI_growth.reshape((-1,1)), θ_AI_both_vat.reshape((-1,1)), τ_k_AI_vat.reshape((-1,1)), τ_k_AI_both_vat.reshape((-1,1)), ConEquiv_AI_vat.reshape((-1,1)))), 
-                             columns=['Growth', 'Threshold Rule, VAT', 'Capital Tax, VAT', 'Capital Tax, Both, VAT', 'Consumption Equivalence, VAT'])
+                             columns=['Growth', 'Threshold Rule VAT', 'Capital Tax VAT', 'Capital Tax Both VAT', 'Consumption Equivalence VAT'])
         DF_AI_vat.to_csv(f'{self.Directory}/Results/Figures/AI_Experiment_VAT.csv', index=False)
+        
+        _stat_helper(τ_k_AI_vat, τ_k_AI_both_vat, θ_AI_both_vat, ConEquiv_AI_vat, 'VAT ')
         
     
         # ----------------------------------------------------------------
@@ -865,8 +889,10 @@ class Processor:
         ConEquiv_AI_Felt = _ConEquiv_seq(τ_k_AI_Felt, θ_AI_Felt_both, τ_k_AI_Felt_both, ζ_AI_Felt, ν_AI_Felt, A_k_AI_Felt_base, A_j_AI_Felt_base, 0.25, self.E.y_0)
         
         DF_AI_Felt = pd.DataFrame(100*np.hstack((AI_growth.reshape((-1,1)), θ_AI_Felt_both.reshape((-1,1)), τ_k_AI_Felt.reshape((-1,1)), τ_k_AI_Felt_both.reshape((-1,1)), ConEquiv_AI_Felt.reshape((-1,1)))), 
-                             columns=['Growth', 'Threshold Rule, Felten', 'Capital Tax, Felten', 'Capital Tax, Both, Felten', 'Consumption Equivalence, Felten'])
+                             columns=['Growth', 'Threshold Rule Felten', 'Capital Tax Felten', 'Capital Tax Both Felten', 'Consumption Equivalence Felten'])
         DF_AI_Felt.to_csv(f'{self.Directory}/Results/Figures/AI_Experiment_Felten.csv', index=False)
+        
+        _stat_helper(τ_k_AI_Felt, τ_k_AI_Felt_both, θ_AI_Felt_both, ConEquiv_AI_Felt, 'Felten ')
         
         
         # ----------------------------------------------------------------
@@ -904,8 +930,10 @@ class Processor:
         ConEquiv_AI_Elond = _ConEquiv_seq(τ_k_AI_Elond, θ_AI_Elond_both, τ_k_AI_Elond_both, ζ_AI_Elond, ν_AI_Elond, A_k_AI_Elond_base, A_j_AI_Elond_base, 0.25, self.E.y_0)
         
         DF_AI = pd.DataFrame(100*np.hstack((AI_growth.reshape((-1,1)), θ_AI_Elond_both.reshape((-1,1)), τ_k_AI_Elond.reshape((-1,1)), τ_k_AI_Elond_both.reshape((-1,1)), ConEquiv_AI_Elond.reshape((-1,1)))), 
-                             columns=['Growth', 'Threshold Rule, Elondou', 'Capital Tax, Elondou', 'Capital Tax, Both, Elondou', 'Consumption Equivalence, Elondou'])
+                             columns=['Growth', 'Threshold Rule Elondou', 'Capital Tax Elondou', 'Capital Tax Both Elondou', 'Consumption Equivalence Elondou'])
         DF_AI.to_csv(f'{self.Directory}/Results/Figures/AI_Experiment_Elondou.csv', index=False)
+        
+        _stat_helper(τ_k_AI_Elond, τ_k_AI_Elond_both, θ_AI_Elond_both, ConEquiv_AI_Elond, 'Elondou ')
         
         
         AI_Experiment_Results.to_csv(f'{self.Directory}/Results/Tables/AI_Experiment_Results.csv')
