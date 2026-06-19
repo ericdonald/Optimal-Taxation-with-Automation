@@ -640,7 +640,7 @@ class Processor:
         Parametric_Results.add('Optimal Status Quo VAT Consumption Equivalence, Average', gpf.clean_round(CE_vat_mean, 2))
         Parametric_Results.add('Optimal Status Quo VAT Capital Tax Difference, Start', gpf.clean_round(VAT_df['dτ_k'].iloc[0], 1))
         Parametric_Results.add('Optimal Status Quo VAT Capital Tax Difference, End', gpf.clean_round(VAT_df['dτ_k'].iloc[-1], 1))
-        Parametric_Results.add('Optimal Status Quo VAT Consumption Equivalence, Change', gpf.clean_round(VAT_df['CE_vat_mean'].iloc[-1] - VAT_df['CE_vat_mean'].iloc[0], 2))
+        Parametric_Results.add('Optimal Status Quo VAT Consumption Equivalence, Change', gpf.clean_round(VAT_df['CE Welfare Gain'].iloc[-1] - VAT_df['CE Welfare Gain'].iloc[0], 2))
         
         
         Parametric_Results.to_csv(f'{self.Directory}/Results/Tables/Parametric_Results.csv')
