@@ -228,7 +228,7 @@ class Economy:
                 Optimal_θ_Root = lambda x: rt.Optimal_Para_Root(x, τ_k, Ψ, ψ, 'theta', E, *args, _cache=cache_θ)
                 θ_lower = θ/2
                 θ_upper = np.maximum(θ * 1.5, 1/3)
-                θ_new = gpf.secant_scalar(Optimal_θ_Root, θ_lower, θ_upper, expansion='additive')
+                θ_new = gpf.secant_scalar(Optimal_θ_Root, θ_lower, θ_upper, lb=-0.999, ub=2,  expansion='additive')
                 print(θ_new)
             else:
                 θ_new = 0
@@ -366,7 +366,7 @@ class Economy:
                 Optimal_θ_Root = lambda x: rt.Optimalθ_NL_Root(x, *θ_args)
                 θ_lower = θ/2
                 θ_upper = np.maximum(θ * 1.5, 1/3)
-                θ_new = gpf.secant_scalar(Optimal_θ_Root, θ_lower, θ_upper, expansion='additive')
+                θ_new = gpf.secant_scalar(Optimal_θ_Root, θ_lower, θ_upper, lb=-0.999, ub=2,  expansion='additive')
                 #print(θ_new)
             else:
                 θ_new = 0
@@ -447,7 +447,7 @@ class Economy:
                     Optimal_θ_Root = lambda x: rt.Optimal_Para_Root(x, τ_k, Ψ_AI, self.ψ, 'theta', E, *args, _cache=cache_θ)
                     θ_lower = θ/2
                     θ_upper = np.maximum(θ * 1.5, 1/3)
-                    θ_new = gpf.secant_scalar(Optimal_θ_Root, θ_lower, θ_upper, expansion='additive')
+                    θ_new = gpf.secant_scalar(Optimal_θ_Root, θ_lower, θ_upper, lb=-0.999, ub=2,  expansion='additive')
                     #print(θ_new)
                 else:
                     θ_new = 0
