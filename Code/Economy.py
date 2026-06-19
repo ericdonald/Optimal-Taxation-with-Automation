@@ -229,7 +229,7 @@ class Economy:
                 θ_lower = θ/2
                 θ_upper = np.maximum(θ * 1.5, 1/3)
                 θ_new = gpf.secant_scalar(Optimal_θ_Root, θ_lower, θ_upper, lb=-0.999, ub=2,  expansion='additive')
-                print(θ_new)
+                #print(θ_new)
             else:
                 θ_new = 0
             
@@ -240,7 +240,7 @@ class Economy:
             if τ_on == 1:
                 Optimal_τ_Root = lambda x: rt.Optimal_Para_Root(θ, x, Ψ, ψ, 'tau', E, *args, _cache=cache_τ)
                 τ_new = gpf.secant_scalar(Optimal_τ_Root, τ_k/2, τ_k * 1.5, ub=1, expansion='additive')
-                print(τ_new)
+                #print(τ_new)
             else:
                 τ_new = self.τ_k
             
@@ -272,10 +272,10 @@ class Economy:
                 break
             
             error_θ = np.abs(θ - θ_new)
-            print(f'Threshold Rule Error: {error_θ}')
+            #print(f'Threshold Rule Error: {error_θ}')
             
             error_τ = np.abs(τ_k - τ_new)
-            print(f'Capital Tax Error: {error_τ}')
+            #print(f'Capital Tax Error: {error_τ}')
             
             error_Ψ = np.abs(Ψ - Ψ_new)
             #print(f'Labor Tax Scale Error: {error_Ψ}')
