@@ -1031,10 +1031,10 @@ class Processor:
         # Mirrlees Problem #
         # ---------------- #
         E_eq = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq))
-        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr(E_eq, x_sq, 0)
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr(E_eq, x_sq, 0, 1/10)
         
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
-        (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr(E_NT, x_NT, 1)
+        (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr(E_NT, x_NT, 1, 1/10)
         
         MRS_c_NT = fn.cap_MRS(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
         L_NT = self.E.n * l_NT
