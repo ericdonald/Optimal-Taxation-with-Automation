@@ -959,41 +959,10 @@ class Processor:
         # ----------- #
         self.E.Calibrate()
         
-        
-        # ------------------ #
-        # Status Quo Optimum #
-        # ------------------ #
-        (τ_k_sq,) = self.E.Para_Solver(0, 1)
-        (θ_sq_both, τ_k_sq_both) = self.E.Para_Solver(1, 1, damp=1/4)
-        
-        ES_robust_Results.add('Low ES Status Quo Capital Tax', gpf.clean_round(τ_k_sq*100, 1))
-        ES_robust_Results.add('Low ES Status Quo Threshold Rule, Both', gpf.clean_round(θ_sq_both*100, 1))
-        ES_robust_Results.add('Low ES Status Quo Capital Tax, Both', gpf.clean_round(τ_k_sq_both*100, 1))
-        
-        # Derive Equilibria
         x_sq = self.E.var_κ * self.E.x_bar
         E_init = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, x_sq))
         EQ_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
-        
-        c_0_τ,    c_1_τ,    l_τ,    x_τ    = gpf.solve_eqbm(0, τ_k_sq, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *EQ_args)
-        c_0_both, c_1_both, l_both, x_both = gpf.solve_eqbm(θ_sq_both, τ_k_sq_both, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *EQ_args)
 
-        stats_τ    = gpf.alloc_stats(c_0_τ,    c_1_τ,    l_τ,    x_τ, self.E.y_0, *EQ_args)
-        stats_both = gpf.alloc_stats(c_0_both, c_1_both, l_both, x_both, self.E.y_0, *EQ_args)
-        
-        # Comparison Table 
-        Δ_ln_Λ_both, Δ_var_λ_both, Δ_cov_both = gpf.deltas(stats_both, stats_τ)
-        ConEquiv_both = gpf.consumption_equiv(c_0_both, c_1_both, l_both,
-                                           c_0_τ, c_1_τ, l_τ, *EQ_args)
-        
-        ES_robust_Results.add('Low ES Status Quo DLambda', gpf.clean_round(Δ_ln_Λ_both, 1))
-        ES_robust_Results.add('Low ES Status Quo DvarWW', gpf.clean_round(Δ_var_λ_both, 1))
-        ES_robust_Results.add('Low ES Status Quo DCOV', gpf.clean_round(Δ_cov_both, 1))
-        ES_robust_Results.add('Low ES Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv_both, 2))
-        
-        gpf.cov_dataframe(stats_both, 'Both', stats_τ, 'tau_k', self.E.n, self.E.J).to_csv(
-                        f'{self.Directory}/Results/Figures/ES_robust_StatusQuo_Covariance.csv', index=False)
-        
         
         # ------------------------ #
         # Status Quo Optimum + VAT #
@@ -1021,10 +990,42 @@ class Processor:
         ConEquiv_sq_vat = gpf.consumption_equiv(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both,
                                            c_0_sq_vat, c_1_sq_vat, l_sq_vat, *EQ_args)
     
-        ES_robust_Results.add('Low ES Status Quo VAT DLambda, Both', gpf.clean_round(Δ_ln_Λ_vat_both, 1))
-        ES_robust_Results.add('Low ES Status Quo VAT DvarWW, Both', gpf.clean_round(Δ_var_λ_vat_both, 1))
-        ES_robust_Results.add('Low ES Status Quo VAT DCOV, Both', gpf.clean_round(Δ_cov_vat_both, 1))
-        ES_robust_Results.add('Low ES Status Quo VAT Consumption Equivalence, Both', gpf.clean_round(ConEquiv_sq_vat, 2))
+        ES_robust_Results.add('Low ES Status Quo VAT DLambda', gpf.clean_round(Δ_ln_Λ_vat_both, 1))
+        ES_robust_Results.add('Low ES Status Quo VAT DvarWW', gpf.clean_round(Δ_var_λ_vat_both, 1))
+        ES_robust_Results.add('Low ES Status Quo VAT DCOV', gpf.clean_round(Δ_cov_vat_both, 1))
+        ES_robust_Results.add('Low ES Status Quo VAT Consumption Equivalence', gpf.clean_round(ConEquiv_sq_vat, 2))
+        
+        
+        # ------------------ #
+        # Status Quo Optimum #
+        # ------------------ #
+        E_vat = np.concatenate((c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both))
+        (τ_k_sq,) = self.E.Para_Solver(0, 1)
+        (θ_sq_both, τ_k_sq_both) = self.E.Para_Solver(1, 1, E=E_vat, damp=1/4)
+        
+        ES_robust_Results.add('Low ES Status Quo Capital Tax', gpf.clean_round(τ_k_sq*100, 1))
+        ES_robust_Results.add('Low ES Status Quo Threshold Rule, Both', gpf.clean_round(θ_sq_both*100, 1))
+        ES_robust_Results.add('Low ES Status Quo Capital Tax, Both', gpf.clean_round(τ_k_sq_both*100, 1))
+        
+        # Derive Equilibria        
+        c_0_τ,    c_1_τ,    l_τ,    x_τ    = gpf.solve_eqbm(0, τ_k_sq, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *EQ_args)
+        c_0_both, c_1_both, l_both, x_both = gpf.solve_eqbm(θ_sq_both, τ_k_sq_both, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *EQ_args)
+
+        stats_τ    = gpf.alloc_stats(c_0_τ,    c_1_τ,    l_τ,    x_τ, self.E.y_0, *EQ_args)
+        stats_both = gpf.alloc_stats(c_0_both, c_1_both, l_both, x_both, self.E.y_0, *EQ_args)
+        
+        # Comparison Table 
+        Δ_ln_Λ_both, Δ_var_λ_both, Δ_cov_both = gpf.deltas(stats_both, stats_τ)
+        ConEquiv_both = gpf.consumption_equiv(c_0_both, c_1_both, l_both,
+                                           c_0_τ, c_1_τ, l_τ, *EQ_args)
+        
+        ES_robust_Results.add('Low ES Status Quo DLambda', gpf.clean_round(Δ_ln_Λ_both, 1))
+        ES_robust_Results.add('Low ES Status Quo DvarWW', gpf.clean_round(Δ_var_λ_both, 1))
+        ES_robust_Results.add('Low ES Status Quo DCOV', gpf.clean_round(Δ_cov_both, 1))
+        ES_robust_Results.add('Low ES Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv_both, 2))
+        
+        gpf.cov_dataframe(stats_both, 'Both', stats_τ, 'tau_k', self.E.n, self.E.J).to_csv(
+                        f'{self.Directory}/Results/Figures/ES_robust_StatusQuo_Covariance.csv', index=False)
 
         
         # ---------------- #
@@ -1041,7 +1042,6 @@ class Processor:
         r_NT = fn.Rents(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
         τ_K_NT = np.median(1 - (MRS_c_NT + self.E.g) / (r_NT - self.E.δ))
         ES_robust_Results.add('Low ES Mirrlees Capital Tax', gpf.clean_round(τ_K_NT*100, 1))
-        
         
         ES_robust_Results.add('Low ES Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
     

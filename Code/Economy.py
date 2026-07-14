@@ -196,14 +196,15 @@ class Economy:
         
         
         
-    def Para_Solver(self, θ_on, τ_on, HC_on=0, y_0=None, damp=2/3, tol=1e-4, max_iter=10_000):
+    def Para_Solver(self, θ_on, τ_on, HC_on=0, y_0=None, E=None, damp=2/3, tol=1e-4, max_iter=10_000):
         "Solve Parametric Policy Problem"
         
         if y_0 is None:
             y_0 = self.y_0
         args = (self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ, self.J, self.n, y_0, self.β, self.var_θ, self.ε, self.δ, self.g, self.φ)
 
-        E = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, self.var_κ * self.x_bar))
+        if E is None:
+            E = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, self.var_κ * self.x_bar))
         θ = 0
         τ_k = self.τ_k
         Ψ = self.Ψ
@@ -228,7 +229,7 @@ class Economy:
                 Optimal_θ_Root = lambda x: rt.Optimal_Para_Root(x, τ_k, Ψ, ψ, 'theta', E, *args, _cache=cache_θ)
                 θ_lower = θ/2
                 θ_upper = np.maximum(θ * 1.5, 1/3)
-                θ_new = gpf.secant_scalar(Optimal_θ_Root, θ_lower, θ_upper, lb=-0.999, ub=2,  expansion='additive')
+                θ_new = gpf.secant_scalar(Optimal_θ_Root, θ_lower, θ_upper, lb=-0.999, ub=2, expansion='additive')
                 #print(θ_new)
             else:
                 θ_new = 0
