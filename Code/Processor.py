@@ -615,6 +615,7 @@ class Processor:
                             'dτ_k':             gpf.clean_round((τ_k_sq_vat - τ_k_sq_vat_both)*100, 1),
                             'Threshold Rule':   gpf.clean_round(θ_sq_vat_both*100, 1),
                             'CE Welfare Gain':  gpf.clean_round(ConEquiv_sq_vat, 2),})
+            
             if τ_vat == 25:
                 Parametric_Results.add('Optimal Status Quo VAT Capital Tax', gpf.clean_round(τ_k_sq_vat*100, 1))
                 Parametric_Results.add('Optimal Status Quo VAT Threshold Rule, Both', gpf.clean_round(θ_sq_vat_both*100, 1))
@@ -631,16 +632,14 @@ class Processor:
         VAT_df = pd.DataFrame(vat_rows)
         VAT_df.to_csv(f'{self.Directory}/Results/Figures/StatusQuo_VAT_Graph.csv', index=False)
         
-        θ_vat_mean = VAT_df['Threshold Rule'].mean()
-        dτ_k_vat_mean = VAT_df['dτ_k'].mean()
-        CE_vat_mean = VAT_df['CE Welfare Gain'].mean()
+        Parametric_Results.add('Optimal Status Quo VAT Threshold Rule, Start', gpf.clean_round(VAT_df['Threshold Rule'].iloc[0], 1))
+        Parametric_Results.add('Optimal Status Quo VAT Threshold Rule, End', gpf.clean_round(VAT_df['Threshold Rule'].iloc[-1], 1))
         
-        Parametric_Results.add('Optimal Status Quo VAT Threshold Rule, Average', gpf.clean_round(θ_vat_mean, 1))
-        Parametric_Results.add('Optimal Status Quo VAT Capital Tax Difference, Average', gpf.clean_round(dτ_k_vat_mean, 1))
-        Parametric_Results.add('Optimal Status Quo VAT Consumption Equivalence, Average', gpf.clean_round(CE_vat_mean, 2))
         Parametric_Results.add('Optimal Status Quo VAT Capital Tax Difference, Start', gpf.clean_round(VAT_df['dτ_k'].iloc[0], 1))
         Parametric_Results.add('Optimal Status Quo VAT Capital Tax Difference, End', gpf.clean_round(VAT_df['dτ_k'].iloc[-1], 1))
-        Parametric_Results.add('Optimal Status Quo VAT Consumption Equivalence, Change', gpf.clean_round(VAT_df['CE Welfare Gain'].iloc[-1] - VAT_df['CE Welfare Gain'].iloc[0], 2))
+        
+        Parametric_Results.add('Optimal Status Quo VAT Consumption Equivalence, Start', gpf.clean_round(VAT_df['CE Welfare Gain'].iloc[0], 2))
+        Parametric_Results.add('Optimal Status Quo VAT Consumption Equivalence, End', gpf.clean_round(VAT_df['CE Welfare Gain'].iloc[-1], 2))
         
         
         Parametric_Results.to_csv(f'{self.Directory}/Results/Tables/Parametric_Results.csv')
@@ -747,23 +746,23 @@ class Processor:
                 E_init_AI = np.concatenate((c_0_AI, c_1_AI, l_AI, x_AI))
                 E_init_AI_both = np.concatenate((c_0_AI_both, c_1_AI_both, l_AI_both, x_AI_both))
                 
-            return ConEquiv_AI / 100
+            return ConEquiv_AI
         
         
         def _stat_helper(τ_k_AI, τ_k_AI_both, θ_AI_both, ConEquiv_AI, case=''):
             
-            dτ_k_AI = τ_k_AI - τ_k_AI_both
-            θ_AI_mean = θ_AI_both.mean()
-            dτ_k_AI_mean = dτ_k_AI.mean()
-            CE_AI_mean = ConEquiv_AI.mean()
+            dτ_k_AI = (τ_k_AI - τ_k_AI_both) * 100 
+            θ_AI_both *= 100
             
-            AI_Experiment_Results.add(f'Optimal AI {case}Threshold Rule, Average', gpf.clean_round(θ_AI_mean, 1))
-            AI_Experiment_Results.add(f'Optimal AI {case}Capital Tax Difference, Average', gpf.clean_round(dτ_k_AI_mean, 1))
-            AI_Experiment_Results.add(f'Optimal AI {case}Consumption Equivalence, Average', gpf.clean_round(CE_AI_mean, 2))
+            AI_Experiment_Results.add(f'Optimal AI {case}Threshold Rule, Start', gpf.clean_round(θ_AI_both[0], 1))
+            AI_Experiment_Results.add(f'Optimal AI {case}Threshold Rule, End', gpf.clean_round(θ_AI_both[1], 1))
+            
             AI_Experiment_Results.add(f'Optimal AI {case}Capital Tax Difference, Start', gpf.clean_round(dτ_k_AI[0], 1))
             AI_Experiment_Results.add(f'Optimal AI {case}Capital Tax Difference, End', gpf.clean_round(dτ_k_AI[-1], 1))
-            AI_Experiment_Results.add(f'Optimal AI {case}Consumption Equivalence, Change', gpf.clean_round(ConEquiv_AI[-1] - ConEquiv_AI[0], 2))
             
+            AI_Experiment_Results.add(f'Optimal AI {case}Consumption Equivalence, Start', gpf.clean_round(ConEquiv_AI[0], 2))
+            AI_Experiment_Results.add(f'Optimal AI {case}Consumption Equivalence, End', gpf.clean_round(ConEquiv_AI[-1], 2))
+
         
         AI_growth = np.linspace(0, G_k, N_g)
         
