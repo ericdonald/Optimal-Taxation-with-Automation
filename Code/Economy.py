@@ -344,7 +344,7 @@ class Economy:
             # ---------------- #
             # Solve Inner Loop #
             # ---------------- #
-            E = gpf.inner_solve(w, r, E, args, error)
+            E = gpf.inner_solve(w, r, E, args, error, τ_k=(0.0 if θ_on == 1 else None))
             c_0 = E[:self.J]
             c_1 = E[self.J:2*self.J]
             l = E[2*self.J:3*self.J]

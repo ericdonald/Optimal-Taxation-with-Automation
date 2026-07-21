@@ -190,8 +190,80 @@ def broadcast_col_to_matrix(col):
 
 
 
-def inner_solve(w, r, E_0, args, error, max_inner_iter=1000):
+def _m_from_tau(τ_k, r, args):
+    "Common log consumption growth m consistent with a common capital tax τ_k"
+    δ, g, β, var_θ = args[2], args[3], args[6], args[7]
+    β_tilde = β / (1 - β * (1+g)**(1-var_θ))
+    R_tilde = (1-τ_k) * (r - δ) - g
+    return np.log(β_tilde * R_tilde) / var_θ
+
+
+
+def _expand(z, J, m_fix):
+    "Reduced z -> full E = [c_0, c_1, l]; returns (E, m)"
+    c_0 = z[:J]
+    l   = z[J:2*J]
+    m   = z[2*J] if m_fix is None else m_fix
+    c_1 = c_0 * np.exp(m)
+    return np.concatenate((c_0, c_1, l)), m
+
+
+
+def _reduce_grad(g_full, c_1, m, J, m_fix):
+    "Chain-rule a length-3J objective gradient down to the reduced vars"
+    g_c0, g_c1, g_l = g_full[:J], g_full[J:2*J], g_full[2*J:3*J]
+    g_c0p = g_c0 + np.exp(m) * g_c1
+    if m_fix is None:
+        g_m = np.array([np.sum(g_c1 * c_1)])
+        return np.concatenate((g_c0p, g_l, g_m))
+    return np.concatenate((g_c0p, g_l))
+
+
+
+def _reduce_jac(Jac_full, c_1, m, J, m_fix):
+    "Column-reduce a (rows, 3J) constraint Jacobian to the reduced vars"
+    Jc0, Jc1, Jl = Jac_full[:, :J], Jac_full[:, J:2*J], Jac_full[:, 2*J:3*J]
+    Jc0p = Jc0 + np.exp(m) * Jc1
+    if m_fix is None:
+        Jm = (Jc1 * c_1).sum(axis=1, keepdims=True)
+        return np.hstack((Jc0p, Jl, Jm))
+    return np.hstack((Jc0p, Jl))
+
+
+
+def obj_reduced(z, w, Δ, args, m_fix):
+    E, _ = _expand(z, args[-1], m_fix)
+    return rt.obj_fun(E, w, Δ, args)
+
+
+
+def obj_jac_reduced(z, w, Δ, args, m_fix):
+    J = args[-1]
+    E, m = _expand(z, J, m_fix)
+    return _reduce_grad(pr.obj_jac(E, w, Δ, args), E[J:2*J], m, J, m_fix)
+
+
+
+def eq_reduced(z, w, r, args, m_fix):
+    E, _ = _expand(z, args[-1], m_fix)
+    return rt.Equal_Constr(E, w, r, *args)
+
+
+
+def eq_jac_reduced(z, w, r, args, m_fix):
+    J = args[-1]
+    E, m = _expand(z, J, m_fix)
+    return _reduce_jac(pr.δEC_δX(E, w, r, *args), E[J:2*J], m, J, m_fix)
+
+
+
+def inner_solve(w, r, E_0, args, error, τ_k=None, max_inner_iter=1000):
     "Solve Inner Loop"
+    
+    J = args[-1]
+    var_θ = args[-4]
+    
+    m_fix = None if τ_k is None else _m_from_tau(τ_k, r, args)
     
     Pen_N = 1
     Pen_0 = np.sum(np.minimum(rt.Inequal_Constr(E_0, w, *args), 0)**2)
@@ -201,15 +273,12 @@ def inner_solve(w, r, E_0, args, error, max_inner_iter=1000):
         # ----- #
         # Solve #
         # ----- #
-        alloc = solve_planner(w, r, E_0, args, Pen_N, Pen_0, error)
+        alloc = solve_planner(w, r, E_0, args, Pen_N, Pen_0, error, m_fix=m_fix)
 
 
         # --------------------- #
         # Scan for IC Violation #
         # --------------------- #
-        J = args[-1]
-        var_θ = args[-4]
-        
         IC_full = -np.minimum(rt.Inequal_Constr(alloc, w, *args), 0.0)
         IC_max = IC_full.max(axis=1)
         Pen_0 = np.sum(IC_full**2)
@@ -236,7 +305,7 @@ def inner_solve(w, r, E_0, args, error, max_inner_iter=1000):
 
 
 
-def solve_planner(w, r, E_0, args, Pen_N, Pen_0, error):
+def solve_planner(w, r, E_0, args, Pen_N, Pen_0, error, m_fix=None):
     "Solve Mirrlees with Normalized Penalty"
     
     J = args[-1]
@@ -245,32 +314,46 @@ def solve_planner(w, r, E_0, args, Pen_N, Pen_0, error):
     maxiter = 20 if error > 1e-2 else 100
     
     
+    # -------------------- #
+    # Build Reduced Vector #
+    # -------------------- #
+    c_0_0 = E_0[:J]
+    l_0   = E_0[2*J:3*J]
+    if m_fix is None:
+        m_0 = np.median(np.log(E_0[J:2*J] / c_0_0))
+        z_0 = np.concatenate((c_0_0, l_0, np.array([m_0])))
+        lb  = np.concatenate((np.ones(2*J),      np.array([-10.0])))
+        ub  = np.concatenate((np.ones(2*J)*1e4,  np.array([ 10.0])))
+    else:
+        z_0 = np.concatenate((c_0_0, l_0))
+        lb  = np.ones(2*J)
+        ub  = np.ones(2*J)*1e4
+        
+    
     # ------------------ #
     # Define Constraints #
     # ------------------ #
-    eq_fun = lambda x: rt.Equal_Constr(x, w, r, *args)
-    eq_jac = lambda x: pr.δEC_δX(x, w, r, *args)
-    
-    obj_pen_fun = lambda x: rt.obj_fun(x, w, Δ, args)
-    obj_pen_jac = lambda x: pr.obj_jac(x, w, Δ, args)
+    obj_pen_fun = lambda z: obj_reduced(z, w, Δ, args, m_fix)
+    obj_pen_jac = lambda z: obj_jac_reduced(z, w, Δ, args, m_fix)
+    eq_fun      = lambda z: eq_reduced(z, w, r, args, m_fix)
+    eq_jac      = lambda z: eq_jac_reduced(z, w, r, args, m_fix)
     
     eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
-    
-    bounds = sp.optimize.Bounds(np.ones(3 * J), np.ones(3 * J)*1e4)
+    bounds  = sp.optimize.Bounds(lb, ub)
     
     
     # ----- #
     # Solve #
     # ----- #
-
-    opt = cp.minimize_ipopt(obj_pen_fun, E_0, jac=obj_pen_jac,
+    opt = cp.minimize_ipopt(obj_pen_fun, z_0, jac=obj_pen_jac,
                             bounds=bounds, constraints=[eq_cons],
                             options={'maxiter': maxiter,
                                  'hessian_approximation': 'limited-memory',
                                  'print_level': 0,
                                  'sb': 'yes'})
     
-    return opt.x
+    E, _ = _expand(opt.x, J, m_fix)
+    return E
 
 
 

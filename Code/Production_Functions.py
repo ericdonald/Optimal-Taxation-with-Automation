@@ -121,9 +121,11 @@ def lab_MRS(c_1, l, β, var_θ, φ, ε, g):
 @njit
 def cap_MRS(c_0, c_1, β, var_θ, ε, g):
     "Marginal Rate of Substitution of Capital"
-
+    
+    β_tilde = β / (1 - β * (1+g)**(1-var_θ))
+    
     MU_0 = c_0**(-var_θ)
-    MU_1 = c_1**(-var_θ) * (β / (1-β*(1+g)**(1-var_θ)))
+    MU_1 = c_1**(-var_θ) * β_tilde
     
     return MU_0 / MU_1
 
