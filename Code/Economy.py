@@ -395,15 +395,6 @@ class Economy:
             r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
         
         
-        # ------------ #
-        # Final Polish #
-        # ------------ #
-        E = gpf.inner_solve(w, r, E, args, tol/100)
-        c_0 = E[:self.J]
-        c_1 = E[self.J:2*self.J]
-        l   = E[2*self.J:3*self.J]
-        K   = Y_bar - np.sum(self.n * c_0)
-        
         qe.toc()
         print("Mirrlees Solution Found")
         
