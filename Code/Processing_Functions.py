@@ -114,11 +114,11 @@ def secant_scalar(func, x0, x1, lb=None, ub=None, tol=1e-7, max_iter=50, expansi
         if abs(f1) < tol:
             return x1
     
-    return bisect_scalar(func, x0_orig, x1_orig, expansion=expansion)
+    return bisect_scalar(func, x0_orig, x1_orig, expansion=expansion, lb=lb, ub=ub)
 
 
 
-def bisect_scalar(func, a, b, args=(), expansion='multiplicative'):
+def bisect_scalar(func, a, b, args=(), expansion='multiplicative', lb=None, ub=None):
     "Scalar Bisection"
     
     for _ in range(20):
@@ -133,10 +133,16 @@ def bisect_scalar(func, a, b, args=(), expansion='multiplicative'):
             step = b - a
             a = mid - step
             b = mid + step
+        if lb is not None:
+            a = max(a, lb)
+        if ub is not None:
+            b = min(b, ub)
 
     if fa * fb > 0:
         ε = 0.01
-        grid = np.arange(0.0, 1.0 - ε, 0.1)
+        g_lo = 0.0 if lb is None else lb
+        g_hi = (1.0 - ε) if ub is None else ub
+        grid = np.arange(g_lo, g_hi, 0.1)
         f_grid = np.array([func(pt, *args) for pt in grid])
         bracket_found = False
         for i in range(len(grid) - 1):
@@ -190,81 +196,66 @@ def broadcast_col_to_matrix(col):
 
 
 
-def _m_from_tau(τ_k, r, args):
-    "Common log consumption growth m consistent with a common capital tax τ_k"
-    δ, g, β, var_θ = args[2], args[3], args[6], args[7]
-    β_tilde = β / (1 - β * (1+g)**(1-var_θ))
-    R_tilde = (1-τ_k) * (r - δ) - g
-    return np.log(β_tilde * R_tilde) / var_θ
-
-
-
-def _expand(z, J, m_fix):
+def _expand(z, J):
     "Reduced z -> full E = [c_0, c_1, l]; returns (E, m)"
     c_0 = z[:J]
     l   = z[J:2*J]
-    m   = z[2*J] if m_fix is None else m_fix
+    m   = z[2*J]
     c_1 = c_0 * np.exp(m)
     return np.concatenate((c_0, c_1, l)), m
 
 
 
-def _reduce_grad(g_full, c_1, m, J, m_fix):
+def _reduce_grad(g_full, c_1, m, J):
     "Chain-rule a length-3J objective gradient down to the reduced vars"
     g_c0, g_c1, g_l = g_full[:J], g_full[J:2*J], g_full[2*J:3*J]
     g_c0p = g_c0 + np.exp(m) * g_c1
-    if m_fix is None:
-        g_m = np.array([np.sum(g_c1 * c_1)])
-        return np.concatenate((g_c0p, g_l, g_m))
-    return np.concatenate((g_c0p, g_l))
+    g_m = np.array([np.sum(g_c1 * c_1)])
+    return np.concatenate((g_c0p, g_l, g_m))
 
 
 
-def _reduce_jac(Jac_full, c_1, m, J, m_fix):
+def _reduce_jac(Jac_full, c_1, m, J):
     "Column-reduce a (rows, 3J) constraint Jacobian to the reduced vars"
     Jc0, Jc1, Jl = Jac_full[:, :J], Jac_full[:, J:2*J], Jac_full[:, 2*J:3*J]
     Jc0p = Jc0 + np.exp(m) * Jc1
-    if m_fix is None:
-        Jm = (Jc1 * c_1).sum(axis=1, keepdims=True)
-        return np.hstack((Jc0p, Jl, Jm))
-    return np.hstack((Jc0p, Jl))
+    Jm = (Jc1 * c_1).sum(axis=1, keepdims=True)
+    return np.hstack((Jc0p, Jl, Jm))
 
 
 
-def obj_reduced(z, w, Δ, args, m_fix):
-    E, _ = _expand(z, args[-1], m_fix)
+def obj_reduced(z, w, Δ, args):
+    E, _ = _expand(z, args[-1])
     return rt.obj_fun(E, w, Δ, args)
 
 
 
-def obj_jac_reduced(z, w, Δ, args, m_fix):
+def obj_jac_reduced(z, w, Δ, args):
     J = args[-1]
-    E, m = _expand(z, J, m_fix)
-    return _reduce_grad(pr.obj_jac(E, w, Δ, args), E[J:2*J], m, J, m_fix)
+    E, m = _expand(z, J)
+    return _reduce_grad(pr.obj_jac(E, w, Δ, args), E[J:2*J], m, J)
 
 
 
-def eq_reduced(z, w, r, args, m_fix):
-    E, _ = _expand(z, args[-1], m_fix)
+def eq_reduced(z, w, r, args):
+    E, _ = _expand(z, args[-1])
     return rt.Equal_Constr(E, w, r, *args)
 
 
 
-def eq_jac_reduced(z, w, r, args, m_fix):
+def eq_jac_reduced(z, w, r, args):
     J = args[-1]
-    E, m = _expand(z, J, m_fix)
-    return _reduce_jac(pr.δEC_δX(E, w, r, *args), E[J:2*J], m, J, m_fix)
+    E, m = _expand(z, J)
+    return _reduce_jac(pr.δEC_δX(E, w, r, *args), E[J:2*J], m, J)
 
 
 
-def inner_solve(w, r, E_0, args, error, τ_k=None, max_inner_iter=1000):
+def inner_solve(w, r, E_0, args, error, max_inner_iter=1000):
     "Solve Inner Loop"
     
     J = args[-1]
     var_θ = args[-4]
-    
-    m_fix = None if τ_k is None else _m_from_tau(τ_k, r, args)
-    
+        
     Pen_N = 1
     Pen_0 = np.sum(np.minimum(rt.Inequal_Constr(E_0, w, *args), 0)**2)
     
@@ -273,7 +264,7 @@ def inner_solve(w, r, E_0, args, error, τ_k=None, max_inner_iter=1000):
         # ----- #
         # Solve #
         # ----- #
-        alloc = solve_planner(w, r, E_0, args, Pen_N, Pen_0, error, m_fix=m_fix)
+        alloc = solve_planner(w, r, E_0, args, Pen_N, Pen_0, error)
 
 
         # --------------------- #
@@ -288,7 +279,7 @@ def inner_solve(w, r, E_0, args, error, τ_k=None, max_inner_iter=1000):
         deviat = IC_max / (MU_0 * c_0)
 
         viols = (deviat > np.minimum(error, 1.0))
-        #print(f'IC Violation: {np.max(deviat)}')
+        print(f'IC Violation: {np.max(deviat)}')
 
         if not viols.any():
             break
@@ -305,7 +296,7 @@ def inner_solve(w, r, E_0, args, error, τ_k=None, max_inner_iter=1000):
 
 
 
-def solve_planner(w, r, E_0, args, Pen_N, Pen_0, error, m_fix=None):
+def solve_planner(w, r, E_0, args, Pen_N, Pen_0, error):
     "Solve Mirrlees with Normalized Penalty"
     
     J = args[-1]
@@ -319,24 +310,20 @@ def solve_planner(w, r, E_0, args, Pen_N, Pen_0, error, m_fix=None):
     # -------------------- #
     c_0_0 = E_0[:J]
     l_0   = E_0[2*J:3*J]
-    if m_fix is None:
-        m_0 = np.median(np.log(E_0[J:2*J] / c_0_0))
-        z_0 = np.concatenate((c_0_0, l_0, np.array([m_0])))
-        lb  = np.concatenate((np.ones(2*J),      np.array([-10.0])))
-        ub  = np.concatenate((np.ones(2*J)*1e4,  np.array([ 10.0])))
-    else:
-        z_0 = np.concatenate((c_0_0, l_0))
-        lb  = np.ones(2*J)
-        ub  = np.ones(2*J)*1e4
+    m_0 = np.median(np.log(E_0[J:2*J] / c_0_0))
+    z_0 = np.concatenate((c_0_0, l_0, np.array([m_0])))
+    lb  = np.concatenate((np.ones(2*J),      np.array([-10.0])))
+    ub  = np.concatenate((np.ones(2*J)*1e4,  np.array([ 10.0])))
+    
         
     
     # ------------------ #
     # Define Constraints #
     # ------------------ #
-    obj_pen_fun = lambda z: obj_reduced(z, w, Δ, args, m_fix)
-    obj_pen_jac = lambda z: obj_jac_reduced(z, w, Δ, args, m_fix)
-    eq_fun      = lambda z: eq_reduced(z, w, r, args, m_fix)
-    eq_jac      = lambda z: eq_jac_reduced(z, w, r, args, m_fix)
+    obj_pen_fun = lambda z: obj_reduced(z, w, Δ, args)
+    obj_pen_jac = lambda z: obj_jac_reduced(z, w, Δ, args)
+    eq_fun      = lambda z: eq_reduced(z, w, r, args)
+    eq_jac      = lambda z: eq_jac_reduced(z, w, r, args)
     
     eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
     bounds  = sp.optimize.Bounds(lb, ub)
@@ -352,7 +339,7 @@ def solve_planner(w, r, E_0, args, Pen_N, Pen_0, error, m_fix=None):
                                  'print_level': 0,
                                  'sb': 'yes'})
     
-    E, _ = _expand(opt.x, J, m_fix)
+    E, _ = _expand(opt.x, J)
     return E
 
 
