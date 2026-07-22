@@ -398,7 +398,7 @@ class Economy:
         # ------------ #
         # Final Polish #
         # ------------ #
-        E = gpf.inner_solve(w, r, E, args, tol/100)
+        E = gpf.inner_solve(w, r, E, args, tol)
         c_0 = E[:self.J]
         c_1 = E[self.J:2*self.J]
         l   = E[2*self.J:3*self.J]
