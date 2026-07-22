@@ -311,7 +311,7 @@ def solve_planner(w, r, E_0, args, Pen_N, Pen_0, error, m_fix=None):
     J = args[-1]
     W_0 = rt.Mir_obj(E_0, *args)
     Δ = Pen_N * np.abs(W_0) / (Pen_0 + 1e-12)
-    maxiter = 20 if error > 1e-2 else 100
+    maxiter = 20 if error > 1 else 100
     
     
     # -------------------- #
