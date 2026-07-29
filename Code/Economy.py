@@ -372,7 +372,7 @@ class Economy:
             else:
                 θ_new = 0
             
-            x_new = ((w / self.A_j) / ((1+θ_new) * r / self.A_k))**(1/self.ζ)
+            x_new = ((w / self.A_j) / ((1+θ) * r / self.A_k))**(1/self.ζ)
             
             
             # ---------------------------- #
