@@ -530,7 +530,7 @@ def δEC_δX(E, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     
  
 @njit
-def δIC_δX(E, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
+def δIC_δX(E, w, η, Δ, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     "Jacobian of Penalty Inequality Constraints"
     
     c_0 = E[:J]
@@ -538,7 +538,8 @@ def δIC_δX(E, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     l = E[2*J:3*J]
     
     IC_mat = rt.Inequal_Constr(E, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J)
-    viols = (IC_mat <= 0.0)
+    KKT = -(η - Δ * IC_mat)
+    viols = (KKT <= 0.0)
    
     # ----------------- #
     # Derivatives of IC #
@@ -550,16 +551,16 @@ def δIC_δX(E, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
             if viols[i,j] == True:
                 
                 #   wrt to c_0
-                grad[i] += 2 * IC_mat[i,j] * c_0[i]**(-var_θ)
-                grad[j] += 2 * IC_mat[i,j] * (-c_0[j]**(-var_θ))
+                grad[i] += KKT * c_0[i]**(-var_θ)
+                grad[j] += KKT * (-c_0[j]**(-var_θ))
                 
                 #   wrt to c_1
-                grad[J+i] += 2 * IC_mat[i,j] * (β/(1-β*(1+g)**(1-var_θ))) * c_1[i]**(-var_θ)
-                grad[J+j] += 2 * IC_mat[i,j] * (-β/(1-β*(1+g)**(1-var_θ))) * c_1[j]**(-var_θ)
+                grad[J+i] += KKT * (β/(1-β*(1+g)**(1-var_θ))) * c_1[i]**(-var_θ)
+                grad[J+j] += KKT * (-β/(1-β*(1+g)**(1-var_θ))) * c_1[j]**(-var_θ)
     
                 #   wrt to l
-                grad[2*J+i] += 2 * IC_mat[i,j] * (-β/(1-β)) * φ[i] * l[i]**(1/ε)
-                grad[2*J+j] += 2 * IC_mat[i,j] * (β/(1-β)) * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε)
+                grad[2*J+i] += KKT * (-β/(1-β)) * φ[i] * l[i]**(1/ε)
+                grad[2*J+j] += KKT * (β/(1-β)) * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε)
                 
     
     return grad
@@ -567,13 +568,13 @@ def δIC_δX(E, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     
 
 @njit
-def obj_jac(E, w, Δ, args):
+def obj_jac(E, w, η, Δ, args):
     "Jacobian of Penalized Objective"
     
     W_jac = δObj_δX(E, *args)
-    grad_pen_IC = δIC_δX(E, w, *args)
+    grad_pen_IC = δIC_δX(E, w, η, Δ, *args)
 
-    return -(W_jac - Δ * grad_pen_IC)
+    return -(W_jac - grad_pen_IC)
 
 
 

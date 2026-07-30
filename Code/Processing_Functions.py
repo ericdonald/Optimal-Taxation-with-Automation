@@ -224,16 +224,16 @@ def _reduce_jac(Jac_full, c_1, m, J):
 
 
 
-def obj_reduced(z, w, Δ, args):
+def obj_reduced(z, w, η, Δ, args):
     E, _ = _expand(z, args[-1])
-    return rt.obj_fun(E, w, Δ, args)
+    return rt.obj_fun(E, w, η, Δ, args)
 
 
 
-def obj_jac_reduced(z, w, Δ, args):
+def obj_jac_reduced(z, w, η, Δ, args):
     J = args[-1]
     E, m = _expand(z, J)
-    return _reduce_grad(pr.obj_jac(E, w, Δ, args), E[J:2*J], m, J)
+    return _reduce_grad(pr.obj_jac(E, w, η, Δ, args), E[J:2*J], m, J)
 
 
 
@@ -250,29 +250,29 @@ def eq_jac_reduced(z, w, r, args):
 
 
 
-def inner_solve(w, r, E_0, args, error, max_inner_iter=1000):
+def inner_solve(w, r, E_0, args, error, max_inner_iter=100, Δ=1e2, ρ=5.0, max_Δ=1e6):
     "Solve Inner Loop"
     
     J = args[-1]
     var_θ = args[-4]
         
-    Pen_N = 1
-    Pen_0 = np.sum(np.minimum(rt.Inequal_Constr(E_0, w, *args), 0)**2)
+    η = np.zeros((J, J))
+    IC_prev = np.inf
     
     for _ in range(max_inner_iter):
 
         # ----- #
         # Solve #
         # ----- #
-        alloc = solve_planner(w, r, E_0, args, Pen_N, Pen_0, error)
+        alloc = solve_planner(w, r, E_0, args, η, Δ, error)
 
 
         # --------------------- #
         # Scan for IC Violation #
         # --------------------- #
-        IC_full = -np.minimum(rt.Inequal_Constr(alloc, w, *args), 0.0)
+        IC_mat = rt.Inequal_Constr(alloc, w, *args)
+        IC_full = -np.minimum(IC_mat, 0.0)
         IC_max = IC_full.max(axis=1)
-        Pen_0 = np.sum(IC_full**2)
         c_0 = alloc[:J]
         MU_0 = c_0**(-var_θ)
         
@@ -288,21 +288,32 @@ def inner_solve(w, r, E_0, args, error, max_inner_iter=1000):
         # ------ #
         # Update #
         # ------ #
+        KKT = η - Δ * IC_mat
+        η = np.maximum(0.0, KKT)
+        
+        IC_now = IC_full.max()
+        if IC_now > 0.25 * IC_prev and Δ < max_Δ:
+            Δ = min(Δ * ρ, max_Δ)
+        IC_prev = IC_now
+        
         E_0 = alloc.copy()
-        Pen_N += 1
         
 
     return alloc
 
 
 
-def solve_planner(w, r, E_0, args, Pen_N, Pen_0, error):
+def solve_planner(w, r, E_0, args, η, Δ, error):
     "Solve Mirrlees with Normalized Penalty"
     
     J = args[-1]
-    W_0 = rt.Mir_obj(E_0, *args)
-    Δ = Pen_N * np.abs(W_0) / (Pen_0 + 1e-12)
-    maxiter = 20 if error > 1 else 100
+    
+    if error > 1:
+        maxiter = 20
+    elif error > 1e-2:
+        maxiter = 100
+    else:
+        maxiter = 500
     
     
     # -------------------- #
@@ -320,8 +331,8 @@ def solve_planner(w, r, E_0, args, Pen_N, Pen_0, error):
     # ------------------ #
     # Define Constraints #
     # ------------------ #
-    obj_pen_fun = lambda z: obj_reduced(z, w, Δ, args)
-    obj_pen_jac = lambda z: obj_jac_reduced(z, w, Δ, args)
+    obj_pen_fun = lambda z: obj_reduced(z, w, η, Δ, args)
+    obj_pen_jac = lambda z: obj_jac_reduced(z, w, η, Δ, args)
     eq_fun      = lambda z: eq_reduced(z, w, r, args)
     eq_jac      = lambda z: eq_jac_reduced(z, w, r, args)
     

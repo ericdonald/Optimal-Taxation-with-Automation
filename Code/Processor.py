@@ -1000,7 +1000,7 @@ class Processor:
         # ------------------ #
         E_vat = np.concatenate((c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both))
         (τ_k_sq,) = self.E.Para_Solver(0, 1)
-        (θ_sq_both, τ_k_sq_both) = self.E.Para_Solver(1, 1, E=E_vat, damp=1/4)
+        (θ_sq_both, τ_k_sq_both) = self.E.Para_Solver(1, 1, E=E_vat, θ_init=θ_sq_vat_both, τ_k_init=τ_k_sq_vat_both, damp=1/4)
         
         ES_robust_Results.add('Low ES Status Quo Capital Tax', gpf.clean_round(τ_k_sq*100, 1))
         ES_robust_Results.add('Low ES Status Quo Threshold Rule, Both', gpf.clean_round(θ_sq_both*100, 1))
@@ -1008,7 +1008,7 @@ class Processor:
         
         # Derive Equilibria        
         c_0_τ,    c_1_τ,    l_τ,    x_τ    = gpf.solve_eqbm(0, τ_k_sq, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *EQ_args)
-        c_0_both, c_1_both, l_both, x_both = gpf.solve_eqbm(θ_sq_both, τ_k_sq_both, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *EQ_args)
+        c_0_both, c_1_both, l_both, x_both = gpf.solve_eqbm(θ_sq_both, τ_k_sq_both, self.E.Ψ, self.E.ψ, self.E.y_0, E_vat, *EQ_args)
 
         stats_τ    = gpf.alloc_stats(c_0_τ,    c_1_τ,    l_τ,    x_τ, self.E.y_0, *EQ_args)
         stats_both = gpf.alloc_stats(c_0_both, c_1_both, l_both, x_both, self.E.y_0, *EQ_args)

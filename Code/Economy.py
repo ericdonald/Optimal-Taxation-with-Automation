@@ -196,7 +196,7 @@ class Economy:
         
         
         
-    def Para_Solver(self, θ_on, τ_on, HC_on=0, y_0=None, E=None, damp=2/3, tol=1e-4, max_iter=10_000):
+    def Para_Solver(self, θ_on, τ_on, HC_on=0, y_0=None, E=None, θ_init=0.0, τ_k_init=None, damp=2/3, tol=1e-4, max_iter=10_000):
         "Solve Parametric Policy Problem"
         
         if y_0 is None:
@@ -205,8 +205,8 @@ class Economy:
 
         if E is None:
             E = np.concatenate((self.c_0_sq, self.c_1_sq, self.l_j_sq, self.var_κ * self.x_bar))
-        θ = 0
-        τ_k = self.τ_k
+        θ = θ_init
+        τ_k = self.τ_k if τ_k_init is None else τ_k_init
         Ψ = self.Ψ
         ψ = self.ψ
         

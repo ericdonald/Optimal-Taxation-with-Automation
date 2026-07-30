@@ -373,16 +373,16 @@ def Inequal_Constr(E, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
 
 
 @njit
-def obj_fun(E, w, Δ, args):
+def obj_fun(E, w, η, Δ, args):
     "Penalized Objective Function"
     
     W = Mir_obj(E, *args)
     IC_mat = Inequal_Constr(E, w, *args)
     
-    viol = np.minimum(IC_mat, 0.0)
-    pen = np.sum(viol**2)
+    KKT = np.maximum(0.0, η - Δ * IC_mat)
+    pen = np.sum(KKT**2 - η**2) / (2.0 * Δ)
 
-    return -(W - Δ * pen)
+    return -(W - pen)
 
 
 
