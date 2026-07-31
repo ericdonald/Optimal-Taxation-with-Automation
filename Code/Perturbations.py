@@ -551,16 +551,16 @@ def δIC_δX(E, w, η, Δ, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
             if viols[i,j] == True:
                 
                 #   wrt to c_0
-                grad[i] += KKT * c_0[i]**(-var_θ)
-                grad[j] += KKT * (-c_0[j]**(-var_θ))
+                grad[i] += KKT[i,j] * c_0[i]**(-var_θ)
+                grad[j] += KKT[i,j] * (-c_0[j]**(-var_θ))
                 
                 #   wrt to c_1
-                grad[J+i] += KKT * (β/(1-β*(1+g)**(1-var_θ))) * c_1[i]**(-var_θ)
-                grad[J+j] += KKT * (-β/(1-β*(1+g)**(1-var_θ))) * c_1[j]**(-var_θ)
+                grad[J+i] += KKT[i,j] * (β/(1-β*(1+g)**(1-var_θ))) * c_1[i]**(-var_θ)
+                grad[J+j] += KKT[i,j] * (-β/(1-β*(1+g)**(1-var_θ))) * c_1[j]**(-var_θ)
     
                 #   wrt to l
-                grad[2*J+i] += KKT * (-β/(1-β)) * φ[i] * l[i]**(1/ε)
-                grad[2*J+j] += KKT * (β/(1-β)) * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε)
+                grad[2*J+i] += KKT[i,j] * (-β/(1-β)) * φ[i] * l[i]**(1/ε)
+                grad[2*J+j] += KKT[i,j] * (β/(1-β)) * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε)
                 
     
     return grad

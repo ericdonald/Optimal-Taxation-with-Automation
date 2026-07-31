@@ -333,6 +333,8 @@ class Economy:
         w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
         r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
         error = 1.0
+        
+        η = np.zeros((self.J, self.J))
                 
         
         # ---------- #
@@ -344,7 +346,7 @@ class Economy:
             # ---------------- #
             # Solve Inner Loop #
             # ---------------- #
-            E = gpf.inner_solve(w, r, E, args, error)
+            E, η = gpf.inner_solve(w, r, E, η, args, error)
             c_0 = E[:self.J]
             c_1 = E[self.J:2*self.J]
             l = E[2*self.J:3*self.J]
@@ -398,7 +400,7 @@ class Economy:
         # ------------ #
         # Final Polish #
         # ------------ #
-        E = gpf.inner_solve(w, r, E, args, tol)
+        E, η = gpf.inner_solve(w, r, E, η, args, tol)
         c_0 = E[:self.J]
         c_1 = E[self.J:2*self.J]
         l   = E[2*self.J:3*self.J]
