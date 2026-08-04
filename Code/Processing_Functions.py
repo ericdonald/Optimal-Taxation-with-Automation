@@ -224,16 +224,16 @@ def _reduce_jac(Jac_full, c_1, m, J):
 
 
 
-def obj_reduced(z, w, η, Δ, WS, args):
+def obj_reduced(z, args):
     E, _ = _expand(z, args[-1])
-    return rt.obj_fun(E, w, η, Δ, WS, args)
+    return -rt.Mir_obj(E, *args)
 
 
 
-def obj_jac_reduced(z, w, η, Δ, WS, args):
+def obj_jac_reduced(z, args):
     J = args[-1]
     E, m = _expand(z, J)
-    return _reduce_grad(pr.obj_jac(E, w, η, Δ, WS, args), E[J:2*J], m, J)
+    return _reduce_grad(-pr.δObj_δX(E, *args), E[J:2*J], m, J)
 
 
 
@@ -250,69 +250,29 @@ def eq_jac_reduced(z, w, r, args):
 
 
 
-def inner_solve(w, r, E_0, η, WS, args, error, Δ_start=1e2, max_inner_iter=50, ρ=5.0, max_Δ=1e4):
-    "Solve Inner Loop"
-    
-    J = args[-1]; var_θ = args[-4]
-    i_idx = WS[:, 0]; j_idx = WS[:, 1]
-    Δ = Δ_start
-    viol_prev = np.inf
-    
-    for _ in range(max_inner_iter):
-
-        # ----- #
-        # Solve #
-        # ----- #
-        alloc, status = solve_planner(w, r, E_0, args, η, Δ, WS, error)
+def ic_reduced(z, w, WS, args):
+    E, _ = _expand(z, args[-1])
+    return rt.IC_on_set(E, w, WS, *args)
 
 
-        # --------------------- #
-        # Scan for IC Violation #
-        # --------------------- #
-        IC_set   = rt.IC_on_set(alloc, w, WS, *args)
-        viol_set = -np.minimum(IC_set, 0.0)
-        c_0      = alloc[:J]
-        MU_0     = c_0**(-var_θ)
-        deviat   = viol_set / (MU_0[i_idx] * c_0[i_idx])
-        dev_max  = deviat.max() if deviat.size else 0.0
-        print(f'IC Violation (working set): {dev_max}')
-        
-        if dev_max <= np.minimum(error, 1.0):
-            break
-        
-
-        # ------ #
-        # Update #
-        # ------ #
-        η[i_idx, j_idx] = np.maximum(0.0, η[i_idx, j_idx] - Δ * IC_set)
-        
-        viol_now = viol_set.max() if viol_set.size else 0.0
-        if viol_now > 0.25 * viol_prev and Δ < max_Δ:
-            Δ = min(Δ * ρ, max_Δ)
-        elif viol_now < 0.01 * viol_prev and Δ > Δ_start:
-            Δ = max(Δ / ρ, Δ_start)
-        viol_prev = viol_now
-        
-        E_0 = alloc.copy()
-        
-
-    return alloc, η
+def ic_jac_reduced(z, w, WS, args):
+    J = args[-1]
+    E, m = _expand(z, J)
+    return _reduce_jac(pr.δIC_δX(E, w, WS, *args), E[J:2*J], m, J)
 
 
 
-def solve_planner(w, r, E_0, args, η, Δ, WS, error):
+def solve_planner(w, r, E_0, args, WS, error):
     "Solve Mirrlees with Normalized Penalty"
     
     J = args[-1]
     
     if error > 1:
-        maxiter, ip_tol = 50,   1e-3
+        maxiter, ip_tol = 100,  1e-4
     elif error > 1e-2:
-        maxiter, ip_tol = 200,  1e-4
-    elif error > 1e-3:
-        maxiter, ip_tol = 1000, 1e-6
+        maxiter, ip_tol = 300,  1e-6
     else:
-        maxiter, ip_tol = 3000, 1e-8
+        maxiter, ip_tol = 1000, 1e-8
     
     
     # -------------------- #
@@ -330,20 +290,23 @@ def solve_planner(w, r, E_0, args, η, Δ, WS, error):
     # ------------------ #
     # Define Constraints #
     # ------------------ #
-    obj_pen_fun = lambda z: obj_reduced(z, w, η, Δ, WS, args)
-    obj_pen_jac = lambda z: obj_jac_reduced(z, w, η, Δ, WS, args)
+    obj_fun = lambda z: obj_reduced(z, args)
+    obj_jac = lambda z: obj_jac_reduced(z, args)
     eq_fun      = lambda z: eq_reduced(z, w, r, args)
     eq_jac      = lambda z: eq_jac_reduced(z, w, r, args)
+    ic_fun    = lambda z: ic_reduced(z, w, WS, args)
+    ic_jac    = lambda z: ic_jac_reduced(z, w, WS, args)
     
     eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
+    ic_cons = sp.optimize.NonlinearConstraint(ic_fun, lb=0, ub=np.inf, jac=ic_jac)
     bounds  = sp.optimize.Bounds(lb, ub)
     
     
     # ----- #
     # Solve #
     # ----- #
-    opt = cp.minimize_ipopt(obj_pen_fun, z_0, jac=obj_pen_jac,
-                            bounds=bounds, constraints=[eq_cons],
+    opt = cp.minimize_ipopt(obj_fun, z_0, jac=obj_jac,
+                            bounds=bounds, constraints=[eq_cons, ic_cons],
                             options={'maxiter': maxiter,
                                      'hessian_approximation': 'limited-memory',
                                      'limited_memory_max_history': 50,
@@ -353,30 +316,11 @@ def solve_planner(w, r, E_0, args, η, Δ, WS, error):
                                      'acceptable_iter': 5,
                                      'print_level': 0, 'sb': 'yes'})
     
-    _IPOPT_STATUS = {
-        0:  'solved',
-        1:  'solved to acceptable tolerance',
-        2:  'infeasible problem detected',
-        3:  'search direction too small',
-        4:  'diverging iterates',
-        5:  'user requested stop',
-        6:  'feasible point for square problem found',
-        -1: 'maximum iterations exceeded',
-        -2: 'restoration failed',
-        -3: 'error in step computation',
-        -4: 'maximum CPU time exceeded',
-        -10: 'not enough degrees of freedom',
-        -11: 'invalid problem definition',
-        -12: 'invalid option',
-        -13: 'invalid number detected (NaN/Inf)',
-        -100: 'unrecoverable exception',
-        -101: 'non-IPOPT exception',
-        -102: 'insufficient memory',
-        -199: 'internal error',
-    }
-
-    label = _IPOPT_STATUS.get(opt.status, 'unrecognized status')
-    print(f'IPOPT: {label} (status {opt.status})')
+    # _IPOPT_STATUS = {0: 'solved', 1: 'solved to acceptable tolerance',
+    #                  2: 'infeasible problem detected', -1: 'maximum iterations exceeded',
+    #                  -2: 'restoration failed', -3: 'error in step computation'}
+    # print(f"IPOPT: {_IPOPT_STATUS.get(opt.status, 'status ' + str(opt.status))} ({opt.status})")
+    
     
     E, _ = _expand(opt.x, J)
     return E, opt.status

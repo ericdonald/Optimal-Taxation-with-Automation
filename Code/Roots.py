@@ -390,25 +390,6 @@ def IC_on_set(E, w, WS, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
 
 
 
-@njit
-def obj_fun(E, w, η, Δ, WS, args):
-    "Penalized Objective Function"
-    
-    W = Mir_obj(E, *args)
-    IC = IC_on_set(E, w, WS, *args)
-    
-    P   = WS.shape[0]
-    pen = 0.0
-    for p in range(P):
-        i = WS[p, 0]; j = WS[p, 1]
-        KKT   = max(0.0, η[i, j] - Δ * IC[p])
-        pen += KKT*KKT - η[i, j]*η[i, j]
-    pen /= (2.0 * Δ)
-
-    return -(W - pen)
-
-
-
 def Optimalθ_NL_Root(θ, E, x, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J, x_bar, ζ, ν, σ):
     "Root for Optimal Threshold Rule with Nonlinear Taxes"
     
