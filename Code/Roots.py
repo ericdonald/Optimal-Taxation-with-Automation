@@ -373,14 +373,37 @@ def Inequal_Constr(E, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
 
 
 @njit
-def obj_fun(E, w, η, Δ, args):
+def IC_on_set(E, w, WS, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
+    "IC Values on a Working Set"
+    
+    c_0 = E[:J]; c_1 = E[J:2*J]; l = E[2*J:3*J]
+    
+    Val     = fn.V(c_0, c_1, l, β, var_θ, φ, ε, g)
+    Val_con = Val + (β / (1-β)) * φ * l**(1 + 1/ε) / (1 + 1/ε)
+    
+    P  = WS.shape[0]
+    IC = np.empty(P)
+    for p in range(P):
+        i = WS[p, 0]; j = WS[p, 1]
+        IC[p] = Val[i] - (Val_con[j] - (β / (1-β)) * φ[i] * (w[j] * l[j] / w[i])**(1 + 1/ε) / (1 + 1/ε))
+    return IC
+
+
+
+@njit
+def obj_fun(E, w, η, Δ, WS, args):
     "Penalized Objective Function"
     
     W = Mir_obj(E, *args)
-    IC_mat = Inequal_Constr(E, w, *args)
+    IC = IC_on_set(E, w, WS, *args)
     
-    KKT = np.maximum(0.0, η - Δ * IC_mat)
-    pen = np.sum(KKT**2 - η**2) / (2.0 * Δ)
+    P   = WS.shape[0]
+    pen = 0.0
+    for p in range(P):
+        i = WS[p, 0]; j = WS[p, 1]
+        KKT   = max(0.0, η[i, j] - Δ * IC[p])
+        pen += KKT*KKT - η[i, j]*η[i, j]
+    pen /= (2.0 * Δ)
 
     return -(W - pen)
 

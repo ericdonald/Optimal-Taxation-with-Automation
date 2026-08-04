@@ -530,49 +530,47 @@ def δEC_δX(E, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     
  
 @njit
-def δIC_δX(E, w, η, Δ, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
+def δIC_δX(E, w, η, Δ, WS, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     "Jacobian of Penalty Inequality Constraints"
     
-    c_0 = E[:J]
-    c_1 = E[J:2*J]
-    l = E[2*J:3*J]
+    c_0 = E[:J]; c_1 = E[J:2*J]; l = E[2*J:3*J]
     
-    IC_mat = rt.Inequal_Constr(E, w, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J)
-    KKT = -(η - Δ * IC_mat)
-    viols = (KKT <= 0.0)
-   
+    IC = rt.IC_on_set(E, w, WS, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J)
+    beta_tilde = β / (1 - β * (1+g)**(1-var_θ))
+    beta_tilde_l = β / (1-β)
+    
+    
     # ----------------- #
     # Derivatives of IC #
     # ----------------- #
     grad = np.zeros(3*J)
     
-    for i in range(J):
-        for j in range(J):
-            if viols[i,j] == True:
-                
-                #   wrt to c_0
-                grad[i] += KKT[i,j] * c_0[i]**(-var_θ)
-                grad[j] += KKT[i,j] * (-c_0[j]**(-var_θ))
-                
-                #   wrt to c_1
-                grad[J+i] += KKT[i,j] * (β/(1-β*(1+g)**(1-var_θ))) * c_1[i]**(-var_θ)
-                grad[J+j] += KKT[i,j] * (-β/(1-β*(1+g)**(1-var_θ))) * c_1[j]**(-var_θ)
-    
-                #   wrt to l
-                grad[2*J+i] += KKT[i,j] * (-β/(1-β)) * φ[i] * l[i]**(1/ε)
-                grad[2*J+j] += KKT[i,j] * (β/(1-β)) * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε)
-                
-    
+    P = WS.shape[0]
+    for p in range(P):
+        i = WS[p, 0]; j = WS[p, 1]
+        KKT = -(η[i, j] - Δ * IC[p])
+        if KKT <= 0.0:
+            #   wrt to c_0
+            grad[i]     += KKT * c_0[i]**(-var_θ)
+            grad[j]     += KKT * (-c_0[j]**(-var_θ))
+            
+            #   wrt to c_1
+            grad[J+i]   += KKT * beta_tilde * c_1[i]**(-var_θ)
+            grad[J+j]   += KKT * (-beta_tilde) * c_1[j]**(-var_θ)
+            
+            #   wrt to l
+            grad[2*J+i] += KKT * (-beta_tilde_l) * φ[i] * l[i]**(1/ε)
+            grad[2*J+j] += KKT * beta_tilde_l * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε)
     return grad
-
     
+
 
 @njit
-def obj_jac(E, w, η, Δ, args):
+def obj_jac(E, w, η, Δ, WS, args):
     "Jacobian of Penalized Objective"
     
     W_jac = δObj_δX(E, *args)
-    grad_pen_IC = δIC_δX(E, w, η, Δ, *args)
+    grad_pen_IC = δIC_δX(E, w, η, Δ, WS, *args)
 
     return -(W_jac - grad_pen_IC)
 

@@ -224,16 +224,16 @@ def _reduce_jac(Jac_full, c_1, m, J):
 
 
 
-def obj_reduced(z, w, η, Δ, args):
+def obj_reduced(z, w, η, Δ, WS, args):
     E, _ = _expand(z, args[-1])
-    return rt.obj_fun(E, w, η, Δ, args)
+    return rt.obj_fun(E, w, η, Δ, WS, args)
 
 
 
-def obj_jac_reduced(z, w, η, Δ, args):
+def obj_jac_reduced(z, w, η, Δ, WS, args):
     J = args[-1]
     E, m = _expand(z, J)
-    return _reduce_grad(pr.obj_jac(E, w, η, Δ, args), E[J:2*J], m, J)
+    return _reduce_grad(pr.obj_jac(E, w, η, Δ, WS, args), E[J:2*J], m, J)
 
 
 
@@ -250,11 +250,11 @@ def eq_jac_reduced(z, w, r, args):
 
 
 
-def inner_solve(w, r, E_0, η, args, error, Δ_start=1e2, max_inner_iter=50, ρ=5.0, max_Δ=1e4):
+def inner_solve(w, r, E_0, η, WS, args, error, Δ_start=1e2, max_inner_iter=50, ρ=5.0, max_Δ=1e4):
     "Solve Inner Loop"
     
-    J = args[-1]
-    var_θ = args[-4]
+    J = args[-1]; var_θ = args[-4]
+    i_idx = WS[:, 0]; j_idx = WS[:, 1]
     Δ = Δ_start
     viol_prev = np.inf
     
@@ -263,49 +263,44 @@ def inner_solve(w, r, E_0, η, args, error, Δ_start=1e2, max_inner_iter=50, ρ=
         # ----- #
         # Solve #
         # ----- #
-        alloc = solve_planner(w, r, E_0, args, η, Δ, error)
+        alloc, status = solve_planner(w, r, E_0, args, η, Δ, WS, error)
 
 
         # --------------------- #
         # Scan for IC Violation #
         # --------------------- #
-        IC_mat = rt.Inequal_Constr(alloc, w, *args)
-        IC_full = -np.minimum(IC_mat, 0.0)
-        IC_max = IC_full.max(axis=1)
-        c_0 = alloc[:J]
-        MU_0 = c_0**(-var_θ)
+        IC_set   = rt.IC_on_set(alloc, w, WS, *args)
+        viol_set = -np.minimum(IC_set, 0.0)
+        c_0      = alloc[:J]
+        MU_0     = c_0**(-var_θ)
+        deviat   = viol_set / (MU_0[i_idx] * c_0[i_idx])
+        dev_max  = deviat.max() if deviat.size else 0.0
+        print(f'IC Violation (working set): {dev_max}')
         
-        deviat = IC_max / (MU_0 * c_0)
-
-        viols = (deviat > np.minimum(error, 1.0))
-        #print(f'IC Violation: {np.max(deviat)},  Δ={Δ:.1e},  η_max={η.max():.1e}')
-
-        if not viols.any():
+        if dev_max <= np.minimum(error, 1.0):
             break
         
 
         # ------ #
         # Update #
         # ------ #
-        viol = IC_full.max() 
+        η[i_idx, j_idx] = np.maximum(0.0, η[i_idx, j_idx] - Δ * IC_set)
         
-        if np.abs(viol - viol_prev) <= 1e-9 * max(viol, 1e-12):
-            break
-        
-        if viol <= 0.25 * viol_prev:
-            KKT = η - Δ * IC_mat
-            η = np.maximum(0.0, KKT)
-        elif Δ < max_Δ:
+        viol_now = viol_set.max() if viol_set.size else 0.0
+        if viol_now > 0.25 * viol_prev and Δ < max_Δ:
             Δ = min(Δ * ρ, max_Δ)
-
-        viol_prev = viol
+        elif viol_now < 0.01 * viol_prev and Δ > Δ_start:
+            Δ = max(Δ / ρ, Δ_start)
+        viol_prev = viol_now
+        
+        E_0 = alloc.copy()
         
 
     return alloc, η
 
 
 
-def solve_planner(w, r, E_0, args, η, Δ, error):
+def solve_planner(w, r, E_0, args, η, Δ, WS, error):
     "Solve Mirrlees with Normalized Penalty"
     
     J = args[-1]
@@ -314,8 +309,10 @@ def solve_planner(w, r, E_0, args, η, Δ, error):
         maxiter, ip_tol = 50,   1e-3
     elif error > 1e-2:
         maxiter, ip_tol = 200,  1e-4
-    else:
+    elif error > 1e-3:
         maxiter, ip_tol = 1000, 1e-6
+    else:
+        maxiter, ip_tol = 3000, 1e-8
     
     
     # -------------------- #
@@ -325,7 +322,7 @@ def solve_planner(w, r, E_0, args, η, Δ, error):
     l_0   = E_0[2*J:3*J]
     m_0 = np.median(np.log(E_0[J:2*J] / c_0_0))
     z_0 = np.concatenate((c_0_0, l_0, np.array([m_0])))
-    lb  = np.concatenate((np.ones(2*J)*1e-2,      np.array([-10.0])))
+    lb  = np.concatenate((np.ones(2*J)*1e-2, np.array([-10.0])))
     ub  = np.concatenate((np.ones(2*J)*1e4,  np.array([ 10.0])))
     
         
@@ -333,8 +330,8 @@ def solve_planner(w, r, E_0, args, η, Δ, error):
     # ------------------ #
     # Define Constraints #
     # ------------------ #
-    obj_pen_fun = lambda z: obj_reduced(z, w, η, Δ, args)
-    obj_pen_jac = lambda z: obj_jac_reduced(z, w, η, Δ, args)
+    obj_pen_fun = lambda z: obj_reduced(z, w, η, Δ, WS, args)
+    obj_pen_jac = lambda z: obj_jac_reduced(z, w, η, Δ, WS, args)
     eq_fun      = lambda z: eq_reduced(z, w, r, args)
     eq_jac      = lambda z: eq_jac_reduced(z, w, r, args)
     
@@ -349,6 +346,8 @@ def solve_planner(w, r, E_0, args, η, Δ, error):
                             bounds=bounds, constraints=[eq_cons],
                             options={'maxiter': maxiter,
                                      'hessian_approximation': 'limited-memory',
+                                     'limited_memory_max_history': 50,
+                                     'mu_strategy': 'adaptive',
                                      'tol': ip_tol,
                                      'acceptable_tol': ip_tol * 10,
                                      'acceptable_iter': 5,
@@ -377,10 +376,62 @@ def solve_planner(w, r, E_0, args, η, Δ, error):
     }
 
     label = _IPOPT_STATUS.get(opt.status, 'unrecognized status')
-    #print(f'IPOPT: {label} (status {opt.status})')
+    print(f'IPOPT: {label} (status {opt.status})')
     
     E, _ = _expand(opt.x, J)
-    return E
+    return E, opt.status
+
+
+
+def build_working_set(E, w, args, age, k=6, slack_frac=0.1, grace=3):
+    
+    J = args[-1]; var_θ = args[-4]
+    c_0 = E[:J]; l = E[2*J:3*J]
+    y = w * l
+    order = np.argsort(y)
+    
+    fresh = np.zeros((J, J), dtype=bool)
+    
+    # k nearest neighbours in the endogenous earnings ordering (both directions)
+    for p in range(J):
+        i  = order[p]
+        lo = max(0, p - k); hi = min(J, p + k + 1)
+        for q in range(lo, hi):
+            if q != p:
+                fresh[i, order[q]] = True
+    
+    # globally near-binding pairs at the current allocation (normalised slack)
+    IC    = rt.Inequal_Constr(E, w, *args)
+    denom = c_0**(-var_θ) * c_0
+    dev   = IC / denom[:, None]
+    fresh |= (dev < slack_frac)
+    np.fill_diagonal(fresh, False)
+    
+    # carry the previous set forward so an emerging binder is never dropped abruptly
+    age[fresh]  = 0                
+    age[~fresh] += 1
+    keep = age <= grace
+    np.fill_diagonal(keep, False)
+    
+    return np.argwhere(keep).astype(np.int64)
+
+
+
+def verify_working_set(E, w, ws, args, tol, age):
+    
+    J = args[-1]; var_θ = args[-4]
+    c_0 = E[:J]
+    denom = c_0**(-var_θ) * c_0
+    dev = -np.minimum(rt.Inequal_Constr(E, w, *args), 0.0) / denom[:, None]
+    
+    in_set = np.zeros((J, J), dtype=bool)
+    in_set[ws[:, 0], ws[:, 1]] = True
+    add = np.argwhere((dev > tol) & (~in_set)).astype(np.int64)
+    
+    if add.shape[0] == 0:
+        return ws, 0
+    age[add[:, 0], add[:, 1]] = 0
+    return np.unique(np.vstack((ws, add)), axis=0), add.shape[0]
 
 
 

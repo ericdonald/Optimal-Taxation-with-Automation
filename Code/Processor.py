@@ -660,9 +660,14 @@ class Processor:
         # --------------------------------- #
         # Solve for Two Planner Allocations #
         # --------------------------------- #
-        E_eq = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq))
-        x_eq = self.E.var_κ * self.E.x_bar
-        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr(E_eq, x_eq, 0)
+        x_sq = self.E.var_κ * self.E.x_bar
+        E_init = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, x_sq))
+        EQ_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
+        avg_y_0 = np.sum(self.E.n * self.E.y_0)
+        
+        c_0_θ,    c_1_θ,    l_θ,    x_θ    = gpf.solve_eqbm(0, self.E.τ_k, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *EQ_args)
+        E_0 = np.concatenate((c_0_θ, c_1_θ, l_θ))
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr(E_0, x_θ, 0, 1/10)
         
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
         (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr(E_NT, x_NT, 1)
@@ -1030,8 +1035,9 @@ class Processor:
         # ---------------- #
         # Mirrlees Problem #
         # ---------------- #
-        E_eq = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq))
-        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr(E_eq, x_sq, 0, 1/10)
+        c_0_θ,    c_1_θ,    l_θ,    x_θ    = gpf.solve_eqbm(0, self.E.τ_k, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *EQ_args)
+        E_0 = np.concatenate((c_0_θ, c_1_θ, l_θ))
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr(E_0, x_θ, 0, 1/10)
         
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
         (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr(E_NT, x_NT, 1, 1/10)

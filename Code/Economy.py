@@ -335,7 +335,9 @@ class Economy:
         error = 1.0
         
         η = np.zeros((self.J, self.J))
-                
+        grace = 3
+        age = np.full((self.J, self.J), grace + 1, dtype=np.int64)
+        WS = gpf.build_working_set(E, w, args, age)
         
         # ---------- #
         # Outer Loop #
@@ -346,7 +348,12 @@ class Economy:
             # ---------------- #
             # Solve Inner Loop #
             # ---------------- #
-            E, η = gpf.inner_solve(w, r, E, η, args, error)
+            for _verify in range(3):
+                E, η = gpf.inner_solve(w, r, E, η, WS, args, error)
+                WS, added = gpf.verify_working_set(E, w, WS, args, np.minimum(error, 1.0), age)
+                if added == 0:
+                    break
+                
             c_0 = E[:self.J]
             c_1 = E[self.J:2*self.J]
             l = E[2*self.J:3*self.J]
@@ -356,6 +363,11 @@ class Economy:
             # -------------------- #
             # Update Factor Prices #
             # -------------------- #
+            WS = gpf.build_working_set(E, w, args, age)
+            keep = np.zeros((self.J, self.J), dtype=bool)
+            keep[WS[:, 0], WS[:, 1]] = True
+            η *= keep
+           
             L = self.n * l
             w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
@@ -400,7 +412,12 @@ class Economy:
         # ------------ #
         # Final Polish #
         # ------------ #
-        E, η = gpf.inner_solve(w, r, E, η, args, tol)
+        for _verify in range(3):
+            E, η = gpf.inner_solve(w, r, E, η, WS, args, tol)
+            WS, added = gpf.verify_working_set(E, w, WS, args, tol, age)
+            if added == 0:
+                break
+            
         c_0 = E[:self.J]
         c_1 = E[self.J:2*self.J]
         l   = E[2*self.J:3*self.J]
