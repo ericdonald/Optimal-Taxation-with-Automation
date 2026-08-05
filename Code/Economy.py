@@ -315,7 +315,7 @@ class Economy:
         
         
         
-    def Mirrlees_Lagr(self, E, x, θ_on, damp=1/50, tol=1e-4, max_iter=10_000):
+    def Mirrlees_Lagr(self, E, x, θ_on, damp=1/10, tol=1e-4, max_iter=10_000):
         "Solve Non-Linear Tax Problem"
                     
         Y_0 = self.Y_sq / (1+self.g)
@@ -391,7 +391,9 @@ class Economy:
             # Check Convergence and Update #
             # ---------------------------- #
             error_x = np.max(np.abs(x - x_new))
-            #print(f'Automation Error: {error_x}')
+            avg_error_x = np.mean(np.abs(x - x_new))
+            # print(f'Max Automation Error: {error_x}')
+            # print(f'Mean Automation Error: {avg_error_x}')
             
             error_θ = np.abs(θ - θ_new)
             #print(f'Threshold Rule Error: {error_θ}')
@@ -443,7 +445,10 @@ class Economy:
         
         qe.toc()
         if status != 0:
-            print(f'IPOPT Status: {status}')
+            _IPOPT_STATUS = {0: 'solved', 1: 'solved to acceptable tolerance',
+                             2: 'infeasible problem detected', -1: 'maximum iterations exceeded',
+                            -2: 'restoration failed', -3: 'error in step computation'}
+            print(f"IPOPT: {_IPOPT_STATUS.get(status, 'status ' + str(status))} ({status})")
         elif (θ_on == 1 and np.abs(τ_k) > tol):
             print(f'τ_K_θ = {τ_k}')
         else:

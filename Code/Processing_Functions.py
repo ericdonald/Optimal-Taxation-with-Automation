@@ -347,7 +347,11 @@ def solve_planner(w, r, E_0, args, WS, error):
     z_opt, info = nlp.solve(z_0)
     E, _ = _expand(z_opt, J)
     status = info['status']
-    #print(f'IPOPT Status: {status}')
+    
+    _IPOPT_STATUS = {0: 'solved', 1: 'solved to acceptable tolerance',
+                     2: 'infeasible problem detected', -1: 'maximum iterations exceeded',
+                    -2: 'restoration failed', -3: 'error in step computation'}
+    #print(f"IPOPT: {_IPOPT_STATUS.get(status, 'status ' + str(status))} ({status})")
     
     return E, status
 

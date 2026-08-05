@@ -665,9 +665,9 @@ class Processor:
         avg_y_0 = np.sum(self.E.n * self.E.y_0)
         alloc_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
         
-        c_0_θ,    c_1_θ,    l_θ,    x_θ    = gpf.solve_eqbm(0, self.E.τ_k, self.E.Ψ, self.E.ψ, avg_y_0, E_init, *alloc_args)
-        E_0 = np.concatenate((c_0_θ, c_1_θ, l_θ))
-        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT, τ_k_NT) = self.E.Mirrlees_Lagr(E_0, x_θ, 0)
+        c_0_0,    c_1_0,    l_0,    x_0    = gpf.solve_eqbm(0, self.E.τ_k, self.E.Ψ, self.E.ψ, avg_y_0, E_init, *alloc_args)
+        E_0 = np.concatenate((c_0_0, c_1_0, l_0))
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT, τ_k_NT) = self.E.Mirrlees_Lagr(E_0, x_0, 0)
         
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
         (c_0, c_1, l, K, x, θ, τ_k) = self.E.Mirrlees_Lagr(E_NT, x_NT, 1)
@@ -1030,9 +1030,9 @@ class Processor:
         # ---------------- #
         # Mirrlees Problem #
         # ---------------- #
-        c_0_θ,    c_1_θ,    l_θ,    x_θ    = gpf.solve_eqbm(0, self.E.τ_k, self.E.Ψ, self.E.ψ, avg_y_0, E_init, *alloc_args)
-        E_0 = np.concatenate((c_0_θ, c_1_θ, l_θ))
-        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr(E_0, x_θ, 0, 1/10)
+        c_0_0,    c_1_0,    l_0,    x_0    = gpf.solve_eqbm(0, self.E.τ_k, self.E.Ψ, self.E.ψ, avg_y_0, E_init, *alloc_args)
+        E_0 = np.concatenate((c_0_0, c_1_0, l_0))
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr(E_0, x_0, 0, 1/10)
         
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
         (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr(E_NT, x_NT, 1, 1/10)
