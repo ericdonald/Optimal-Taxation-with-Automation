@@ -538,25 +538,25 @@ class Processor:
         # ----------------- #
         x_sq = self.E.var_κ * self.E.x_bar
         E_init = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, x_sq))
-        EQ_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
+        alloc_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
         
-        c_0_θ,    c_1_θ,    l_θ,    x_θ    = gpf.solve_eqbm(θ_sq, self.E.τ_k, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *EQ_args)
-        c_0_τ,    c_1_τ,    l_τ,    x_τ    = gpf.solve_eqbm(0, τ_k_sq, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *EQ_args)
-        c_0_both, c_1_both, l_both, x_both = gpf.solve_eqbm(θ_sq_both, τ_k_sq_both, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *EQ_args)
+        c_0_θ,    c_1_θ,    l_θ,    x_θ    = gpf.solve_eqbm(θ_sq, self.E.τ_k, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *alloc_args)
+        c_0_τ,    c_1_τ,    l_τ,    x_τ    = gpf.solve_eqbm(0, τ_k_sq, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *alloc_args)
+        c_0_both, c_1_both, l_both, x_both = gpf.solve_eqbm(θ_sq_both, τ_k_sq_both, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *alloc_args)
 
-        stats_τ    = gpf.alloc_stats(c_0_τ,    c_1_τ,    l_τ,    x_τ, self.E.y_0, *EQ_args)
-        stats_both = gpf.alloc_stats(c_0_both, c_1_both, l_both, x_both, self.E.y_0, *EQ_args)
+        stats_τ    = gpf.alloc_stats(c_0_τ,    c_1_τ,    l_τ,    x_τ, self.E.y_0, *alloc_args)
+        stats_both = gpf.alloc_stats(c_0_both, c_1_both, l_both, x_both, self.E.y_0, *alloc_args)
         
        
         # -------------------- #
         # Status Quo to Policy #
         # -------------------- #
         ConEquiv_θ = gpf.consumption_equiv(c_0_θ, c_1_θ, l_θ,
-                                self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, *EQ_args)
+                                self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, *alloc_args)
         Parametric_Results.add('Optimal Status Quo Consumption Equivalence, Theta', gpf.clean_round(ConEquiv_θ, 2))
         
         ConEquiv_τ = gpf.consumption_equiv(c_0_τ, c_1_τ, l_τ,
-                                self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, *EQ_args)
+                                self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, *alloc_args)
         Parametric_Results.add('Optimal Status Quo Consumption Equivalence, Capital Tax', gpf.clean_round(ConEquiv_τ, 2))
         
         
@@ -565,7 +565,7 @@ class Processor:
         # ------------------- #
         Δ_ln_Λ_both, Δ_var_λ_both, Δ_cov_both = gpf.deltas(stats_both, stats_τ)
         ConEquiv_both = gpf.consumption_equiv(c_0_both, c_1_both, l_both,
-                                           c_0_τ, c_1_τ, l_τ, *EQ_args)
+                                           c_0_τ, c_1_τ, l_τ, *alloc_args)
         
         Parametric_Results.add('Optimal Status Quo DLambda, Both', gpf.clean_round(Δ_ln_Λ_both, 1))
         Parametric_Results.add('Optimal Status Quo DvarWW, Both', gpf.clean_round(Δ_var_λ_both, 1))
@@ -596,18 +596,18 @@ class Processor:
             # ----------------- #
             # Derive Equilibria #
             # ----------------- #
-            c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat    = gpf.solve_eqbm(0, τ_k_sq_vat, self.E.Ψ, self.E.ψ, y_0_vat, E_init, *EQ_args)
-            c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both = gpf.solve_eqbm(θ_sq_vat_both, τ_k_sq_vat_both, self.E.Ψ, self.E.ψ, y_0_vat, E_init, *EQ_args)
+            c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat    = gpf.solve_eqbm(0, τ_k_sq_vat, self.E.Ψ, self.E.ψ, y_0_vat, E_init, *alloc_args)
+            c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both = gpf.solve_eqbm(θ_sq_vat_both, τ_k_sq_vat_both, self.E.Ψ, self.E.ψ, y_0_vat, E_init, *alloc_args)
 
-            stats_sq_vat    = gpf.alloc_stats(c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat, y_0_vat, *EQ_args)
-            stats_sq_vat_both = gpf.alloc_stats(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both, y_0_vat, *EQ_args)
+            stats_sq_vat    = gpf.alloc_stats(c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat, y_0_vat, *alloc_args)
+            stats_sq_vat_both = gpf.alloc_stats(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both, y_0_vat, *alloc_args)
             
             
             # ---------- #
             # Comparison #
             # ---------- #
             ConEquiv_sq_vat = gpf.consumption_equiv(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both,
-                                               c_0_sq_vat, c_1_sq_vat, l_sq_vat, *EQ_args)
+                                               c_0_sq_vat, c_1_sq_vat, l_sq_vat, *alloc_args)
             
             vat_rows.append({'VAT': τ_vat,
                             'Capital Tax': gpf.clean_round(τ_k_sq_vat*100, 1),
@@ -662,10 +662,10 @@ class Processor:
         # --------------------------------- #
         x_sq = self.E.var_κ * self.E.x_bar
         E_init = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, x_sq))
-        EQ_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
         avg_y_0 = np.sum(self.E.n * self.E.y_0)
+        alloc_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
         
-        c_0_θ,    c_1_θ,    l_θ,    x_θ    = gpf.solve_eqbm(0, self.E.τ_k, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *EQ_args)
+        c_0_θ,    c_1_θ,    l_θ,    x_θ    = gpf.solve_eqbm(0, self.E.τ_k, self.E.Ψ, self.E.ψ, avg_y_0, E_init, *alloc_args)
         E_0 = np.concatenate((c_0_θ, c_1_θ, l_θ))
         (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr(E_0, x_θ, 0, 1/10)
         
@@ -689,9 +689,6 @@ class Processor:
         # ---------------- #
         # Comparison Table #
         # ---------------- #
-        avg_y_0 = np.sum(self.E.n * self.E.y_0)
-        alloc_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
-
         stats_NT    = gpf.alloc_stats(c_0_NT, c_1_NT, l_NT, x_NT, avg_y_0, *alloc_args)
         stats = gpf.alloc_stats(c_0, c_1, l, x, avg_y_0, *alloc_args)
         
@@ -740,13 +737,13 @@ class Processor:
                 g_y = self.E.S_k * AI_growth[n] + (1-self.E.S_k) * AI_growth[n] * LAT_frac
                 Ψ_AI = self.E.Ψ * (1+g_y)**(self.E.ψ)
                 
-                EQ_args = (A_j_AI, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
+                alloc_args = (A_j_AI, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
                 
-                c_0_AI, c_1_AI, l_AI, x_AI = gpf.solve_eqbm(0, τ_k_AI[n], Ψ_AI, self.E.ψ, y_0, E_init_AI, *EQ_args)
-                c_0_AI_both, c_1_AI_both, l_AI_both, x_AI_both = gpf.solve_eqbm(θ_AI_both[n], τ_k_AI_both[n], Ψ_AI, self.E.ψ, y_0, E_init_AI_both, *EQ_args)
+                c_0_AI, c_1_AI, l_AI, x_AI = gpf.solve_eqbm(0, τ_k_AI[n], Ψ_AI, self.E.ψ, y_0, E_init_AI, *alloc_args)
+                c_0_AI_both, c_1_AI_both, l_AI_both, x_AI_both = gpf.solve_eqbm(θ_AI_both[n], τ_k_AI_both[n], Ψ_AI, self.E.ψ, y_0, E_init_AI_both, *alloc_args)
                 
                 ConEquiv_AI[n] = gpf.consumption_equiv(c_0_AI_both, c_1_AI_both, l_AI_both,
-                                                       c_0_AI, c_1_AI, l_AI, *EQ_args)
+                                                       c_0_AI, c_1_AI, l_AI, *alloc_args)
                 
                 E_init_AI = np.concatenate((c_0_AI, c_1_AI, l_AI, x_AI))
                 E_init_AI_both = np.concatenate((c_0_AI_both, c_1_AI_both, l_AI_both, x_AI_both))
@@ -965,7 +962,7 @@ class Processor:
         
         x_sq = self.E.var_κ * self.E.x_bar
         E_init = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, x_sq))
-        EQ_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
+        alloc_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
 
         
         # ------------------------ #
@@ -983,16 +980,16 @@ class Processor:
         ES_robust_Results.add('Low ES Status Quo VAT Capital Tax, Both', gpf.clean_round(τ_k_sq_vat_both*100, 1))
         
         # Derive Equilibria
-        c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat    = gpf.solve_eqbm(0, τ_k_sq_vat, self.E.Ψ, self.E.ψ, y_0_vat, E_init, *EQ_args)
-        c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both = gpf.solve_eqbm(θ_sq_vat_both, τ_k_sq_vat_both, self.E.Ψ, self.E.ψ, y_0_vat, E_init, *EQ_args)
+        c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat    = gpf.solve_eqbm(0, τ_k_sq_vat, self.E.Ψ, self.E.ψ, y_0_vat, E_init, *alloc_args)
+        c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both = gpf.solve_eqbm(θ_sq_vat_both, τ_k_sq_vat_both, self.E.Ψ, self.E.ψ, y_0_vat, E_init, *alloc_args)
 
-        stats_sq_vat    = gpf.alloc_stats(c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat, y_0_vat, *EQ_args)
-        stats_sq_vat_both = gpf.alloc_stats(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both, y_0_vat, *EQ_args)
+        stats_sq_vat    = gpf.alloc_stats(c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat, y_0_vat, *alloc_args)
+        stats_sq_vat_both = gpf.alloc_stats(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both, y_0_vat, *alloc_args)
         
         # Comparison Table
         Δ_ln_Λ_vat_both, Δ_var_λ_vat_both, Δ_cov_vat_both = gpf.deltas(stats_sq_vat_both, stats_sq_vat)
         ConEquiv_sq_vat = gpf.consumption_equiv(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both,
-                                           c_0_sq_vat, c_1_sq_vat, l_sq_vat, *EQ_args)
+                                           c_0_sq_vat, c_1_sq_vat, l_sq_vat, *alloc_args)
     
         ES_robust_Results.add('Low ES Status Quo VAT DLambda', gpf.clean_round(Δ_ln_Λ_vat_both, 1))
         ES_robust_Results.add('Low ES Status Quo VAT DvarWW', gpf.clean_round(Δ_var_λ_vat_both, 1))
@@ -1012,16 +1009,16 @@ class Processor:
         ES_robust_Results.add('Low ES Status Quo Capital Tax, Both', gpf.clean_round(τ_k_sq_both*100, 1))
         
         # Derive Equilibria        
-        c_0_τ,    c_1_τ,    l_τ,    x_τ    = gpf.solve_eqbm(0, τ_k_sq, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *EQ_args)
-        c_0_both, c_1_both, l_both, x_both = gpf.solve_eqbm(θ_sq_both, τ_k_sq_both, self.E.Ψ, self.E.ψ, self.E.y_0, E_vat, *EQ_args)
+        c_0_τ,    c_1_τ,    l_τ,    x_τ    = gpf.solve_eqbm(0, τ_k_sq, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *alloc_args)
+        c_0_both, c_1_both, l_both, x_both = gpf.solve_eqbm(θ_sq_both, τ_k_sq_both, self.E.Ψ, self.E.ψ, self.E.y_0, E_vat, *alloc_args)
 
-        stats_τ    = gpf.alloc_stats(c_0_τ,    c_1_τ,    l_τ,    x_τ, self.E.y_0, *EQ_args)
-        stats_both = gpf.alloc_stats(c_0_both, c_1_both, l_both, x_both, self.E.y_0, *EQ_args)
+        stats_τ    = gpf.alloc_stats(c_0_τ,    c_1_τ,    l_τ,    x_τ, self.E.y_0, *alloc_args)
+        stats_both = gpf.alloc_stats(c_0_both, c_1_both, l_both, x_both, self.E.y_0, *alloc_args)
         
         # Comparison Table 
         Δ_ln_Λ_both, Δ_var_λ_both, Δ_cov_both = gpf.deltas(stats_both, stats_τ)
         ConEquiv_both = gpf.consumption_equiv(c_0_both, c_1_both, l_both,
-                                           c_0_τ, c_1_τ, l_τ, *EQ_args)
+                                           c_0_τ, c_1_τ, l_τ, *alloc_args)
         
         ES_robust_Results.add('Low ES Status Quo DLambda', gpf.clean_round(Δ_ln_Λ_both, 1))
         ES_robust_Results.add('Low ES Status Quo DvarWW', gpf.clean_round(Δ_var_λ_both, 1))
@@ -1035,7 +1032,7 @@ class Processor:
         # ---------------- #
         # Mirrlees Problem #
         # ---------------- #
-        c_0_θ,    c_1_θ,    l_θ,    x_θ    = gpf.solve_eqbm(0, self.E.τ_k, self.E.Ψ, self.E.ψ, self.E.y_0, E_init, *EQ_args)
+        c_0_θ,    c_1_θ,    l_θ,    x_θ    = gpf.solve_eqbm(0, self.E.τ_k, self.E.Ψ, self.E.ψ, avg_y_0, E_init, *alloc_args)
         E_0 = np.concatenate((c_0_θ, c_1_θ, l_θ))
         (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr(E_0, x_θ, 0, 1/10)
         
@@ -1051,9 +1048,6 @@ class Processor:
         ES_robust_Results.add('Low ES Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
     
         # Comparison Table 
-        avg_y_0 = np.sum(self.E.n * self.E.y_0)
-        alloc_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
-
         stats_NT    = gpf.alloc_stats(c_0_NT, c_1_NT, l_NT, x_NT, avg_y_0, *alloc_args)
         stats = gpf.alloc_stats(c_0, c_1, l, x, avg_y_0, *alloc_args)
         

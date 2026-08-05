@@ -255,10 +255,12 @@ def ic_reduced(z, w, WS, args):
     return rt.IC_on_set(E, w, WS, *args)
 
 
+
 def ic_jac_reduced(z, w, WS, args):
     J = args[-1]
     E, m = _expand(z, J)
-    return _reduce_jac(pr.δIC_δX(E, w, WS, *args), E[J:2*J], m, J)
+    rows, cols, vals = pr.δIC_δX(E, m, w, WS, *args)
+    return sp.sparse.csr_matrix((vals, (rows, cols)), shape=(WS.shape[0], 2*J + 1))
 
 
 
@@ -292,10 +294,10 @@ def solve_planner(w, r, E_0, args, WS, error):
     # ------------------ #
     obj_fun = lambda z: obj_reduced(z, args)
     obj_jac = lambda z: obj_jac_reduced(z, args)
-    eq_fun      = lambda z: eq_reduced(z, w, r, args)
-    eq_jac      = lambda z: eq_jac_reduced(z, w, r, args)
-    ic_fun    = lambda z: ic_reduced(z, w, WS, args)
-    ic_jac    = lambda z: ic_jac_reduced(z, w, WS, args)
+    eq_fun = lambda z: eq_reduced(z, w, r, args)
+    eq_jac = lambda z: eq_jac_reduced(z, w, r, args)
+    ic_fun = lambda z: ic_reduced(z, w, WS, args)
+    ic_jac = lambda z: ic_jac_reduced(z, w, WS, args)
     
     eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
     ic_cons = sp.optimize.NonlinearConstraint(ic_fun, lb=0, ub=np.inf, jac=ic_jac)
@@ -327,7 +329,7 @@ def solve_planner(w, r, E_0, args, WS, error):
 
 
 
-def build_working_set(E, w, args, age, k=6, slack_frac=0.1, grace=3):
+def build_working_set(E, w, args, age, k=2, slack_frac=0.05, grace=1):
     
     J = args[-1]; var_θ = args[-4]
     c_0 = E[:J]; l = E[2*J:3*J]
@@ -352,7 +354,7 @@ def build_working_set(E, w, args, age, k=6, slack_frac=0.1, grace=3):
     np.fill_diagonal(fresh, False)
     
     # carry the previous set forward so an emerging binder is never dropped abruptly
-    age[fresh]  = 0                
+    age[fresh] = 0                
     age[~fresh] += 1
     keep = age <= grace
     np.fill_diagonal(keep, False)

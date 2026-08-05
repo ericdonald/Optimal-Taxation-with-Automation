@@ -332,7 +332,7 @@ class Economy:
         
         w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
         r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-        error = 1.0
+        error = 2.0
         
         grace = 3
         age = np.full((self.J, self.J), grace + 1, dtype=np.int64)

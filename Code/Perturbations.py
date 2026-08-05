@@ -530,36 +530,38 @@ def δEC_δX(E, w, r, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     
  
 @njit
-def δIC_δX(E, w, WS, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
+def δIC_δX(E, m, w, WS, n, Y_bar, δ, g, A_j, A_k, β, var_θ, φ, ε, J):
     "Jacobian of Penalty Inequality Constraints"
     
     c_0 = E[:J]; c_1 = E[J:2*J]; l = E[2*J:3*J]
-    
+    em  = np.exp(m)
     beta_tilde = β / (1 - β * (1+g)**(1-var_θ))
     beta_tilde_l = β / (1-β)
     
     
     # ----------------- #
     # Derivatives of IC #
-    # ----------------- #
-    grad = np.zeros(3*J)
-    
+    # ----------------- #    
     P = WS.shape[0]
+    rows = np.empty(5*P, np.int64)
+    cols = np.empty(5*P, np.int64)
+    vals = np.empty(5*P)
+    
     for p in range(P):
         i = WS[p, 0]; j = WS[p, 1]
+        b = 5*p
         #   wrt to c_0
-        grad[i]     += c_0[i]**(-var_θ)
-        grad[j]     += (-c_0[j]**(-var_θ))
-        
-        #   wrt to c_1
-        grad[J+i]   += beta_tilde * c_1[i]**(-var_θ)
-        grad[J+j]   += (-beta_tilde) * c_1[j]**(-var_θ)
+        rows[b]   = p; cols[b]   = i;       vals[b]   = c_0[i]**(-var_θ) + beta_tilde*c_1[i]**(-var_θ)*em
+        rows[b+1] = p; cols[b+1] = j;       vals[b+1] = -c_0[j]**(-var_θ) - beta_tilde*c_1[j]**(-var_θ)*em
         
         #   wrt to l
-        grad[2*J+i] += (-beta_tilde_l) * φ[i] * l[i]**(1/ε)
-        grad[2*J+j] += beta_tilde_l * φ[i] * l[j]**(1/ε) * (w[j]/w[i])**(1+1/ε)
+        rows[b+2] = p; cols[b+2] = J+i;   vals[b+2] = -beta_tilde_l*φ[i]*l[i]**(1/ε)
+        rows[b+3] = p; cols[b+3] = J+j;   vals[b+3] =  beta_tilde_l*φ[i]*l[j]**(1/ε)*(w[j]/w[i])**(1+1/ε)
         
-    return grad
+        # wrt to m column
+        rows[b+4] = p; cols[b+4] = 2*J;     vals[b+4] =  beta_tilde*(c_1[i]**(1-var_θ) - c_1[j]**(1-var_θ))
+    
+    return rows, cols, vals
 
 
 
