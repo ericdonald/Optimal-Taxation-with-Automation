@@ -667,19 +667,17 @@ class Processor:
         
         c_0_θ,    c_1_θ,    l_θ,    x_θ    = gpf.solve_eqbm(0, self.E.τ_k, self.E.Ψ, self.E.ψ, avg_y_0, E_init, *alloc_args)
         E_0 = np.concatenate((c_0_θ, c_1_θ, l_θ))
-        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr(E_0, x_θ, 0, 1/10)
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT, τ_k_NT) = self.E.Mirrlees_Lagr(E_0, x_θ, 0)
         
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
-        (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr(E_NT, x_NT, 1)
+        (c_0, c_1, l, K, x, θ, τ_k) = self.E.Mirrlees_Lagr(E_NT, x_NT, 1)
         
-        MRS_c_NT = fn.cap_MRS(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
+        Mirrlees_Results.add('Optimal Mirrlees Capital Tax', gpf.clean_round(τ_k_NT*100, 1))
+        
         L_NT = self.E.n * l_NT
         r_NT = fn.Rents(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
-        τ_K_NT = np.median(1 - (MRS_c_NT + self.E.g) / (r_NT - self.E.δ))
-        Mirrlees_Results.add('Optimal Mirrlees Capital Tax', gpf.clean_round(τ_K_NT*100, 1))
-        
         Return_NT = 1 + r_NT - self.E.δ
-        Return_tilde_NT = 1 + (1-τ_K_NT)*(r_NT-self.E.δ)
+        Return_tilde_NT = 1 + (1-τ_k_NT)*(r_NT-self.E.δ)
         τ_wealth_NT = 1 - Return_tilde_NT / Return_NT
         Mirrlees_Results.add('Optimal Mirrlees Wealth Tax', gpf.clean_round(τ_wealth_NT*100, 2))
         

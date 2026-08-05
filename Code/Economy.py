@@ -315,7 +315,7 @@ class Economy:
         
         
         
-    def Mirrlees_Lagr(self, E, x, θ_on, damp=1/5, tol=1e-4, max_iter=10_000):
+    def Mirrlees_Lagr(self, E, x, θ_on, damp=1/50, tol=1e-4, max_iter=10_000):
         "Solve Non-Linear Tax Problem"
                     
         Y_0 = self.Y_sq / (1+self.g)
@@ -332,9 +332,11 @@ class Economy:
         
         w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
         r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-        error = 2.0
         
-        grace = 3
+        error = 2.0
+        IC_k = 2
+        IC_slack = 0.05
+        grace = 2
         age = np.full((self.J, self.J), grace + 1, dtype=np.int64)
         logit  = lambda p: np.log(p/(1-p))
         
@@ -344,7 +346,7 @@ class Economy:
         qe.tic()
         for _ in range(max_iter):
             
-            WS = gpf.build_working_set(E, w, args, age)
+            WS = gpf.build_working_set(E, w, args, age, IC_k, IC_slack, grace)
             #print(f'Active ICs: {WS.shape[0]}')
         
             # ---------------- #
@@ -422,7 +424,7 @@ class Economy:
         # ------------ #
         # Final Polish #
         # ------------ #
-        WS = gpf.build_working_set(E, w, args, age, grace=grace)
+        WS = gpf.build_working_set(E, w, args, age, IC_k, IC_slack, grace)
         for _verify in range(3):
             E, status = gpf.solve_planner(w, r, E, args, WS, tol)
             WS, added = gpf.verify_working_set(E, w, WS, args, tol, age)
@@ -432,15 +434,25 @@ class Economy:
         c_0 = E[:self.J]
         c_1 = E[self.J:2*self.J]
         l   = E[2*self.J:3*self.J]
+        L = self.n * l
         K   = Y_bar - np.sum(self.n * c_0)
         
+        MRS_c = fn.cap_MRS(c_0, c_1, self.β, self.var_θ, self.ε, self.g)
+        r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+        τ_k = np.median(1 - (MRS_c + self.g) / (r - self.δ))
+        
         qe.toc()
-        print("Mirrlees Solution Found")
+        if status != 0:
+            print(f'IPOPT Status: {status}')
+        elif (θ_on == 1 and np.abs(τ_k) > tol):
+            print(f'τ_K_θ = {τ_k}')
+        else:
+            print("Mirrlees Solution Found")
         
         if θ_on == 1:
-            return (c_0, c_1, l, K, x, θ)
+            return (c_0, c_1, l, K, x, θ, τ_k)
         else: 
-            return (c_0, c_1, l, K, x)
+            return (c_0, c_1, l, K, x, τ_k)
         
         
         

@@ -309,11 +309,11 @@ def solve_planner(w, r, E_0, args, WS, error):
     J = args[-1]
     
     if error > 1:
-        maxiter, ip_tol = 100,  1e-4
+        maxiter, ip_tol = 500,  1e-4
     elif error > 1e-2:
-        maxiter, ip_tol = 300,  1e-6
+        maxiter, ip_tol = 1000,  1e-6
     else:
-        maxiter, ip_tol = 1000, 1e-8
+        maxiter, ip_tol = 2000, 1e-8
     
     
     # -------------------- #
@@ -354,7 +354,7 @@ def solve_planner(w, r, E_0, args, WS, error):
 
 
 
-def build_working_set(E, w, args, age, k=2, slack_frac=0.05, grace=1):
+def build_working_set(E, w, args, age, k, slack_frac, grace):
     
     J = args[-1]; var_θ = args[-4]
     c_0 = E[:J]; l = E[2*J:3*J]
