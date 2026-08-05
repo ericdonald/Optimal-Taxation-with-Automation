@@ -392,7 +392,7 @@ def build_working_set(E, w, args, age, k, slack_frac, grace):
 
 
 
-def verify_working_set(E, w, ws, args, tol, age):
+def verify_working_set(E, w, WS, args, tol, age):
     
     J = args[-1]; var_θ = args[-4]
     c_0 = E[:J]
@@ -400,13 +400,13 @@ def verify_working_set(E, w, ws, args, tol, age):
     dev = -np.minimum(rt.Inequal_Constr(E, w, *args), 0.0) / denom[:, None]
     
     in_set = np.zeros((J, J), dtype=bool)
-    in_set[ws[:, 0], ws[:, 1]] = True
+    in_set[WS[:, 0], WS[:, 1]] = True
     add = np.argwhere((dev > tol) & (~in_set)).astype(np.int64)
     
     if add.shape[0] == 0:
-        return ws, 0
+        return WS, 0
     age[add[:, 0], add[:, 1]] = 0
-    return np.unique(np.vstack((ws, add)), axis=0), add.shape[0]
+    return np.unique(np.vstack((WS, add)), axis=0), add.shape[0]
 
 
 

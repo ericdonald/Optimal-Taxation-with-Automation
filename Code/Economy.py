@@ -336,7 +336,7 @@ class Economy:
         error = 2.0
         IC_k = 2
         IC_slack = 0.05
-        grace = 2
+        grace = 10
         age = np.full((self.J, self.J), grace + 1, dtype=np.int64)
         logit  = lambda p: np.log(p/(1-p))
         
