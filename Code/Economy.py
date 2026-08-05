@@ -351,30 +351,29 @@ class Economy:
             # Solve Inner Loop #
             # ---------------- #
             for _verify in range(3):
-                E, status = gpf.solve_planner(w, r, E, args, WS, error)
+                E_new, status = gpf.solve_planner(w, r, E, args, WS, error)
                 WS, added = gpf.verify_working_set(E, w, WS, args, np.minimum(error, 1.0), age)
                 if added == 0:
                     break
                 
-            c_0 = E[:self.J]
-            c_1 = E[self.J:2*self.J]
-            l = E[2*self.J:3*self.J]
-            K = Y_bar - np.sum(self.n * c_0)
+            c_0_new = E_new[:self.J]
+            l_new = E_new[2*self.J:3*self.J]
+            K_new = Y_bar - np.sum(self.n * c_0_new)
             
             
             # -------------------- #
             # Update Factor Prices #
             # -------------------- #
-            L = self.n * l
-            w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-            r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            L_new = self.n * l_new
+            w_new = fn.Wages(x, L_new, K_new, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            r_new = fn.Rents(x, L_new, K_new, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             
             
             # -------------------- #
             # Solve for Thresholds #
             # -------------------- #
             if θ_on == 1:
-                θ_args = (E, x, w, r, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J, self.x_bar, self.ζ, self.ν, self.σ)
+                θ_args = (E_new, x, w_new, r_new, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J, self.x_bar, self.ζ, self.ν, self.σ)
                 Optimal_θ_Root = lambda x: rt.Optimalθ_NL_Root(x, *θ_args)
                 θ_lower = θ/2
                 θ_upper = np.maximum(θ * 1.5, 1/3)
@@ -383,7 +382,7 @@ class Economy:
             else:
                 θ_new = 0
             
-            x_new = ((w / self.A_j) / ((1+θ) * r / self.A_k))**(1/self.ζ)
+            x_new = ((w_new / self.A_j) / ((1+θ) * r_new / self.A_k))**(1/self.ζ)
             
             
             # ---------------------------- #
@@ -406,6 +405,16 @@ class Economy:
             z      = logit(s)*(1-damp) + logit(s_new)*damp
             x      = self.x_bar / (1 + np.exp(-z))
             
+            
+            # -------------------------- #
+            # Update Factor Prices Again #
+            # -------------------------- #
+            
+            E = E * (1-damp) + E_new * damp
+            c_0 = E[:self.J]
+            l = E[2*self.J:3*self.J]
+            K = Y_bar - np.sum(self.n * c_0)
+            L = self.n * l
             w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
         
