@@ -336,6 +336,7 @@ class Economy:
         
         grace = 3
         age = np.full((self.J, self.J), grace + 1, dtype=np.int64)
+        logit  = lambda p: np.log(p/(1-p))
         
         # ---------- #
         # Outer Loop #
@@ -344,6 +345,7 @@ class Economy:
         for _ in range(max_iter):
             
             WS = gpf.build_working_set(E, w, args, age)
+            #print(f'Active ICs: {WS.shape[0]}')
         
             # ---------------- #
             # Solve Inner Loop #
@@ -398,7 +400,11 @@ class Economy:
             
             error = np.maximum(error_x, error_θ)
             θ = θ * (1-damp) + θ_new * damp
-            x = x * (1-damp) + x_new * damp
+            
+            s      = x / self.x_bar
+            s_new  = np.clip(x_new / self.x_bar, 1e-12, 1-1e-12)
+            z      = logit(s)*(1-damp) + logit(s_new)*damp
+            x      = self.x_bar / (1 + np.exp(-z))
             
             w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)

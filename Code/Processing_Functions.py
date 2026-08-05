@@ -264,6 +264,45 @@ def ic_jac_reduced(z, w, WS, args):
 
 
 
+class _MirrleesNLP:
+    "Cyipopt Problem Object"
+    def __init__(self, w, r, WS, args):
+        self.w, self.r, self.WS, self.args = w, r, WS, args
+        J = args[-1]; self.J = J
+        P = WS.shape[0]; self.P = P
+        i = WS[:, 0]; j = WS[:, 1]
+        eq_rows = np.zeros(2*J + 1, np.int64)
+        eq_cols = np.arange(2*J + 1)
+        ic_rows = np.repeat(np.arange(1, P + 1), 5)
+        ic_cols = np.empty(5*P, np.int64)
+        ic_cols[0::5] = i;      ic_cols[1::5] = j
+        ic_cols[2::5] = J + i;  ic_cols[3::5] = J + j
+        ic_cols[4::5] = 2*J
+        self._rows = np.concatenate([eq_rows, ic_rows])
+        self._cols = np.concatenate([eq_cols, ic_cols])
+
+    def objective(self, z):
+        return obj_reduced(z, self.args)
+
+    def gradient(self, z):
+        return obj_jac_reduced(z, self.args)
+
+    def constraints(self, z):
+        eq = eq_reduced(z, self.w, self.r, self.args)     
+        ic = ic_reduced(z, self.w, self.WS, self.args)    
+        return np.concatenate([eq, ic])
+
+    def jacobian(self, z):
+        eq_row = eq_jac_reduced(z, self.w, self.r, self.args).ravel()  
+        E, m = _expand(z, self.J)
+        _, _, vals = pr.δIC_δX(E, m, self.w, self.WS, *self.args)
+        return np.concatenate([eq_row, vals])
+
+    def jacobianstructure(self):
+        return self._rows, self._cols
+
+
+
 def solve_planner(w, r, E_0, args, WS, error):
     "Solve Mirrlees with Normalized Penalty"
     
@@ -287,45 +326,31 @@ def solve_planner(w, r, E_0, args, WS, error):
     lb  = np.concatenate((np.ones(2*J)*1e-2, np.array([-10.0])))
     ub  = np.concatenate((np.ones(2*J)*1e4,  np.array([ 10.0])))
     
-        
-    
-    # ------------------ #
-    # Define Constraints #
-    # ------------------ #
-    obj_fun = lambda z: obj_reduced(z, args)
-    obj_jac = lambda z: obj_jac_reduced(z, args)
-    eq_fun = lambda z: eq_reduced(z, w, r, args)
-    eq_jac = lambda z: eq_jac_reduced(z, w, r, args)
-    ic_fun = lambda z: ic_reduced(z, w, WS, args)
-    ic_jac = lambda z: ic_jac_reduced(z, w, WS, args)
-    
-    eq_cons = sp.optimize.NonlinearConstraint(eq_fun, lb=0, ub=0, jac=eq_jac)
-    ic_cons = sp.optimize.NonlinearConstraint(ic_fun, lb=0, ub=np.inf, jac=ic_jac)
-    bounds  = sp.optimize.Bounds(lb, ub)
+    P  = WS.shape[0]
+    cl = np.concatenate((np.array([0.0]), np.zeros(P)))
+    cu = np.concatenate((np.array([0.0]), np.full(P, 2.0e19)))
     
     
     # ----- #
     # Solve #
     # ----- #
-    opt = cp.minimize_ipopt(obj_fun, z_0, jac=obj_jac,
-                            bounds=bounds, constraints=[eq_cons, ic_cons],
-                            options={'maxiter': maxiter,
-                                     'hessian_approximation': 'limited-memory',
-                                     'limited_memory_max_history': 50,
-                                     'mu_strategy': 'adaptive',
-                                     'tol': ip_tol,
-                                     'acceptable_tol': ip_tol * 10,
-                                     'acceptable_iter': 5,
-                                     'print_level': 0, 'sb': 'yes'})
+    nlp = cp.Problem(n=2*J + 1, m=1 + P,
+                     problem_obj=_MirrleesNLP(w, r, WS, args),
+                     lb=lb, ub=ub, cl=cl, cu=cu)
     
-    # _IPOPT_STATUS = {0: 'solved', 1: 'solved to acceptable tolerance',
-    #                  2: 'infeasible problem detected', -1: 'maximum iterations exceeded',
-    #                  -2: 'restoration failed', -3: 'error in step computation'}
-    # print(f"IPOPT: {_IPOPT_STATUS.get(opt.status, 'status ' + str(opt.status))} ({opt.status})")
+    for k, v in {'max_iter': maxiter, 'hessian_approximation': 'limited-memory',
+                 'limited_memory_max_history': 50, 'mu_strategy': 'adaptive',
+                 'tol': ip_tol, 'acceptable_tol': ip_tol*10, 'acceptable_iter': 5,
+                 'print_level': 0, 'sb': 'yes'}.items():
+        nlp.add_option(k, v)
+
+    z_opt, info = nlp.solve(z_0)
+    E, _ = _expand(z_opt, J)
+    status = info['status']
+    #print(f'IPOPT Status: {status}')
     
-    
-    E, _ = _expand(opt.x, J)
-    return E, opt.status
+    return E, status
+
 
 
 
