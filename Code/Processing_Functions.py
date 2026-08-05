@@ -351,7 +351,7 @@ def solve_planner(w, r, E_0, args, WS, error):
     _IPOPT_STATUS = {0: 'solved', 1: 'solved to acceptable tolerance',
                      2: 'infeasible problem detected', -1: 'maximum iterations exceeded',
                     -2: 'restoration failed', -3: 'error in step computation'}
-    #print(f"IPOPT: {_IPOPT_STATUS.get(status, 'status ' + str(status))} ({status})")
+    print(f"IPOPT: {_IPOPT_STATUS.get(status, 'status ' + str(status))} ({status})")
     
     return E, status
 

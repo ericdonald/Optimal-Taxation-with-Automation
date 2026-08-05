@@ -28,7 +28,7 @@ P = p.Processor(E)
 # ---------- #
 # Clean Data #
 # ---------- #
-P.Cleaner()
+#P.Cleaner()
 
 
 # --------- #
@@ -40,13 +40,13 @@ P.Calibrate()
 # ---------- #
 # Validation #
 # ---------- #
-P.Validation()
+#P.Validation()
 
 
 # --------------------------- #
 # Optimal Parametric Policies #
 # --------------------------- #
-P.Parametric_Optimum()
+#P.Parametric_Optimum()
 
 
 # ---------------------- #

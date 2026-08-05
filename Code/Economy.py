@@ -347,35 +347,35 @@ class Economy:
         for _ in range(max_iter):
             
             WS = gpf.build_working_set(E, w, args, age, IC_k, IC_slack, grace)
-            #print(f'Active ICs: {WS.shape[0]}')
+            print(f'Active ICs: {WS.shape[0]}')
         
             # ---------------- #
             # Solve Inner Loop #
             # ---------------- #
             for _verify in range(3):
-                E_new, status = gpf.solve_planner(w, r, E, args, WS, error)
+                E, _ = gpf.solve_planner(w, r, E, args, WS, error)
                 WS, added = gpf.verify_working_set(E, w, WS, args, np.minimum(error, 1.0), age)
                 if added == 0:
                     break
                 
-            c_0_new = E_new[:self.J]
-            l_new = E_new[2*self.J:3*self.J]
-            K_new = Y_bar - np.sum(self.n * c_0_new)
+            c_0 = E[:self.J]
+            l = E[2*self.J:3*self.J]
+            K = Y_bar - np.sum(self.n * c_0)
             
             
             # -------------------- #
             # Update Factor Prices #
             # -------------------- #
-            L_new = self.n * l_new
-            w_new = fn.Wages(x, L_new, K_new, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-            r_new = fn.Rents(x, L_new, K_new, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            L = self.n * l
+            w_new = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            r_new = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             
             
             # -------------------- #
             # Solve for Thresholds #
             # -------------------- #
             if θ_on == 1:
-                θ_args = (E_new, x, w_new, r_new, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J, self.x_bar, self.ζ, self.ν, self.σ)
+                θ_args = (E, x, w_new, r_new, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J, self.x_bar, self.ζ, self.ν, self.σ)
                 Optimal_θ_Root = lambda x: rt.Optimalθ_NL_Root(x, *θ_args)
                 θ_lower = θ/2
                 θ_upper = np.maximum(θ * 1.5, 1/3)
@@ -392,11 +392,11 @@ class Economy:
             # ---------------------------- #
             error_x = np.max(np.abs(x - x_new))
             avg_error_x = np.mean(np.abs(x - x_new))
-            # print(f'Max Automation Error: {error_x}')
-            # print(f'Mean Automation Error: {avg_error_x}')
+            print(f'Max Automation Error: {error_x}')
+            print(f'Mean Automation Error: {avg_error_x}')
             
             error_θ = np.abs(θ - θ_new)
-            #print(f'Threshold Rule Error: {error_θ}')
+            print(f'Threshold Rule Error: {error_θ}')
                 
             if error_θ < tol and error_x < tol:
                 break
@@ -409,18 +409,8 @@ class Economy:
             z      = logit(s)*(1-damp) + logit(s_new)*damp
             x      = self.x_bar / (1 + np.exp(-z))
             
-            
-            # -------------------------- #
-            # Update Factor Prices Again #
-            # -------------------------- #
-            
-            E = E * (1-damp) + E_new * damp
-            c_0 = E[:self.J]
-            l = E[2*self.J:3*self.J]
-            K = Y_bar - np.sum(self.n * c_0)
-            L = self.n * l
-            w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-            r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            w = np.exp(np.log(w)*(1-damp) + np.log(w_new)*damp)
+            r = np.exp(np.log(r)*(1-damp) + np.log(r_new)*damp)
         
         
         # ------------ #
