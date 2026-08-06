@@ -342,7 +342,7 @@ class Economy:
         age = np.full((self.J, self.J), grace + 1, dtype=np.int64)
         logit  = lambda p: np.log(p/(1-p))
         y_hist, f_hist = [], []
-        m_and       = 5
+        m_and       = 15
         audit_every = 10
         it          = 0
         d = np.concatenate([[damp], np.full(self.J, damp), np.full(self.J, damp), [damp]])
@@ -375,7 +375,7 @@ class Economy:
                 map_changed = False
                 if it % audit_every == 0:
                     WS, added = gpf.verify_working_set(E, w, WS, args, tol, age)
-                    if added > 0:
+                    if added > 0.01 * WS.shape[0]:
                         map_changed = True
             it += 1
 
@@ -462,7 +462,6 @@ class Economy:
         r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
         τ_k = np.median(1 - (MRS_c + self.g) / (r - self.δ))
         
-        qe.toc()
         if status != 0:
             _IPOPT_STATUS = {0: 'solved', 1: 'solved to acceptable tolerance',
                              2: 'infeasible problem detected', -1: 'maximum iterations exceeded',
@@ -470,8 +469,10 @@ class Economy:
             print(f"IPOPT: {_IPOPT_STATUS.get(status, 'status ' + str(status))} ({status})")
         elif (θ_on == 1 and np.abs(τ_k) > tol):
             print(f'τ_K_θ = {τ_k}')
-        else:
-            print("Mirrlees Solution Found")
+        
+        
+        qe.toc()
+        print("Mirrlees Solution Found")
         
         if θ_on == 1:
             return (c_0, c_1, l, K, x, θ, τ_k)
