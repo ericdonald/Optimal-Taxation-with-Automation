@@ -341,6 +341,11 @@ class Economy:
         freeze_tol = 2.0
         age = np.full((self.J, self.J), grace + 1, dtype=np.int64)
         logit  = lambda p: np.log(p/(1-p))
+        y_hist, f_hist = [], []
+        m_and       = 5
+        audit_every = 10
+        it          = 0
+        d = np.concatenate([[damp], np.full(self.J, damp), np.full(self.J, damp), [damp]])
         
         
         # ---------- #
@@ -349,42 +354,46 @@ class Economy:
         qe.tic()
         for _ in range(max_iter):
             
-            if avg_error_x > freeze_tol:
+            frozen = avg_error_x <= freeze_tol
+            if not frozen:
                 WS = gpf.build_working_set(E, w, args, age, IC_k, IC_slack, grace)
-            print(f'Active ICs: {WS.shape[0]}')
+            print(f'Active ICs: {WS.shape[0]}  (frozen={frozen})')
         
         
             # ---------------- #
             # Solve Inner Loop #
             # ---------------- #
-            for _verify in range(3):
+            if not frozen:
+                for _verify in range(3):
+                    E, _ = gpf.solve_planner(w, r, E, args, WS, error)
+                    WS, added = gpf.verify_working_set(E, w, WS, args, np.minimum(error, 1.0), age)
+                    if added == 0:
+                        break
+                map_changed = True
+            else:
                 E, _ = gpf.solve_planner(w, r, E, args, WS, error)
-                WS, added = gpf.verify_working_set(E, w, WS, args, np.minimum(error, 1.0), age)
-                if added == 0:
-                    break
-                
-            c_0 = E[:self.J]
-            l = E[2*self.J:3*self.J]
+                map_changed = False
+                if it % audit_every == 0:
+                    WS, added = gpf.verify_working_set(E, w, WS, args, tol, age)
+                    if added > 0:
+                        map_changed = True
+            it += 1
+
+            c_0 = E[:self.J]; l = E[2*self.J:3*self.J]
             K = Y_bar - np.sum(self.n * c_0)
             
             
-            # -------------------- #
-            # Update Factor Prices #
-            # -------------------- #
+            # ---------- #
+            # Update New #
+            # ---------- #
             L = self.n * l
             w_new = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             r_new = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-            
-            
-            # -------------------- #
-            # Solve for Thresholds #
-            # -------------------- #
+           
             if θ_on == 1:
                 θ_args = (E, x, w_new, r_new, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J, self.x_bar, self.ζ, self.ν, self.σ)
                 Optimal_θ_Root = lambda x: rt.Optimalθ_NL_Root(x, *θ_args)
-                θ_lower = θ/2
-                θ_upper = np.maximum(θ * 1.5, 1/3)
-                θ_new = gpf.secant_scalar(Optimal_θ_Root, θ_lower, θ_upper, lb=-0.999, ub=2,  expansion='additive')
+                θ_new = gpf.secant_scalar(Optimal_θ_Root, θ/2, np.maximum(θ * 1.5, 1/3), lb=-0.999, ub=2,  expansion='additive')
                 #print(θ_new)
             else:
                 θ_new = 0
@@ -392,30 +401,46 @@ class Economy:
             x_new = ((w_new / self.A_j) / ((1+θ) * r_new / self.A_k))**(1/self.ζ)
             
             
-            # ---------------------------- #
-            # Check Convergence and Update #
-            # ---------------------------- #
-            error_x = np.max(np.abs(x - x_new))
+            # ----------------- #
+            # Check Convergence #
+            # ----------------- #
+            error_x     = np.max(np.abs(x - x_new))
             avg_error_x = np.mean(np.abs(x - x_new))
-            print(f'Max Automation Error: {error_x}')
-            print(f'Mean Automation Error: {avg_error_x}')
-            
-            error_θ = np.abs(θ - θ_new)
-            print(f'Threshold Rule Error: {error_θ}')
-                
+            error_θ     = np.abs(θ - θ_new)
+            print(f'Max Auto Err: {error_x:.4g}   Mean Auto Err: {avg_error_x:.4g}   θ Err: {error_θ:.4g}')
+
             if error_θ < tol and error_x < tol:
                 break
             error = np.maximum(error_x, error_θ)
             
-            θ = θ * (1-damp) + θ_new * damp
             
-            s      = x / self.x_bar
-            s_new  = np.clip(x_new / self.x_bar, 1e-12, 1-1e-12)
-            z      = logit(s)*(1-damp) + logit(s_new)*damp
-            x      = self.x_bar / (1 + np.exp(-z))
-            
-            w = np.exp(np.log(w)*(1-damp) + np.log(w_new)*damp)
-            r = np.exp(np.log(r)*(1-damp) + np.log(r_new)*damp)
+            # ------------ #
+            # Update State #
+            # ------------ #
+            s_new = np.clip(x_new / self.x_bar, 1e-12, 1-1e-12)
+            y     = np.concatenate([[θ],     logit(x/self.x_bar), np.log(w),     [np.log(r)]])
+            y_tgt = np.concatenate([[θ_new], logit(s_new),        np.log(w_new), [np.log(r_new)]])
+            f     = y_tgt - y
+
+            if map_changed or not frozen:
+                y_hist, f_hist = [], []
+                y = y + d * f
+            else:
+                y_hist.append(y.copy()); f_hist.append(f.copy())
+                if len(f_hist) > m_and + 1:
+                    y_hist.pop(0); f_hist.pop(0)
+                if len(f_hist) == 1:
+                    y = y + d * f
+                else:
+                    dF = np.column_stack([f_hist[i+1]-f_hist[i] for i in range(len(f_hist)-1)])
+                    dY = np.column_stack([y_hist[i+1]-y_hist[i] for i in range(len(y_hist)-1)])
+                    gamma, *_ = np.linalg.lstsq(dF, f_hist[-1], rcond=1e-8)
+                    y = y + d*f - (dY + d[:, None]*dF) @ gamma
+
+            θ = y[0]
+            x = self.x_bar / (1 + np.exp(-y[1:1+self.J]))
+            w = np.exp(y[1+self.J:1+2*self.J])
+            r = np.exp(y[1+2*self.J])
         
         
         # ------------ #
