@@ -971,7 +971,7 @@ class Processor:
         y_0_vat = self.E.y_0 * (100 - τ_vat)/100 + avg_y_0 * τ_vat/100
             
         (τ_k_sq_vat,) = self.E.Para_Solver(0, 1, y_0=y_0_vat)
-        (θ_sq_vat_both, τ_k_sq_vat_both) = self.E.Para_Solver(1, 1, y_0=y_0_vat, damp=1/4)
+        (θ_sq_vat_both, τ_k_sq_vat_both) = self.E.Para_Solver(1, 1, y_0=y_0_vat, damp=1/8)
         
         ES_robust_Results.add('Low ES Status Quo VAT Capital Tax', gpf.clean_round(τ_k_sq_vat*100, 1))
         ES_robust_Results.add('Low ES Status Quo VAT Threshold Rule, Both', gpf.clean_round(θ_sq_vat_both*100, 1))

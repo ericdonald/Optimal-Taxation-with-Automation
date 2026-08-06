@@ -333,12 +333,15 @@ class Economy:
         w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
         r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
         
-        error = 2.0
+        error = 5
+        avg_error_x = 5
         IC_k = 2
         IC_slack = 0.05
-        grace = 10
+        grace = 4
+        freeze_tol = 2.0
         age = np.full((self.J, self.J), grace + 1, dtype=np.int64)
         logit  = lambda p: np.log(p/(1-p))
+        
         
         # ---------- #
         # Outer Loop #
@@ -346,8 +349,10 @@ class Economy:
         qe.tic()
         for _ in range(max_iter):
             
-            WS = gpf.build_working_set(E, w, args, age, IC_k, IC_slack, grace)
+            if avg_error_x > freeze_tol:
+                WS = gpf.build_working_set(E, w, args, age, IC_k, IC_slack, grace)
             print(f'Active ICs: {WS.shape[0]}')
+        
         
             # ---------------- #
             # Solve Inner Loop #
@@ -400,8 +405,8 @@ class Economy:
                 
             if error_θ < tol and error_x < tol:
                 break
-            
             error = np.maximum(error_x, error_θ)
+            
             θ = θ * (1-damp) + θ_new * damp
             
             s      = x / self.x_bar
@@ -416,7 +421,6 @@ class Economy:
         # ------------ #
         # Final Polish #
         # ------------ #
-        WS = gpf.build_working_set(E, w, args, age, IC_k, IC_slack, grace)
         for _verify in range(3):
             E, status = gpf.solve_planner(w, r, E, args, WS, tol)
             WS, added = gpf.verify_working_set(E, w, WS, args, tol, age)
