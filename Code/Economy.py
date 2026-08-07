@@ -315,38 +315,23 @@ class Economy:
         
         
         
-    def Mirrlees_Lagr(self, E, x, θ_on, damp=1/10, tol=1e-4, max_iter=10_000):
+    def Mirrlees_Lagr(self, E, θ_on, tol=1e-4, max_iter=10_000):
         "Solve Non-Linear Tax Problem"
                     
         Y_0 = self.Y_sq / (1+self.g)
         K_0 = self.K_sq / (1+self.g)
         Y_bar = Y_0 + (1-self.δ) * K_0
         
-        args = (self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J)
-        
-        c_0 = E[:self.J]
-        l = E[2*self.J:3*self.J]
-        θ = 0
+        c_0 = E[:self.J]; l = E[2*self.J:3*self.J]; x = E[3*self.J:4*self.J]
         K = Y_bar - np.sum(self.n * c_0)
         L = self.n * l
-        
         w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-        r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
         
-        error = 5
-        avg_error_x = 5
+        args = (self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.ζ, self.ν, self.σ, self.β, self.var_θ, self.φ, self.ε, self.x_bar, self.J)
         IC_k = 2
         IC_slack = 0.05
-        grace = 4
-        freeze_tol = 2.0
-        age = np.full((self.J, self.J), grace + 1, dtype=np.int64)
-        logit  = lambda p: np.log(p/(1-p))
-        y_hist, f_hist = [], []
-        m_and       = 15
-        audit_every = 10
-        it          = 0
-        d = np.concatenate([[damp], np.full(self.J, damp), np.full(self.J, damp), [damp]])
-        
+        WS = gpf.build_working_set(E, w, args, IC_k, IC_slack)
+    
         
         # ---------- #
         # Outer Loop #
@@ -354,127 +339,44 @@ class Economy:
         qe.tic()
         for _ in range(max_iter):
             
-            frozen = avg_error_x <= freeze_tol
-            if not frozen:
-                WS = gpf.build_working_set(E, w, args, age, IC_k, IC_slack, grace)
-            print(f'Active ICs: {WS.shape[0]}  (frozen={frozen})')
-        
-        
-            # ---------------- #
-            # Solve Inner Loop #
-            # ---------------- #
-            if not frozen:
-                for _verify in range(3):
-                    E, _ = gpf.solve_planner(w, r, E, args, WS, error)
-                    WS, added = gpf.verify_working_set(E, w, WS, args, np.minimum(error, 1.0), age)
-                    if added == 0:
-                        break
-                map_changed = True
-            else:
-                E, _ = gpf.solve_planner(w, r, E, args, WS, error)
-                map_changed = False
-                if it % audit_every == 0:
-                    WS, added = gpf.verify_working_set(E, w, WS, args, tol, age)
-                    if added > 0.01 * WS.shape[0]:
-                        map_changed = True
-            it += 1
-
-            c_0 = E[:self.J]; l = E[2*self.J:3*self.J]
+            # ----------- #
+            # Solve Inner #
+            # ----------- #
+            print(f'Active ICs: {WS.shape[0]}')
+            E = gpf.solve_planner(E, θ_on, args, WS)
+            
+            
+            # ------ #
+            # Update #
+            # ------ #
+            c_0 = E[:self.J]; l = E[2*self.J:3*self.J]; x = E[3*self.J:4*self.J]
             K = Y_bar - np.sum(self.n * c_0)
-            
-            
-            # ---------- #
-            # Update New #
-            # ---------- #
             L = self.n * l
-            w_new = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-            r_new = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-           
-            if θ_on == 1:
-                θ_args = (E, x, w_new, r_new, self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.β, self.var_θ, self.φ, self.ε, self.J, self.x_bar, self.ζ, self.ν, self.σ)
-                Optimal_θ_Root = lambda x: rt.Optimalθ_NL_Root(x, *θ_args)
-                θ_new = gpf.secant_scalar(Optimal_θ_Root, θ/2, np.maximum(θ * 1.5, 1/3), lb=-0.999, ub=2,  expansion='additive')
-                #print(θ_new)
-            else:
-                θ_new = 0
+            w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             
-            x_new = ((w_new / self.A_j) / ((1+θ) * r_new / self.A_k))**(1/self.ζ)
-            
-            
-            # ----------------- #
-            # Check Convergence #
-            # ----------------- #
-            error_x     = np.max(np.abs(x - x_new))
-            avg_error_x = np.mean(np.abs(x - x_new))
-            error_θ     = np.abs(θ - θ_new)
-            print(f'Max Auto Err: {error_x:.4g}   Mean Auto Err: {avg_error_x:.4g}   θ Err: {error_θ:.4g}')
-
-            if error_θ < tol and error_x < tol:
-                break
-            error = np.maximum(error_x, error_θ)
-            
-            
-            # ------------ #
-            # Update State #
-            # ------------ #
-            s_new = np.clip(x_new / self.x_bar, 1e-12, 1-1e-12)
-            y     = np.concatenate([[θ],     logit(x/self.x_bar), np.log(w),     [np.log(r)]])
-            y_tgt = np.concatenate([[θ_new], logit(s_new),        np.log(w_new), [np.log(r_new)]])
-            f     = y_tgt - y
-
-            if map_changed or not frozen:
-                y_hist, f_hist = [], []
-                y = y + d * f
-            else:
-                y_hist.append(y.copy()); f_hist.append(f.copy())
-                if len(f_hist) > m_and + 1:
-                    y_hist.pop(0); f_hist.pop(0)
-                if len(f_hist) == 1:
-                    y = y + d * f
-                else:
-                    dF = np.column_stack([f_hist[i+1]-f_hist[i] for i in range(len(f_hist)-1)])
-                    dY = np.column_stack([y_hist[i+1]-y_hist[i] for i in range(len(y_hist)-1)])
-                    gamma, *_ = np.linalg.lstsq(dF, f_hist[-1], rcond=1e-8)
-                    y = y + d*f - (dY + d[:, None]*dF) @ gamma
-
-            θ = y[0]
-            x = self.x_bar / (1 + np.exp(-y[1:1+self.J]))
-            w = np.exp(y[1+self.J:1+2*self.J])
-            r = np.exp(y[1+2*self.J])
-        
-        
-        # ------------ #
-        # Final Polish #
-        # ------------ #
-        for _verify in range(3):
-            E, status = gpf.solve_planner(w, r, E, args, WS, tol)
-            WS, added = gpf.verify_working_set(E, w, WS, args, tol, age)
+            WS, added = gpf.verify_working_set(E, w, WS, args, tol)
             if added == 0:
                 break
-            
-        c_0 = E[:self.J]
-        c_1 = E[self.J:2*self.J]
-        l   = E[2*self.J:3*self.J]
-        L = self.n * l
-        K   = Y_bar - np.sum(self.n * c_0)
         
+        qe.toc()
+        print("Mirrlees Solution Found")
+            
+        
+        # ----------- #
+        # Capital Tax #
+        # ----------- #
+        c_0 = E[:self.J]; c_1 = E[self.J:2*self.J]; l = E[2*self.J:3*self.J]; x = E[3*self.J:4*self.J]
+        K = Y_bar - np.sum(self.n * c_0)
+        L = self.n * l
         MRS_c = fn.cap_MRS(c_0, c_1, self.β, self.var_θ, self.ε, self.g)
         r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
         τ_k = np.median(1 - (MRS_c + self.g) / (r - self.δ))
         
-        if status != 0:
-            _IPOPT_STATUS = {0: 'solved', 1: 'solved to acceptable tolerance',
-                             2: 'infeasible problem detected', -1: 'maximum iterations exceeded',
-                            -2: 'restoration failed', -3: 'error in step computation'}
-            print(f"IPOPT: {_IPOPT_STATUS.get(status, 'status ' + str(status))} ({status})")
-        elif (θ_on == 1 and np.abs(τ_k) > tol):
-            print(f'τ_K_θ = {τ_k}')
-        
-        
-        qe.toc()
-        print("Mirrlees Solution Found")
+        if (θ_on == 1 and np.abs(τ_k) > tol):
+            print(f'τ_K_θ = {τ_k:.4g}')
         
         if θ_on == 1:
+            θ = E[-1]
             return (c_0, c_1, l, K, x, θ, τ_k)
         else: 
             return (c_0, c_1, l, K, x, τ_k)

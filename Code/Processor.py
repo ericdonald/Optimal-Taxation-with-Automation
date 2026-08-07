@@ -666,11 +666,11 @@ class Processor:
         alloc_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
         
         c_0_0,    c_1_0,    l_0,    x_0    = gpf.solve_eqbm(0, self.E.τ_k, self.E.Ψ, self.E.ψ, avg_y_0, E_init, *alloc_args)
-        E_0 = np.concatenate((c_0_0, c_1_0, l_0))
-        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT, τ_k_NT) = self.E.Mirrlees_Lagr(E_0, x_0, 0)
+        E_0 = np.concatenate((c_0_0, c_1_0, l_0, x_0))
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT, τ_k_NT) = self.E.Mirrlees_Lagr(E_0, 0)
         
-        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
-        (c_0, c_1, l, K, x, θ, τ_k) = self.E.Mirrlees_Lagr(E_NT, x_NT, 1)
+        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT, x_NT, np.zeros(1)))
+        (c_0, c_1, l, K, x, θ, τ_k) = self.E.Mirrlees_Lagr(E_NT, 1)
         
         Mirrlees_Results.add('Optimal Mirrlees Capital Tax', gpf.clean_round(τ_k_NT*100, 1))
         
@@ -1031,17 +1031,13 @@ class Processor:
         # Mirrlees Problem #
         # ---------------- #
         c_0_0,    c_1_0,    l_0,    x_0    = gpf.solve_eqbm(0, self.E.τ_k, self.E.Ψ, self.E.ψ, avg_y_0, E_init, *alloc_args)
-        E_0 = np.concatenate((c_0_0, c_1_0, l_0))
-        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT) = self.E.Mirrlees_Lagr(E_0, x_0, 0, 1/10)
+        E_0 = np.concatenate((c_0_0, c_1_0, l_0, x_0))
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT, τ_k_NT) = self.E.Mirrlees_Lagr(E_0, 0)
         
-        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT))
-        (c_0, c_1, l, K, x, θ) = self.E.Mirrlees_Lagr(E_NT, x_NT, 1, 1/10)
+        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT, x_NT, np.zeros(1)))
+        (c_0, c_1, l, K, x, θ, τ_k) = self.E.Mirrlees_Lagr(E_NT, 1)
         
-        MRS_c_NT = fn.cap_MRS(c_0_NT, c_1_NT, self.E.β, self.E.var_θ, self.E.ε, self.E.g)
-        L_NT = self.E.n * l_NT
-        r_NT = fn.Rents(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
-        τ_K_NT = np.median(1 - (MRS_c_NT + self.E.g) / (r_NT - self.E.δ))
-        ES_robust_Results.add('Low ES Mirrlees Capital Tax', gpf.clean_round(τ_K_NT*100, 1))
+        ES_robust_Results.add('Low ES Mirrlees Capital Tax', gpf.clean_round(τ_k_NT*100, 1))
         
         ES_robust_Results.add('Low ES Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
     

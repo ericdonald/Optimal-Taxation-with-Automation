@@ -197,35 +197,47 @@ def broadcast_col_to_matrix(col):
 
 
 def _expand(z, J):
-    "Reduced z -> full E = [c_0, c_1, l]; returns (E, m)"
     c_0 = z[:J]
     l   = z[J:2*J]
-    m   = z[2*J]
+    x   = z[2*J:3*J]
+    m   = z[3*J]
     c_1 = c_0 * np.exp(m)
-    return np.concatenate((c_0, c_1, l)), m
+    if z.size > 3*J+1:
+        θ = z[-1]
+        return np.concatenate((c_0, c_1, l, x, np.array([θ]))), m
+    else:
+        return np.concatenate((c_0, c_1, l, x)), m
 
 
 
 def _reduce_grad(g_full, c_1, m, J):
-    "Chain-rule a length-3J objective gradient down to the reduced vars"
-    g_c0, g_c1, g_l = g_full[:J], g_full[J:2*J], g_full[2*J:3*J]
+    g_c0, g_c1, g_l, g_x = g_full[:J], g_full[J:2*J], g_full[2*J:3*J], g_full[3*J:4*J]
     g_c0p = g_c0 + np.exp(m) * g_c1
     g_m = np.array([np.sum(g_c1 * c_1)])
-    return np.concatenate((g_c0p, g_l, g_m))
+    if g_full.size > 4*J:
+        g_θ = np.array([g_full[-1]])
+        return np.concatenate((g_c0p, g_l, g_x, g_m, g_θ))
+    else:
+        return np.concatenate((g_c0p, g_l, g_x, g_m))
+    
 
 
 
 def _reduce_jac(Jac_full, c_1, m, J):
-    "Column-reduce a (rows, 3J) constraint Jacobian to the reduced vars"
-    Jc0, Jc1, Jl = Jac_full[:, :J], Jac_full[:, J:2*J], Jac_full[:, 2*J:3*J]
+    Jc0, Jc1, Jl, Jx = Jac_full[:, :J], Jac_full[:, J:2*J], Jac_full[:, 2*J:3*J], Jac_full[:,3*J:4*J]
     Jc0p = Jc0 + np.exp(m) * Jc1
     Jm = (Jc1 * c_1).sum(axis=1, keepdims=True)
-    return np.hstack((Jc0p, Jl, Jm))
+    if Jac_full.shape[1] > 4*J:
+        Jθ = Jac_full[:,-1:]
+        return np.hstack((Jc0p, Jl, Jx, Jm, Jθ))
+    else:
+        return np.hstack((Jc0p, Jl, Jx, Jm))
 
 
 
 def obj_reduced(z, args):
-    E, _ = _expand(z, args[-1])
+    J = args[-1]
+    E, _ = _expand(z, J)
     return -rt.Mir_obj(E, *args)
 
 
@@ -237,47 +249,52 @@ def obj_jac_reduced(z, args):
 
 
 
-def eq_reduced(z, w, r, args):
-    E, _ = _expand(z, args[-1])
-    return rt.Equal_Constr(E, w, r, *args)
+def eq_reduced(z, args):
+    J = args[-1]
+    E, _ = _expand(z, J)
+    return rt.Equal_Constr(E, *args)
 
 
 
-def eq_jac_reduced(z, w, r, args):
+def eq_jac_reduced(z, args):
     J = args[-1]
     E, m = _expand(z, J)
-    return _reduce_jac(pr.δEC_δX(E, w, r, *args), E[J:2*J], m, J)
+    return _reduce_jac(pr.δEC_δX(E, *args), E[J:2*J], m, J)
 
 
 
-def ic_reduced(z, w, WS, args):
-    E, _ = _expand(z, args[-1])
-    return rt.IC_on_set(E, w, WS, *args)
+def ic_reduced(z, WS, args):
+    J = args[-1]
+    E, _ = _expand(z, J)
+    return rt.IC_on_set(E, WS, *args)
 
 
 
-def ic_jac_reduced(z, w, WS, args):
+def ic_jac_reduced(z, WS, args):
     J = args[-1]
     E, m = _expand(z, J)
-    rows, cols, vals = pr.δIC_δX(E, m, w, WS, *args)
-    return sp.sparse.csr_matrix((vals, (rows, cols)), shape=(WS.shape[0], 2*J + 1))
+    rows, cols, vals = pr.δIC_δX(E, m, WS, *args)
+    return sp.sparse.csr_matrix((vals, (rows, cols)), shape=(WS.shape[0], z.size))
 
 
 
 class _MirrleesNLP:
     "Cyipopt Problem Object"
-    def __init__(self, w, r, WS, args):
-        self.w, self.r, self.WS, self.args = w, r, WS, args
+    def __init__(self, WS, θ_on, args):
+        self.WS, self.args = WS, args
         J = args[-1]; self.J = J
         P = WS.shape[0]; self.P = P
+        self.nz  = 3*J + 1 + (1 if θ_on else 0)
+        self.meq = J + 1                           
         i = WS[:, 0]; j = WS[:, 1]
-        eq_rows = np.zeros(2*J + 1, np.int64)
-        eq_cols = np.arange(2*J + 1)
-        ic_rows = np.repeat(np.arange(1, P + 1), 5)
-        ic_cols = np.empty(5*P, np.int64)
-        ic_cols[0::5] = i;      ic_cols[1::5] = j
-        ic_cols[2::5] = J + i;  ic_cols[3::5] = J + j
-        ic_cols[4::5] = 2*J
+        eq_rows = np.repeat(np.arange(self.meq), self.nz)
+        eq_cols = np.tile(np.arange(self.nz), self.meq)
+        ic_rows = np.repeat(np.arange(self.meq, self.meq + P), 7)
+        ic_cols = np.empty(7*P, np.int64)
+        ic_cols[0::7] = i;        ic_cols[1::7] = j
+        ic_cols[2::7] = J + i;    ic_cols[3::7] = J + j
+        ic_cols[4::7] = 2*J + i;  ic_cols[5::7] = 2*J + j
+        ic_cols[6::7] = 3*J
         self._rows = np.concatenate([eq_rows, ic_rows])
         self._cols = np.concatenate([eq_cols, ic_cols])
 
@@ -288,60 +305,65 @@ class _MirrleesNLP:
         return obj_jac_reduced(z, self.args)
 
     def constraints(self, z):
-        eq = eq_reduced(z, self.w, self.r, self.args)     
-        ic = ic_reduced(z, self.w, self.WS, self.args)    
+        eq = eq_reduced(z, self.args)     
+        ic = ic_reduced(z, self.WS, self.args)    
         return np.concatenate([eq, ic])
 
     def jacobian(self, z):
-        eq_row = eq_jac_reduced(z, self.w, self.r, self.args).ravel()  
+        eq_jac = eq_jac_reduced(z, self.args).ravel()
         E, m = _expand(z, self.J)
-        _, _, vals = pr.δIC_δX(E, m, self.w, self.WS, *self.args)
-        return np.concatenate([eq_row, vals])
+        _, _, vals = pr.δIC_δX(E, m, self.WS, *self.args)
+        return np.concatenate([eq_jac, vals])
 
     def jacobianstructure(self):
         return self._rows, self._cols
 
 
 
-def solve_planner(w, r, E_0, args, WS, error):
-    "Solve Mirrlees with Normalized Penalty"
+def solve_planner(E_0, θ_on, args, WS):
+    "Solve Mirrlees with IC Subset"
     
     J = args[-1]
-    
-    if error > 1:
-        maxiter, ip_tol = 500,  1e-4
-    elif error > 1e-2:
-        maxiter, ip_tol = 1000,  1e-6
-    else:
-        maxiter, ip_tol = 2000, 1e-8
+    x_bar = args[-2]
     
     
     # -------------------- #
     # Build Reduced Vector #
     # -------------------- #
     c_0_0 = E_0[:J]
-    l_0   = E_0[2*J:3*J]
+    l_0 = E_0[2*J:3*J]
+    x_0 = E_0[3*J:4*J]
     m_0 = np.median(np.log(E_0[J:2*J] / c_0_0))
-    z_0 = np.concatenate((c_0_0, l_0, np.array([m_0])))
-    lb  = np.concatenate((np.ones(2*J)*1e-2, np.array([-10.0])))
-    ub  = np.concatenate((np.ones(2*J)*1e4,  np.array([ 10.0])))
+    if θ_on==1:
+        θ_0 = E_0[-1]
+        z_0 = np.concatenate((c_0_0, l_0, x_0, np.array([m_0, θ_0])))
+        lb  = np.concatenate((np.ones(3*J)*1e-2, np.ones(2)*(-10.0)))
+        ub  = np.concatenate((np.ones(2*J)*1e4, np.ones(J)*x_bar, np.ones(2)*10.0))
+    else:
+        z_0 = np.concatenate((c_0_0, l_0, x_0, np.array([m_0])))
+        lb  = np.concatenate((np.ones(3*J)*1e-2, np.ones(1)*(-10.0)))
+        ub  = np.concatenate((np.ones(2*J)*1e4, np.ones(J)*x_bar, np.ones(1)*10.0))
     
     P  = WS.shape[0]
-    cl = np.concatenate((np.array([0.0]), np.zeros(P)))
-    cu = np.concatenate((np.array([0.0]), np.full(P, 2.0e19)))
+    cl = np.zeros(J+1+P)
+    cu = np.concatenate((np.zeros(J+1), np.full(P, 2.0e19)))
     
     
     # ----- #
     # Solve #
     # ----- #
-    nlp = cp.Problem(n=2*J + 1, m=1 + P,
-                     problem_obj=_MirrleesNLP(w, r, WS, args),
+    if θ_on==1:
+        n = 3*J+2
+    else:
+        n = 3*J+1
+        
+    nlp = cp.Problem(n=n, m=J+1+P,
+                     problem_obj=_MirrleesNLP(WS, θ_on, args),
                      lb=lb, ub=ub, cl=cl, cu=cu)
     
-    for k, v in {'max_iter': maxiter, 'hessian_approximation': 'limited-memory',
+    for k, v in {'hessian_approximation': 'limited-memory',
                  'limited_memory_max_history': 50, 'mu_strategy': 'adaptive',
-                 'tol': ip_tol, 'acceptable_tol': ip_tol*10, 'acceptable_iter': 5,
-                 'print_level': 0, 'sb': 'yes'}.items():
+                 'acceptable_iter': 5, 'print_level': 0, 'sb': 'yes'}.items():
         nlp.add_option(k, v)
 
     z_opt, info = nlp.solve(z_0)
@@ -353,51 +375,51 @@ def solve_planner(w, r, E_0, args, WS, error):
                     -2: 'restoration failed', -3: 'error in step computation'}
     print(f"IPOPT: {_IPOPT_STATUS.get(status, 'status ' + str(status))} ({status})")
     
-    return E, status
+    return E
 
 
 
 
-def build_working_set(E, w, args, age, k, slack_frac, grace):
+def build_working_set(E, w, args, IC_k, IC_slack):
     
-    J = args[-1]; var_θ = args[-4]
+    J = args[-1]; var_θ = args[-5]
     c_0 = E[:J]; l = E[2*J:3*J]
     y = w * l
     order = np.argsort(y)
     
-    fresh = np.zeros((J, J), dtype=bool)
+    keep = np.zeros((J, J), dtype=bool)
     
-    # k nearest neighbours in the endogenous earnings ordering (both directions)
+    
+    # --------- #
+    # Neighbors #
+    # --------- #
     for p in range(J):
         i  = order[p]
-        lo = max(0, p - k); hi = min(J, p + k + 1)
+        lo = max(0, p - IC_k); hi = min(J, p + IC_k + 1)
         for q in range(lo, hi):
             if q != p:
-                fresh[i, order[q]] = True
+                keep[i, order[q]] = True
     
-    # globally near-binding pairs at the current allocation (normalised slack)
-    IC    = rt.Inequal_Constr(E, w, *args)
+    
+    # ------------------ #
+    # Near-Binding Pairs #
+    # ------------------ #
+    IC    = rt.Inequal_Constr(E, *args)
     denom = c_0**(-var_θ) * c_0
     dev   = IC / denom[:, None]
-    fresh |= (dev < slack_frac)
-    np.fill_diagonal(fresh, False)
-    
-    # carry the previous set forward so an emerging binder is never dropped abruptly
-    age[fresh] = 0                
-    age[~fresh] += 1
-    keep = age <= grace
+    keep |= (dev < IC_slack)
     np.fill_diagonal(keep, False)
     
     return np.argwhere(keep).astype(np.int64)
 
 
 
-def verify_working_set(E, w, WS, args, tol, age):
+def verify_working_set(E, w, WS, args, tol):
     
-    J = args[-1]; var_θ = args[-4]
+    J = args[-1]; var_θ = args[-5]
     c_0 = E[:J]
     denom = c_0**(-var_θ) * c_0
-    dev = -np.minimum(rt.Inequal_Constr(E, w, *args), 0.0) / denom[:, None]
+    dev = -np.minimum(rt.Inequal_Constr(E, *args), 0.0) / denom[:, None]
     
     in_set = np.zeros((J, J), dtype=bool)
     in_set[WS[:, 0], WS[:, 1]] = True
@@ -405,8 +427,8 @@ def verify_working_set(E, w, WS, args, tol, age):
     
     if add.shape[0] == 0:
         return WS, 0
-    age[add[:, 0], add[:, 1]] = 0
-    return np.unique(np.vstack((WS, add)), axis=0), add.shape[0]
+    else:
+        return np.unique(np.vstack((WS, add)), axis=0), add.shape[0]
 
 
 
