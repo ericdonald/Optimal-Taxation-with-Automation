@@ -943,9 +943,7 @@ class Processor:
         """""
         Robustness with Elasticities of Substitution
     
-        Output: Results/Figures/ES_robust_StatusQuo_Covariance.csv
-                Results/Figures/ES_robust_Mirrlees_Covariance.csv
-                Results/Tables/ES_robust_Results.csv
+        Output: Results/Tables/ES_robust_Results.csv
         """""
         
         ES_robust_Results = gpf.ResultsTable()
@@ -1022,10 +1020,7 @@ class Processor:
         ES_robust_Results.add('Low ES Status Quo DvarWW', gpf.clean_round(Δ_var_λ_both, 1))
         ES_robust_Results.add('Low ES Status Quo DCOV', gpf.clean_round(Δ_cov_both, 1))
         ES_robust_Results.add('Low ES Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv_both, 2))
-        
-        gpf.cov_dataframe(stats_both, 'Both', stats_τ, 'tau_k', self.E.n, self.E.J).to_csv(
-                        f'{self.Directory}/Results/Figures/ES_robust_StatusQuo_Covariance.csv', index=False)
-
+       
         
         # ---------------- #
         # Mirrlees Problem #
@@ -1053,9 +1048,6 @@ class Processor:
         ES_robust_Results.add('Low ES Mirrlees DvarWW', gpf.clean_round(Δ_var_λ, 1))
         ES_robust_Results.add('Low ES Mirrlees DCOV', gpf.clean_round(Δ_cov, 1))
         ES_robust_Results.add('Low ES Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
-        
-        gpf.cov_dataframe(stats, 'Both', stats_NT, 'tau_k', self.E.n, self.E.J).to_csv(
-                        f'{self.Directory}/Results/Figures/ES_robust_Mirrlees_Covariance.csv', index=False)
         
         
         ES_robust_Results.to_csv(f'{self.Directory}/Results/Tables/ES_robust_Results.csv')

@@ -58,13 +58,13 @@ P.Mirrlees_Optimum()
 # ------------------ #
 # Introduction of AI #
 # ------------------ #
-P.AI_Experiment(0.5, 5)
+#P.AI_Experiment(0.5, 5)
 
 
 # ---------------------------------- #
 # Lower Elasticities of Substitution #
 # ---------------------------------- #
-P.Σ_robust(0.95, 0.1)
+P.Σ_robust(0.99, 0.25)
 
 
 # ----------------------- #

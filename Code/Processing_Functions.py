@@ -325,6 +325,7 @@ def solve_planner(E_0, θ_on, args, WS):
     
     J = args[-1]
     x_bar = args[-2]
+    σ = args[8]
     
     
     # -------------------- #
@@ -362,9 +363,11 @@ def solve_planner(E_0, θ_on, args, WS):
                      lb=lb, ub=ub, cl=cl, cu=cu)
     
     for k, v in {'hessian_approximation': 'limited-memory',
-                 'limited_memory_max_history': 50, 'mu_strategy': 'adaptive',
-                 'acceptable_iter': 5, 'print_level': 0, 'sb': 'yes'}.items():
+                 'limited_memory_max_history': 100, 'mu_strategy': 'adaptive',
+                 'print_level': 0, 'sb': 'yes'}.items():
         nlp.add_option(k, v)
+    if σ<0.5:
+        nlp.add_option('acceptable_tol', 1e-4)
 
     z_opt, info = nlp.solve(z_0)
     E, _ = _expand(z_opt, J)

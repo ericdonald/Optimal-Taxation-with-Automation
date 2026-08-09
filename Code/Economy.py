@@ -175,7 +175,8 @@ class Economy:
         a = 0
         b = -np.log(1000) / 100 #Lower bound for ζ of 1/1000
         
-        Γ = gpf.bisect_scalar(rt.GammaRoot, a, b, args)
+        Gamma_Σ = lambda x: rt.GammaRoot(x, *args)
+        Γ = gpf.secant_scalar(Gamma_Σ, a, b)
  
         self.Γ = Γ 
         self.ζ = np.exp(self.Γ * self.χ)
