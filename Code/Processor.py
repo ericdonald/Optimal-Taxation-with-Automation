@@ -969,7 +969,7 @@ class Processor:
         y_0_vat = self.E.y_0 * (100 - τ_vat)/100 + avg_y_0 * τ_vat/100
             
         (τ_k_sq_vat,) = self.E.Para_Solver(0, 1, y_0=y_0_vat)
-        (θ_sq_vat_both, τ_k_sq_vat_both) = self.E.Para_Solver(1, 1, y_0=y_0_vat, damp=1/8)
+        (θ_sq_vat_both, τ_k_sq_vat_both) = self.E.Para_Solver(1, 1, y_0=y_0_vat, damp=1/3)
         
         ES_robust_Results.add('Low ES Status Quo VAT Capital Tax', gpf.clean_round(τ_k_sq_vat*100, 1))
         ES_robust_Results.add('Low ES Status Quo VAT Threshold Rule, Both', gpf.clean_round(θ_sq_vat_both*100, 1))
@@ -998,7 +998,7 @@ class Processor:
         # ------------------ #
         E_vat = np.concatenate((c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both))
         (τ_k_sq,) = self.E.Para_Solver(0, 1)
-        (θ_sq_both, τ_k_sq_both) = self.E.Para_Solver(1, 1, E=E_vat, θ_init=θ_sq_vat_both, τ_k_init=τ_k_sq_vat_both, damp=1/4)
+        (θ_sq_both, τ_k_sq_both) = self.E.Para_Solver(1, 1, E=E_vat, θ_init=θ_sq_vat_both, τ_k_init=τ_k_sq_vat_both, damp=1/3)
         
         ES_robust_Results.add('Low ES Status Quo Capital Tax', gpf.clean_round(τ_k_sq*100, 1))
         ES_robust_Results.add('Low ES Status Quo Threshold Rule, Both', gpf.clean_round(θ_sq_both*100, 1))

@@ -363,7 +363,7 @@ def solve_planner(E_0, θ_on, args, WS):
                      lb=lb, ub=ub, cl=cl, cu=cu)
     
     for k, v in {'hessian_approximation': 'limited-memory',
-                 'limited_memory_max_history': 100, 'mu_strategy': 'adaptive',
+                 'limited_memory_max_history': 50, 'mu_strategy': 'adaptive',
                  'print_level': 0, 'sb': 'yes'}.items():
         nlp.add_option(k, v)
     if σ<0.5:
