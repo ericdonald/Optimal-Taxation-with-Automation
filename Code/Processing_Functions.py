@@ -325,7 +325,6 @@ def solve_planner(E_0, θ_on, args, WS):
     
     J = args[-1]
     x_bar = args[-2]
-    σ = args[8]
     
     
     # -------------------- #
@@ -366,8 +365,6 @@ def solve_planner(E_0, θ_on, args, WS):
                  'limited_memory_max_history': 50, 'mu_strategy': 'adaptive',
                  'print_level': 0, 'sb': 'yes'}.items():
         nlp.add_option(k, v)
-    if σ<0.5:
-        nlp.add_option('acceptable_tol', 1e-4)
 
     z_opt, info = nlp.solve(z_0)
     E, _ = _expand(z_opt, J)
@@ -378,7 +375,7 @@ def solve_planner(E_0, θ_on, args, WS):
                     -2: 'restoration failed', -3: 'error in step computation'}
     print(f"IPOPT: {_IPOPT_STATUS.get(status, 'status ' + str(status))} ({status})")
     
-    return E
+    return E, status
 
 
 

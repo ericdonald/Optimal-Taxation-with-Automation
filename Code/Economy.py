@@ -338,13 +338,16 @@ class Economy:
         # Outer Loop #
         # ---------- #
         qe.tic()
+        converged = False
         for _ in range(max_iter):
             
             # ----------- #
             # Solve Inner #
             # ----------- #
             print(f'Active ICs: {WS.shape[0]}')
-            E = gpf.solve_planner(E, θ_on, args, WS)
+            E, status = gpf.solve_planner(E, θ_on, args, WS)
+            if status not in (0, 1):
+                break
             
             
             # ------ #
@@ -357,6 +360,7 @@ class Economy:
             
             WS, added = gpf.verify_working_set(E, w, WS, args, tol)
             if added == 0:
+                converged = True
                 break
         
         qe.toc()
@@ -378,9 +382,9 @@ class Economy:
         
         if θ_on == 1:
             θ = E[-1]
-            return (c_0, c_1, l, K, x, θ, τ_k)
+            return (c_0, c_1, l, K, x, θ, τ_k), converged
         else: 
-            return (c_0, c_1, l, K, x, τ_k)
+            return (c_0, c_1, l, K, x, τ_k), converged
         
         
         
