@@ -316,75 +316,85 @@ class Economy:
         
         
         
-    def Mirrlees_Lagr(self, E, θ_on, tol=1e-4, max_iter=10_000):
+    def Mirrlees_Lagr(self, E, θ_on, tol=1e-6, max_iter=10_000):
         "Solve Non-Linear Tax Problem"
-                    
-        Y_0 = self.Y_sq / (1+self.g)
-        K_0 = self.K_sq / (1+self.g)
+        
+        Y_0 = self.Y_sq / (1+self.g); K_0 = self.K_sq / (1+self.g)
         Y_bar = Y_0 + (1-self.δ) * K_0
+        args = (self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.ζ, self.ν, self.σ,
+                self.β, self.var_θ, self.φ, self.ε, self.x_bar, self.J)
+        IC_k = 2; IC_slack = 0.05
+        J = self.J
+                    
         
-        c_0 = E[:self.J]; l = E[2*self.J:3*self.J]; x = E[3*self.J:4*self.J]
-        K = Y_bar - np.sum(self.n * c_0)
-        L = self.n * l
-        w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-        
-        args = (self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.ζ, self.ν, self.σ, self.β, self.var_θ, self.φ, self.ε, self.x_bar, self.J)
-        IC_k = 2
-        IC_slack = 0.05
-        WS = gpf.build_working_set(E, w, args, IC_k, IC_slack)
-    
-        
-        # ---------- #
-        # Outer Loop #
-        # ---------- #
-        qe.tic()
-        converged = False
-        for _ in range(max_iter):
-            
-            # ----------- #
-            # Solve Inner #
-            # ----------- #
-            print(f'Active ICs: {WS.shape[0]}')
-            E, status = gpf.solve_planner(E, θ_on, args, WS)
-            if status not in (0, 1):
-                break
-            
-            
-            # ------ #
-            # Update #
-            # ------ #
-            c_0 = E[:self.J]; l = E[2*self.J:3*self.J]; x = E[3*self.J:4*self.J]
-            K = Y_bar - np.sum(self.n * c_0)
-            L = self.n * l
+        # ----------- #
+        # Solve Inner #
+        # ----------- #
+        def solve_at_θ(E_init, θ):
+            E = E_init.copy()
+            c_0 = E[:J]; l = E[2*J:3*J]; x = E[3*J:4*J]
+            K = Y_bar - np.sum(self.n * c_0); L = self.n * l
             w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-            
-            WS, added = gpf.verify_working_set(E, w, WS, args, tol)
-            if added == 0:
-                converged = True
-                break
+            WS = gpf.build_working_set(E, w, args, IC_k, IC_slack)
+
+            converged = False
+            for _ in range(max_iter):
+                print(f'θ={θ:.5f}  Active ICs: {WS.shape[0]}')
+                E, status = gpf.solve_planner(E, θ, args, WS)
+                if status not in (0, 1):
+                    break
+                c_0 = E[:J]; l = E[2*J:3*J]; x = E[3*J:4*J]
+                K = Y_bar - np.sum(self.n * c_0); L = self.n * l
+                w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+                WS, added = gpf.verify_working_set(E, w, WS, args, tol)
+                if added == 0:
+                    converged = True
+                    break
+
+            c_0 = E[:J]; c_1 = E[J:2*J]; x = E[3*J:4*J]
+            K = Y_bar - np.sum(self.n * c_0); L = self.n * l
+            MRS_c = fn.cap_MRS(c_0, c_1, self.β, self.var_θ, self.ε, self.g)
+            r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+            τ_k = np.median(1 - (MRS_c + self.g) / (r - self.δ))
+            return E, τ_k, converged
         
-        qe.toc()
-        print("Mirrlees Solution Found")
-            
         
         # ----------- #
-        # Capital Tax #
+        # Solve Outer #
         # ----------- #
-        c_0 = E[:self.J]; c_1 = E[self.J:2*self.J]; l = E[2*self.J:3*self.J]; x = E[3*self.J:4*self.J]
-        K = Y_bar - np.sum(self.n * c_0)
-        L = self.n * l
-        MRS_c = fn.cap_MRS(c_0, c_1, self.β, self.var_θ, self.ε, self.g)
-        r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-        τ_k = np.median(1 - (MRS_c + self.g) / (r - self.δ))
-        
-        if (θ_on == 1 and np.abs(τ_k) > tol):
-            print(f'τ_K_θ = {τ_k:.4g}')
-        
-        if θ_on == 1:
-            θ = E[-1]
-            return (c_0, c_1, l, K, x, θ, τ_k), converged
-        else: 
+        qe.tic()
+        if θ_on == 0:
+            E, τ_k, converged = solve_at_θ(E, 0.0)
+            c_0 = E[:J]; c_1 = E[J:2*J]; l = E[2*J:3*J]; x = E[3*J:4*J]
+            K = Y_bar - np.sum(self.n * c_0)
+            qe.toc(); print("Mirrlees Solution Found")
             return (c_0, c_1, l, K, x, τ_k), converged
+        
+        
+        # Secant θ
+        θ_0 = 0.0
+        E, τ_0, _ = solve_at_θ(E, θ_0)
+        θ_1 = 0.05                                     
+        E, τ_1, converged = solve_at_θ(E, θ_1)
+
+        for _ in range(max_iter):
+            if abs(τ_1) < tol:
+                break
+            dτ = τ_1 - τ_0
+            if abs(dτ) < 1e-12:
+                break
+            θ_2 = θ_1 - τ_1 * (θ_1 - θ_0) / dτ
+            θ_2 = min(max(θ_2, -0.99), 5.0)           
+            θ_0, τ_0 = θ_1, τ_1
+            θ_1 = θ_2
+            E, τ_1, converged = solve_at_θ(E, θ_1)  
+
+        τ_k = τ_1; θ_star = θ_1
+        converged = converged and (abs(τ_k) < tol)
+        c_0 = E[:J]; c_1 = E[J:2*J]; l = E[2*J:3*J]; x = E[3*J:4*J]
+        K = Y_bar - np.sum(self.n * c_0)
+        qe.toc(); print(f"Mirrlees Solution Found  (θ*={θ_star:.5f}, τ_k={τ_k:.3g})")
+        return (c_0, c_1, l, K, x, τ_k), θ_star, converged
         
         
         

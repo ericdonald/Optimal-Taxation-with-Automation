@@ -306,7 +306,7 @@ def CERoot(CE, c_0prime, c_1prime, lprime, c_0, c_1, l, n, β, var_θ, φ, ε, g
 
 
 @njit
-def Mir_obj(E, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
+def Mir_obj(E, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
     "Mirrlees Objective"
     
     c_0 = E[:J]
@@ -321,18 +321,13 @@ def Mir_obj(E, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar,
     
   
 @njit
-def Equal_Constr(E, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
+def Equal_Constr(E, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
     "Equality Constraints"
     
     c_0 = E[:J]
     c_1 = E[J:2*J]
     l = E[2*J:3*J]
     x = E[3*J:4*J]
-    
-    if E.size > 4*J:
-        θ = E[-1]
-    else:
-        θ = 0
     
     δ_tilde = 1 + δ + g
     
@@ -390,7 +385,7 @@ def Inequal_Constr(E, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε,
 
 
 @njit
-def IC_on_set(E, WS, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
+def IC_on_set(E, WS, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
     "IC Values on a Working Set"
     
     c_0 = E[:J]; c_1 = E[J:2*J]; l = E[2*J:3*J]; x = E[3*J:4*J]

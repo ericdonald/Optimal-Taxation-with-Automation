@@ -202,11 +202,7 @@ def _expand(z, J):
     x   = z[2*J:3*J]
     m   = z[3*J]
     c_1 = c_0 * np.exp(m)
-    if z.size > 3*J+1:
-        θ = z[-1]
-        return np.concatenate((c_0, c_1, l, x, np.array([θ]))), m
-    else:
-        return np.concatenate((c_0, c_1, l, x)), m
+    return np.concatenate((c_0, c_1, l, x)), m
 
 
 
@@ -214,11 +210,7 @@ def _reduce_grad(g_full, c_1, m, J):
     g_c0, g_c1, g_l, g_x = g_full[:J], g_full[J:2*J], g_full[2*J:3*J], g_full[3*J:4*J]
     g_c0p = g_c0 + np.exp(m) * g_c1
     g_m = np.array([np.sum(g_c1 * c_1)])
-    if g_full.size > 4*J:
-        g_θ = np.array([g_full[-1]])
-        return np.concatenate((g_c0p, g_l, g_x, g_m, g_θ))
-    else:
-        return np.concatenate((g_c0p, g_l, g_x, g_m))
+    return np.concatenate((g_c0p, g_l, g_x, g_m))
     
 
 
@@ -227,11 +219,7 @@ def _reduce_jac(Jac_full, c_1, m, J):
     Jc0, Jc1, Jl, Jx = Jac_full[:, :J], Jac_full[:, J:2*J], Jac_full[:, 2*J:3*J], Jac_full[:,3*J:4*J]
     Jc0p = Jc0 + np.exp(m) * Jc1
     Jm = (Jc1 * c_1).sum(axis=1, keepdims=True)
-    if Jac_full.shape[1] > 4*J:
-        Jθ = Jac_full[:,-1:]
-        return np.hstack((Jc0p, Jl, Jx, Jm, Jθ))
-    else:
-        return np.hstack((Jc0p, Jl, Jx, Jm))
+    return np.hstack((Jc0p, Jl, Jx, Jm))
 
 
 
@@ -280,11 +268,11 @@ def ic_jac_reduced(z, WS, args):
 
 class _MirrleesNLP:
     "Cyipopt Problem Object"
-    def __init__(self, WS, θ_on, args):
-        self.WS, self.args = WS, args
+    def __init__(self, WS, θ, args):
+        self.WS, self.args = WS, (θ,) + args
         J = args[-1]; self.J = J
         P = WS.shape[0]; self.P = P
-        self.nz  = 3*J + 1 + (1 if θ_on else 0)
+        self.nz  = 3*J + 1
         self.meq = J + 1                           
         i = WS[:, 0]; j = WS[:, 1]
         eq_rows = np.repeat(np.arange(self.meq), self.nz)
@@ -320,7 +308,7 @@ class _MirrleesNLP:
 
 
 
-def solve_planner(E_0, θ_on, args, WS):
+def solve_planner(E_0, θ, args, WS):
     "Solve Mirrlees with IC Subset"
     
     J = args[-1]
@@ -334,15 +322,10 @@ def solve_planner(E_0, θ_on, args, WS):
     l_0 = E_0[2*J:3*J]
     x_0 = E_0[3*J:4*J]
     m_0 = np.median(np.log(E_0[J:2*J] / c_0_0))
-    if θ_on==1:
-        θ_0 = E_0[-1]
-        z_0 = np.concatenate((c_0_0, l_0, x_0, np.array([m_0, θ_0])))
-        lb  = np.concatenate((np.ones(3*J)*1e-2, np.ones(2)*(-10.0)))
-        ub  = np.concatenate((np.ones(2*J)*1e4, np.ones(J)*x_bar, np.ones(2)*10.0))
-    else:
-        z_0 = np.concatenate((c_0_0, l_0, x_0, np.array([m_0])))
-        lb  = np.concatenate((np.ones(3*J)*1e-2, np.ones(1)*(-10.0)))
-        ub  = np.concatenate((np.ones(2*J)*1e4, np.ones(J)*x_bar, np.ones(1)*10.0))
+    
+    z_0 = np.concatenate((c_0_0, l_0, x_0, np.array([m_0])))
+    lb  = np.concatenate((np.ones(3*J)*1e-2, np.ones(1)*(-10.0)))
+    ub  = np.concatenate((np.ones(2*J)*1e4, np.ones(J)*x_bar, np.ones(1)*10.0))
     
     P  = WS.shape[0]
     cl = np.zeros(J+1+P)
@@ -352,16 +335,13 @@ def solve_planner(E_0, θ_on, args, WS):
     # ----- #
     # Solve #
     # ----- #
-    if θ_on==1:
-        n = 3*J+2
-    else:
-        n = 3*J+1
+    n = 3*J+1
         
     nlp = cp.Problem(n=n, m=J+1+P,
-                     problem_obj=_MirrleesNLP(WS, θ_on, args),
+                     problem_obj=_MirrleesNLP(WS, θ, args),
                      lb=lb, ub=ub, cl=cl, cu=cu)
     
-    for k, v in {'hessian_approximation': 'limited-memory',
+    for k, v in {'hessian_approximation': 'limited-memory', 'max_iter': 1000,
                  'limited_memory_max_history': 50, 'mu_strategy': 'adaptive',
                  'print_level': 0, 'sb': 'yes'}.items():
         nlp.add_option(k, v)

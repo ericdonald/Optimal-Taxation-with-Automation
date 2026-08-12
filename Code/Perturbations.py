@@ -490,7 +490,7 @@ def dlnr(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0):
 
 
 @njit
-def δObj_δX(E, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
+def δObj_δX(E, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
     "Jacobian of Mirrlees Objective"
     
     c_0 = E[:J]
@@ -516,11 +516,7 @@ def δObj_δX(E, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_ba
     #   wrt to x
     δW_δx = np.zeros(J)
     
-    # wrt to θ
-    if E.size > 4*J:
-        δW = np.concatenate((δW_δc_0, δW_δc_1, δW_δl, δW_δx, np.zeros(1)))
-    else:
-        δW = np.concatenate((δW_δc_0, δW_δc_1, δW_δl, δW_δx))
+    δW = np.concatenate((δW_δc_0, δW_δc_1, δW_δl, δW_δx))
         
         
     return δW
@@ -528,14 +524,10 @@ def δObj_δX(E, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_ba
 
 
 @njit
-def δEC_δX(E, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
+def δEC_δX(E, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
     "Jacobian of Equality Constraints"
     
     c_0 = E[:J]; l = E[2*J:3*J]; x = E[3*J:4*J]
-    if E.size > 4*J:
-        θ = E[-1]
-    else:
-        θ = 0
     
     K = Y_bar - np.sum(n * c_0)
     L = n * l
@@ -591,11 +583,7 @@ def δEC_δX(E, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar
     #   wrt to x
     δRC_1_δx = - Y * δlnY_δX.reshape((1,J))
     
-    # wrt to θ
-    if E.size > 4*J:
-        δRC_1 = np.hstack((δRC_1_δc_0, δRC_1_δc_1, δRC_1_δl, δRC_1_δx, np.zeros((1,1))))
-    else:
-        δRC_1 = np.hstack((δRC_1_δc_0, δRC_1_δc_1, δRC_1_δl, δRC_1_δx))
+    δRC_1 = np.hstack((δRC_1_δc_0, δRC_1_δc_1, δRC_1_δl, δRC_1_δx))
     
     
     # --------------------------------------- #
@@ -613,12 +601,7 @@ def δEC_δX(E, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar
     #   wrt to x
     δlnAT_δx = gpf.make_diag(ζ/x) - δlnw_δX + gpf.broadcast_row_to_matrix(δlnr_δX)
     
-    # wrt to θ
-    if E.size > 4*J:
-        δlnAT_δθ = np.ones((J,1)) / (1+θ)
-        δlnAT = np.hstack((δlnAT_δc_0, δlnAT_δc_1, δlnAT_δl, δlnAT_δx, δlnAT_δθ))
-    else:
-        δlnAT = np.hstack((δlnAT_δc_0, δlnAT_δc_1, δlnAT_δl, δlnAT_δx))
+    δlnAT = np.hstack((δlnAT_δc_0, δlnAT_δc_1, δlnAT_δl, δlnAT_δx))
  
     
     return np.vstack((δRC_1, δlnAT))
@@ -626,7 +609,7 @@ def δEC_δX(E, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar
     
  
 @njit
-def δIC_δX(E, m, WS, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
+def δIC_δX(E, m, WS, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
     "Jacobian of Penalty Inequality Constraints"
     
     c_0 = E[:J]; c_1 = E[J:2*J]; l = E[2*J:3*J]; x = E[3*J:4*J]
