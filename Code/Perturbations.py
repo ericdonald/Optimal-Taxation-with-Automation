@@ -22,7 +22,8 @@ def δH_δclx(E, θ, τ_k, Ψ, ψ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, β, v
     x = E[3*J:]
     
     L = n * l
-    K = np.sum(n * (y_0 - c_0))
+    Y_bar = np.sum(n * y_0)
+    K = Y_bar - np.sum(n * c_0)
     
     w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
@@ -36,14 +37,7 @@ def δH_δclx(E, θ, τ_k, Ψ, ψ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, β, v
     # ------------------ #
     # Output Derivatives #
     # ------------------ #
-    α_k = x**(ζ*(ν-1))
-    
-    if σ == 1:
-        θ_wedge = np.log(1+θ)
-    else:
-        θ_wedge = ((1+θ)**(1-σ) - 1) / (1 - σ)
-    
-    δlnY_δX = (A_k * α_k / r)**(σ-1) * θ_wedge
+    δlnY_δX = dlnY_dx(c_0, l, x, A_j, A_k, x_bar, ζ, ν, σ, J, n, Y_bar)
     δlnY_δlnK = S_k
     δlnY_δlnL = S_j
     
@@ -388,11 +382,40 @@ def δH_δψ(E, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, Ψ, ψ):
 
 
 @njit
+def dlnY_dx(c_0, l, x, A_j, A_k, x_bar, ζ, ν, σ, J, n, Y_bar):
+    "Derivative of Log Output wrt Automation"
+    
+    L = n * l
+    K = Y_bar - np.sum(n * c_0)
+    
+    w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
+    r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
+        
+    Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
+    S_k = r * K / Y
+    S_j = w * L / Y
+    
+    rel_k = fn.relα(x, x_bar, ζ, ν, σ, 1)
+    α_k = x**(ζ*(ν-1))
+    rel_l = fn.relα(x, x_bar, ζ, ν, σ, 0)
+    α_l = x**(ζ*ν)
+    
+    if σ == 1:
+        δlnY_δX = np.log(α_k * A_k / r) - np.log(α_l * A_j / w)
+    else:
+        δlnY_δX = (S_k * rel_k - S_j * rel_l) / (σ-1)
+        
+    return δlnY_δX
+    
+    
+
+@njit
 def dlnY(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0):
     "Total Derivative of Log Output"
     
     L = n * l
-    K = np.sum(n * (y_0 - c_0))
+    Y_bar = np.sum(n * y_0)
+    K = Y_bar - np.sum(n * c_0)
     
     w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
@@ -408,14 +431,7 @@ def dlnY(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0):
     # ----------------- #
     # Output Derivative #
     # ----------------- #
-    α_k = x**(ζ*(ν-1))
-    
-    if σ == 1:
-        θ_wedge = np.log(1+θ)
-    else:
-        θ_wedge = ((1+θ)**(1-σ) - 1) / (1 - σ)
-    
-    δlnY_δX = (A_k * α_k / r)**(σ-1) * θ_wedge
+    δlnY_δX = dlnY_dx(c_0, l, x, A_j, A_k, x_bar, ζ, ν, σ, J, n, Y_bar)
     
     δlnY = np.sum(δlnY_δX * dx) + S_k * δK / K + np.sum(S_j * δL / L)
 
@@ -535,14 +551,7 @@ def δEC_δX(E, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar
     # ------------------ #
     # Output Derivatives #
     # ------------------ #
-    α_k = x**(ζ*(ν-1))
-    
-    if σ == 1:
-        θ_wedge = np.log(1+θ)
-    else:
-        θ_wedge = ((1+θ)**(1-σ) - 1) / (1 - σ)
-    
-    δlnY_δX = (A_k * α_k / r)**(σ-1) * θ_wedge
+    δlnY_δX = dlnY_dx(c_0, l, x, A_j, A_k, x_bar, ζ, ν, σ, J, n, Y_bar)
     δlnY_δlnK = S_k
     δlnY_δlnL = S_j
     

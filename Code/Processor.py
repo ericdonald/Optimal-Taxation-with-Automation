@@ -1043,7 +1043,7 @@ class Processor:
         with open(f'{self.Directory}/Clean Data/E_mirr.pkl', 'rb') as file:
             E_0 = pickle.load(file)
         
-        inter_n = 5
+        inter_n = 7
         targets = list(np.linspace(σ_base, σ_low, inter_n + 1))[1:]
         while targets:
             σ_try = targets[0]
@@ -1056,7 +1056,7 @@ class Processor:
                 targets.pop(0)
             else:
                 σ_mid = 0.5 * (σ_prev + σ_try)
-                if σ_try - σ_mid < 1e-4:
+                if abs(σ_try - σ_mid) < 1e-4:
                     raise RuntimeError(f'σ-ramp stalled between {σ_prev:.4f} and {σ_try:.4f}')
                 targets.insert(0, σ_mid) 
         
