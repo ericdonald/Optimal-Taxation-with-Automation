@@ -702,13 +702,6 @@ class Processor:
         
         Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
         
-        ConEquiv_NT = gpf.consumption_equiv(c_0_NT, c_1_NT, l_NT, 
-                                                self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, *alloc_args)
-        print(ConEquiv_NT)
-        ConEquiv_θ = gpf.consumption_equiv(c_0, c_1, l,
-                                           self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, *alloc_args)
-        print(ConEquiv_θ)
-        
         
         # ---------------- #
         # Comparison Table #
