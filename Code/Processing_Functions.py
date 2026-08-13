@@ -349,6 +349,7 @@ def solve_planner(E_0, θ, args, WS):
     
     if σ<0.5 and σ>0.25:
         nlp.add_option('max_iter', 1500)
+        nlp.add_option('acceptable_tol', 1e-4)
 
     z_opt, info = nlp.solve(z_0)
     E, _ = _expand(z_opt, J)

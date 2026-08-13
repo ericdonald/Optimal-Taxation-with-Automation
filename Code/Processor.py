@@ -1052,7 +1052,7 @@ class Processor:
         with open(f'{self.Directory}/Clean Data/E_mirr.pkl', 'rb') as file:
             E_0 = pickle.load(file)
         
-        inter_n = 10
+        inter_n = 15
         targets = list(np.linspace(σ_base, σ_low, inter_n + 1))[1:]
         while targets:
             σ_try = targets[0]
