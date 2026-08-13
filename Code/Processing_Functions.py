@@ -313,6 +313,7 @@ def solve_planner(E_0, θ, args, WS):
     
     J = args[-1]
     x_bar = args[-2]
+    σ = args[8]
     
     
     # -------------------- #
@@ -341,10 +342,13 @@ def solve_planner(E_0, θ, args, WS):
                      problem_obj=_MirrleesNLP(WS, θ, args),
                      lb=lb, ub=ub, cl=cl, cu=cu)
     
-    for k, v in {'hessian_approximation': 'limited-memory', 'max_iter': 1500,
+    for k, v in {'hessian_approximation': 'limited-memory',
                  'limited_memory_max_history': 50, 'mu_strategy': 'adaptive',
                  'print_level': 0, 'sb': 'yes'}.items():
         nlp.add_option(k, v)
+    
+    if σ<0.5 and σ>0.25:
+        nlp.add_option('max_iter', 1500)
 
     z_opt, info = nlp.solve(z_0)
     E, _ = _expand(z_opt, J)
