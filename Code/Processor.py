@@ -1043,10 +1043,11 @@ class Processor:
         with open(f'{self.Directory}/Clean Data/E_mirr.pkl', 'rb') as file:
             E_0 = pickle.load(file)
         
-        inter_n = 7
+        inter_n = 10
         targets = list(np.linspace(σ_base, σ_low, inter_n + 1))[1:]
         while targets:
             σ_try = targets[0]
+            print(σ_try)
             self.E.σ = σ_try; self.E.Σ_k = σ_try + dΣ; self.E.Calibrate()
             out, converged = self.E.Mirrlees_Lagr(E_0, 0)
             if converged:

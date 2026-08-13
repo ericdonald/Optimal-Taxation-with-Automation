@@ -339,7 +339,7 @@ class Economy:
 
             converged = False
             for _ in range(max_iter):
-                print(f'θ={θ:.5f}  Active ICs: {WS.shape[0]}')
+                print(f'Active ICs: {WS.shape[0]}')
                 E, status = gpf.solve_planner(E, θ, args, WS)
                 if status not in (0, 1):
                     break
@@ -378,6 +378,7 @@ class Economy:
         E, τ_1, converged = solve_at_θ(E, θ_1)
 
         for _ in range(max_iter):
+            print(f'θ={θ_0:.5f}')  
             if abs(τ_1) < tol:
                 break
             dτ = τ_1 - τ_0
@@ -393,7 +394,7 @@ class Economy:
         converged = converged and (abs(τ_k) < tol)
         c_0 = E[:J]; c_1 = E[J:2*J]; l = E[2*J:3*J]; x = E[3*J:4*J]
         K = Y_bar - np.sum(self.n * c_0)
-        qe.toc(); print(f"Mirrlees Solution Found  (θ*={θ_star:.5f}, τ_k={τ_k:.3g})")
+        qe.toc(); print(f"Mirrlees Solution Found  (θ={θ_star:.5f}, τ_k={τ_k:.3g})")
         return (c_0, c_1, l, K, x, τ_k), θ_star, converged
         
         
