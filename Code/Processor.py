@@ -40,17 +40,20 @@ class Processor:
                 
         
         
-    def Cleaner(self, ipums_extract=0, CPI_year=2016):
+    def Cleaner(self, API, CPI_year=2016):
         """""
         Clean Data
         
-        Output: Clean Data/FRED_CPI.pkl
+        Output: Raw Data/FRED_CPI.pkl 
+                Clean Data/FRED_CPI.pkl
                 Clean Data/SCF_2016.pkl
                 Clean Data/Census80.pkl
                 Clean Data/ACS16.pkl
                 Clean Data/Webb.pkl
                 Clean Data/CapbyOcc_ES_2d.pkl
+                Raw Data/Felten.pkl
                 Clean Data/Felten.pkl
+                Raw Data/Elondou.pkl
                 Clean Data/Elondou.pkl
         """""
    
@@ -58,10 +61,14 @@ class Processor:
         # -------- #
         # FRED CPI #
         # -------- #
-        FRED = api.get(f'https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&frequency=a&api_key={self.FRED_API}&file_type=json')
-        data = FRED.json()['observations']
-        filtered_data = [{'year': entry['date'], 'CPI': entry['value']} for entry in data]
-        CPI_df = pd.DataFrame(filtered_data)
+        if API==1:
+            FRED = api.get(f'https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&frequency=a&api_key={self.FRED_API}&file_type=json')
+            data = FRED.json()['observations']
+            filtered_data = [{'year': entry['date'], 'CPI': entry['value']} for entry in data]
+            CPI_df = pd.DataFrame(filtered_data)
+            CPI_df.to_pickle(f'{self.Directory}/Raw Data/FRED_CPI.pkl')
+        else:
+            CPI_df = pd.read_pickle(f'{self.Directory}/Raw Data/FRED_CPI.pkl')
         
         CPI_df['year'] = pd.to_datetime(CPI_df['year']).dt.year
         CPI_df['CPI'] = pd.to_numeric(CPI_df['CPI'], errors='coerce')
@@ -82,7 +89,7 @@ class Processor:
         # ----- #
         # IPUMS #
         # ----- #
-        if ipums_extract==1:
+        if API==1:
             ipums = IpumsApiClient(self.IPUMS_API)
             extract = MicrodataExtract(
                 collection="usa",
@@ -233,9 +240,13 @@ class Processor:
         # --------------------- #
         # Felten et al Exposure #
         # --------------------- #
+        if API==1:
+            Felten_df = pd.read_excel("https://raw.githubusercontent.com/AIOE-Data/AIOE/main/AIOE_DataAppendix.xlsx", sheet_name="Appendix A")
+            Felten_df.to_pickle(f'{self.Directory}/Raw Data/Felten.pkl')
+        else:
+            Felten_df = pd.read_pickle(f'{self.Directory}/Raw Data/Felten.pkl')
+        
         Crosswalk_soc_df['SOC Code'] = Crosswalk_soc_df["onetsoccode"].str[:7]
-        Felten_df = pd.read_excel("https://raw.githubusercontent.com/AIOE-Data/AIOE/main/AIOE_DataAppendix.xlsx", sheet_name="Appendix A")
-
         Felten_df = Felten_df.merge(Crosswalk_soc_df[['SOC Code', 'occ1990dd']].drop_duplicates()
                                     , on='SOC Code', how='inner')
         Felten_df['AIOE_expos'] = Felten_df.groupby('occ1990dd')['AIOE'].transform('mean')
@@ -256,7 +267,12 @@ class Processor:
         # ---------------------- #
         # Elondou et al Exposure #
         # ---------------------- #
-        Elondou_df = pd.read_csv("https://github.com/openai/GPTs-are-GPTs/raw/refs/heads/main/data/occ_level.csv")
+        if API==1:
+            Elondou_df = pd.read_csv("https://github.com/openai/GPTs-are-GPTs/raw/refs/heads/main/data/occ_level.csv")
+            Elondou_df.to_pickle(f'{self.Directory}/Raw Data/Elondou.pkl')
+        else:
+            Elondou_df = pd.read_pickle(f'{self.Directory}/Raw Data/Elondou.pkl')
+            
         Elondou_df.rename(columns={'O*NET-SOC Code': 'onetsoccode'}, inplace=True)
         Elondou_df = pd.merge(
             Crosswalk_soc_df,
