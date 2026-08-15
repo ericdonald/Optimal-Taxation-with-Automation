@@ -1064,10 +1064,10 @@ class Processor:
                 E_0 = np.concatenate((c_0, c_1, l, x))
                 σ_prev = σ_try
                 targets.pop(0)
+                with open(f'{self.Directory}/Clean Data/E_σ.pkl', 'wb') as file:
+                    pickle.dump(E_0, file)
             else:
                 σ_mid = 0.5 * (σ_prev + σ_try)
-                if abs(σ_try - σ_mid) < 1e-4:
-                    raise RuntimeError(f'σ-ramp stalled between {σ_prev:.4f} and {σ_try:.4f}')
                 targets.insert(0, σ_mid) 
         
         alloc_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
