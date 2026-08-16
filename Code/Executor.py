@@ -28,10 +28,10 @@ P = p.Processor(E)
 # ---------- #
 # Clean Data #
 # ---------- #
-API = 0
+#API = 0
 #Set to 1 for new API download
 
-P.Cleaner(API)
+#P.Cleaner(API)
 
 
 # --------- #

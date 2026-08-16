@@ -346,10 +346,11 @@ def solve_planner(E_0, θ, args, WS):
                  'limited_memory_max_history': 50, 'mu_strategy': 'adaptive',
                  'print_level': 0, 'sb': 'yes'}.items():
         nlp.add_option(k, v)
+    #nlp.add_option('output_file', 'ipopt.log')
     
     if σ<0.5 and σ>0.25:
         nlp.add_option('max_iter', 1500)
-        nlp.add_option('acceptable_tol', 1e-4)
+        nlp.add_option('acceptable_tol', 1e-5)
 
     z_opt, info = nlp.solve(z_0)
     E, _ = _expand(z_opt, J)
@@ -367,10 +368,13 @@ def solve_planner(E_0, θ, args, WS):
 
 def build_working_set(E, w, args, IC_k, IC_slack):
     
-    J = args[-1]; var_θ = args[-5]
-    c_0 = E[:J]; l = E[2*J:3*J]
-    y = w * l
-    order = np.argsort(y)
+    J = args[-1]; ε = args[-3]; φ = args[-4]; var_θ = args[-5]; β = args[-6]; g = args[4]
+    beta_tilde = β / (1 - β * (1+g)**(1-var_θ))
+    beta_tilde_l = β / (1-β)
+    c_0 = E[:J]; c_1 = E[J:2*J]; l = E[2*J:3*J]
+    
+    MRS_order = (beta_tilde_l / beta_tilde) * (c_1**(var_θ)) * φ * (l**(1/ε)) / w
+    order = np.argsort(MRS_order)
     
     keep = np.zeros((J, J), dtype=bool)
     
