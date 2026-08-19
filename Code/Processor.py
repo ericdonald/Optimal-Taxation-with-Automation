@@ -688,7 +688,7 @@ class Processor:
         with open(f'{self.Directory}/Clean Data/E_mirr.pkl', 'wb') as file:
             pickle.dump(E_mirr, file)
         
-        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT, x_NT, np.zeros(1)))
+        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT, x_NT))
         (c_0, c_1, l, K, x, τ_k), θ, _ = self.E.Mirrlees_Lagr(E_NT, 1)
         
         Mirrlees_Results.add('Optimal Mirrlees Capital Tax', gpf.clean_round(τ_k_NT*100, 1))
@@ -1073,7 +1073,7 @@ class Processor:
         alloc_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
         (c_0_NT, c_1_NT, l_NT, K_NT, x_NT, τ_k_NT) = out
         
-        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT, x_NT, np.zeros(1)))
+        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT, x_NT))
         (c_0, c_1, l, K, x, θ, τ_k), _ = self.E.Mirrlees_Lagr(E_NT, 1)
         
         ES_robust_Results.add('Low ES Mirrlees Capital Tax', gpf.clean_round(τ_k_NT*100, 1))

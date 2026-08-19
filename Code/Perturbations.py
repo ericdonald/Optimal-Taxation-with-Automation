@@ -656,7 +656,151 @@ def δIC_δX(E, m, WS, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ
 
 
 
-
+def δH_δclx_NL(E, θ, w, r, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
+    "Jacobian of H wrt Mirrlees Allocation"
+    
+    c_0 = E[:J]
+    c_1 = E[J:2*J]
+    l = E[2*J:3*J]
+    x = E[3*J:4*J]
+    
+    L = n * l
+    K = Y_bar - np.sum(n * c_0)
+    
+    δ_tilde = 1 + δ + g
+    R = 1 + r - δ_tilde
+    Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
+    S_k = r * K / Y
+    S_j = w * L / Y
+    
+    
+    # ------------------ #
+    # Output Derivatives #
+    # ------------------ #
+    δlnY_δX = dlnY_dx(c_0, l, x, A_j, A_k, x_bar, ζ, ν, σ, J, n, Y_bar)
+    δlnY_δlnK = S_k
+    δlnY_δlnL = S_j
+    
+    
+    # ---------------- #
+    # Wage Derivatives #
+    # ---------------- #
+    rel_l = fn.relα(x, x_bar, ζ, ν, σ, 0)
+    
+    δlnw_δX = - (1/σ) * gpf.make_diag(rel_l) + (1/σ) * gpf.broadcast_row_to_matrix(δlnY_δX)
+    δlnw_δlnK = (1/σ) * δlnY_δlnK * np.ones(J)
+    δlnw_δlnL = (1/σ) * gpf.broadcast_row_to_matrix(δlnY_δlnL) - np.eye(J) / σ
+    
+    
+    # ---------------- #
+    # Rent Derivatives #
+    # ---------------- #
+    rel_k = fn.relα(x, x_bar, ζ, ν, σ, 1)
+    
+    δlnr_δX = (1/σ) * rel_k + (1/σ) * δlnY_δX
+    δlnr_δlnK = (1/σ) * (δlnY_δlnK - 1)
+    δlnr_δlnL = (1/σ) * δlnY_δlnL
+    
+    
+    # ------------------------ #
+    # Tax Function Derivatives #
+    # ------------------------ #
+    MRS_l = fn.lab_MRS(c_1, l, β, var_θ, φ, ε, g)
+    keep_l = MRS_l / w
+    τ_l = 1 - keep_l
+    y_l = w * l
+    
+    coefs = np.polyfit(y_l, τ_l, 4)
+    P_prime = np.polyder(np.poly1d(coefs))
+    dτ_dy = P_prime(y_l)
+    
+    δD_δl = - n * τ_l * w - ((n * τ_l * y_l).reshape((1,J)) @ δlnw_δlnL) / l
+    δD_δK = - np.sum(n * τ_l * y_l * δlnw_δlnK) / K
+    δD_δX = - (n * τ_l * y_l).reshape((1,J)) @ δlnw_δX
+    
+    δD_δl = δD_δl.reshape(J)
+    δD_δX = δD_δX.reshape(J)
+    
+    
+    # ----------------------------------------- #
+    # Derivatives of Log Labor Supply Condition #
+    # ----------------------------------------- #
+    #   wrt to c_0
+    δlnLS_δc_0 = (dτ_dy * y_l / keep_l - 1) * np.outer(δlnw_δlnK, -n/K)
+    
+    #   wrt to c_1
+    δlnLS_δc_1 = gpf.make_diag(1/c_1) * var_θ
+    
+    #   wrt to l
+    δlnLS_δl = gpf.make_diag(1/l) * (1/ε + dτ_dy * y_l / keep_l) + (dτ_dy * y_l / keep_l - 1) * δlnw_δlnL * gpf.broadcast_row_to_matrix(1 / l)
+    
+    #   wrt to x
+    δlnLS_δx = (dτ_dy * y_l / keep_l - 1) * δlnw_δX
+    
+    δlnLS = np.hstack((δlnLS_δc_0, δlnLS_δc_1, δlnLS_δl, δlnLS_δx))
+    
+    
+    # --------------------------------- #
+    # Derivatives of Log Euler Equation #
+    # --------------------------------- #
+    #   wrt to c_0
+    δlnEE_δc_0 = - gpf.make_diag(1/c_0) * var_θ - (r / R) * δlnr_δlnK / K * gpf.broadcast_row_to_matrix(-n)
+    
+    #   wrt to c_1
+    δlnEE_δc_1 = gpf.make_diag(1/c_1) * var_θ
+    
+    #   wrt to l
+    δlnEE_δl = - (r / R) * gpf.broadcast_row_to_matrix(δlnr_δlnL / l)
+    
+    #   wrt to x
+    δlnEE_δx = - (r / R) * gpf.broadcast_row_to_matrix(δlnr_δX)
+    
+    δlnEE = np.hstack((δlnEE_δc_0, δlnEE_δc_1, δlnEE_δl, δlnEE_δx))
+    
+    
+    # ------------------------------- #
+    # Derivatives of Household Budget #
+    # ------------------------------- #
+    #   wrt to c_0
+    δHB_δc_0 = np.eye(J)*R + (gpf.broadcast_col_to_matrix(c_0 - Y_bar) * r * δlnr_δlnK / K 
+                              - gpf.broadcast_col_to_matrix(keep_l * y_l * δlnw_δlnK) / K
+                              + δD_δK) * gpf.broadcast_row_to_matrix(-n)
+    
+    #   wrt to c_1
+    δHB_δc_1 = np.eye(J)
+    
+    #   wrt to l
+    δHB_δl = - gpf.make_diag(keep_l * w) + (gpf.broadcast_col_to_matrix(c_0 - Y_bar) * r * gpf.broadcast_row_to_matrix(δlnr_δlnL / l)
+                                                           - gpf.broadcast_col_to_matrix(keep_l * y_l) * δlnw_δlnL * gpf.broadcast_row_to_matrix(1 / l)
+                                                           + gpf.broadcast_row_to_matrix(δD_δl))
+    
+    #   wrt to x
+    δHB_δx = (gpf.broadcast_col_to_matrix(c_0 - Y_bar) * r * gpf.broadcast_row_to_matrix(δlnr_δX)
+                  - gpf.broadcast_col_to_matrix(keep_l * y_l) * δlnw_δX
+                  + gpf.broadcast_row_to_matrix(δD_δX))
+    
+    δHB = np.hstack((δHB_δc_0, δHB_δc_1, δHB_δl, δHB_δx))
+    
+    
+    # ---------------------------------------- #
+    # Derivatives of Log Automation Thresholds #
+    # ---------------------------------------- #
+    #   wrt to c_0
+    δlnAT_δc_0 = (- gpf.broadcast_col_to_matrix(δlnw_δlnK) / K + δlnr_δlnK / K) * gpf.broadcast_row_to_matrix(-n)
+    
+    #   wrt to c_1
+    δlnAT_δc_1 = np.zeros((J,J))
+    
+    #   wrt to l
+    δlnAT_δl = - δlnw_δlnL * gpf.broadcast_row_to_matrix(1 / l) + gpf.broadcast_row_to_matrix(δlnr_δlnL / l)
+    
+    #   wrt to x
+    δlnAT_δx = gpf.make_diag(ζ/x) - δlnw_δX + gpf.broadcast_row_to_matrix(δlnr_δX)
+    
+    δlnAT = np.hstack((δlnAT_δc_0, δlnAT_δc_1, δlnAT_δl, δlnAT_δx))
+    
+    
+    return np.vstack((δlnLS, δlnEE, δHB, δlnAT))
 
 
 
