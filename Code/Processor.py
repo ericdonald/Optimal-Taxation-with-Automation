@@ -666,7 +666,8 @@ class Processor:
         """""
         Optimal Threshold Rule for Non-Linear Taxes
         
-        Output: Results/Figures/Mirrlees_Covariance.csv
+        Output: Clean Data/E_mirr.pkl
+                Results/Figures/Mirrlees_Covariance.csv
                 Results/Tables/Mirrlees_Results.csv
         """""
         
@@ -692,6 +693,7 @@ class Processor:
         (c_0, c_1, l, K, x, τ_k), θ, _ = self.E.Mirrlees_Lagr(E_NT, 1)
         
         Mirrlees_Results.add('Optimal Mirrlees Capital Tax', gpf.clean_round(τ_k_NT*100, 1))
+        Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
         
         L_NT = self.E.n * l_NT
         r_NT = fn.Rents(x_NT, L_NT, K_NT, self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ)
@@ -699,8 +701,6 @@ class Processor:
         Return_tilde_NT = 1 + (1-τ_k_NT)*(r_NT-self.E.δ)
         τ_wealth_NT = 1 - Return_tilde_NT / Return_NT
         Mirrlees_Results.add('Optimal Mirrlees Wealth Tax', gpf.clean_round(τ_wealth_NT*100, 2))
-        
-        Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
         
         
         # ---------------- #
@@ -962,7 +962,8 @@ class Processor:
         """""
         Robustness with Elasticities of Substitution
     
-        Output: Results/Tables/ES_robust_Results.csv
+        Output: Clean Data/E_σ.pkl
+                Results/Tables/ES_robust_Results.csv
         """""
         
         ES_robust_Results = gpf.ResultsTable()
@@ -1077,7 +1078,6 @@ class Processor:
         (c_0, c_1, l, K, x, θ, τ_k), _ = self.E.Mirrlees_Lagr(E_NT, 1)
         
         ES_robust_Results.add('Low ES Mirrlees Capital Tax', gpf.clean_round(τ_k_NT*100, 1))
-        
         ES_robust_Results.add('Low ES Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
     
         # Comparison Table 
