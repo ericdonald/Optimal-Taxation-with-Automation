@@ -338,18 +338,27 @@ class Economy:
             WS = gpf.build_working_set(E, w, args, IC_k, IC_slack)
 
             converged = False
+            minus_one_count = 0
             for _ in range(max_iter):
                 print(f'Active ICs: {WS.shape[0]}')
                 E, status = gpf.solve_planner(E, θ, args, WS)
-                if status not in (0, 1):
-                    break
                 c_0 = E[:J]; l = E[2*J:3*J]; x = E[3*J:4*J]
                 K = Y_bar - np.sum(self.n * c_0); L = self.n * l
                 w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-                WS, added = gpf.verify_working_set(E, w, WS, args, tol)
-                if added == 0:
-                    converged = True
+                
+                if status in (0, 1):
+                    WS, added = gpf.verify_working_set(E, w, WS, args, tol)
+                    if added == 0:
+                        converged = True
+                        break
+                elif status == -1:
+                    minus_one_count += 1
+                    if minus_one_count >= 2:
+                        break
+                    WS = gpf.build_working_set(E, w, args, IC_k, IC_slack)
+                else:
                     break
+                    
 
             c_0 = E[:J]; c_1 = E[J:2*J]; x = E[3*J:4*J]
             K = Y_bar - np.sum(self.n * c_0); L = self.n * l
