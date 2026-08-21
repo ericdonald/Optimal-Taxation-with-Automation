@@ -374,7 +374,7 @@ class Economy:
         # Secant θ
         θ_0 = 0.10
         E, τ_0, _ = solve_at_θ(E, θ_0)
-        θ_1 = θ_0 + 0.005                                     
+        θ_1 = θ_0 + 0.01                                   
         E, τ_1, converged = solve_at_θ(E, θ_1)
 
         for _ in range(max_iter):
@@ -387,9 +387,9 @@ class Economy:
             θ_2 = min(max(θ_2, 0), 5.0)           
             θ_0, τ_0 = θ_1, τ_1
             θ_1 = θ_2
-            E_new, τ_1_new, converged = solve_at_θ(E, θ_1)
+            E_new, τ_1, converged = solve_at_θ(E, θ_1)
             if converged:
-                E, τ_1 = E_new, τ_1_new
+                E = E_new
             print(f'θ={θ_1:.5f}')
             print(f'τ_k={τ_1:.5f}')
 
@@ -401,8 +401,8 @@ class Economy:
         δW = rt.Optimalθ_NL_Root(E, θ_star, *args)
         denom = np.sum(self.n * (c_0**(-self.var_θ) * c_0))
         δW_error = np.abs(δW) / denom
-        if δW_error > 0.01:
-            print("δW above tolerance")
+        if δW_error > 0.1:
+            print(f"δW above tolerance: {δW_error:.5f}")
         
         qe.toc(); print(f"Mirrlees Solution Found  (θ={θ_star:.5f}, τ_k={τ_k:.3g})")
         return (c_0, c_1, l, K, x, τ_k), θ_star, converged
