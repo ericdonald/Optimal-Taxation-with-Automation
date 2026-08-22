@@ -689,8 +689,7 @@ class Processor:
         with open(f'{self.Directory}/Clean Data/E_mirr.pkl', 'wb') as file:
             pickle.dump(E_mirr, file)
         
-        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT, x_NT))
-        (c_0, c_1, l, K, x, τ_k), θ, _ = self.E.Mirrlees_Lagr(E_NT, 1)
+        (c_0, c_1, l, K, x, τ_k), θ, _ = self.E.Mirrlees_Lagr(E_mirr, 1)
         
         Mirrlees_Results.add('Optimal Mirrlees Capital Tax', gpf.clean_round(τ_k_NT*100, 1))
         Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
