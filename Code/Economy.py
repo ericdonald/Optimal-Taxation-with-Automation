@@ -316,7 +316,7 @@ class Economy:
         
         
         
-    def Mirrlees_Lagr(self, E, θ_on, tol=1e-6, max_iter=10_000):
+    def Mirrlees_Lagr(self, E, θ_on, warm=True, tol=1e-6, max_iter=10_000):
         "Solve Non-Linear Tax Problem"
         
         Y_0 = self.Y_sq / (1+self.g); K_0 = self.K_sq / (1+self.g)
@@ -341,7 +341,7 @@ class Economy:
             minus_one_count = 0
             for _ in range(max_iter):
                 print(f'Active ICs: {WS.shape[0]}')
-                E, status = gpf.solve_planner(E, θ, args, WS)
+                E, status = gpf.solve_planner(E, θ, args, WS, warm)
                 c_0 = E[:J]; l = E[2*J:3*J]; x = E[3*J:4*J]
                 K = Y_bar - np.sum(self.n * c_0); L = self.n * l
                 w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)

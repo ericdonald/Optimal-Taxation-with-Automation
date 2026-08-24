@@ -382,7 +382,7 @@ class _MirrleesNLP:
 
 
 
-def solve_planner(E_0, θ, args, WS):
+def solve_planner(E_0, θ, args, WS, warm):
     "Solve Mirrlees with IC Subset"
     
     J = args[-1]
@@ -420,6 +420,12 @@ def solve_planner(E_0, θ, args, WS):
                  'print_level': 0, 'sb': 'yes'}.items():
         nlp.add_option(k, v)
     #nlp.add_option('output_file', 'ipopt.log')
+    
+    if warm == False:
+        nlp.add_option('hessian_approximation', 'limited-memory')
+        nlp.add_option('limited_memory_max_history', 50)
+    else:
+        nlp.add_option('hessian_approximation', 'exact')
     
     if σ<0.5 and σ>0.25:
         nlp.add_option('max_iter', 1500)
