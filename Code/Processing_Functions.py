@@ -424,6 +424,7 @@ def solve_planner(E_0, θ, args, WS, warm):
     if warm == False:
         nlp.add_option('hessian_approximation', 'limited-memory')
         nlp.add_option('limited_memory_max_history', 50)
+        nlp.add_option('max_iter', 150)
     else:
         nlp.add_option('hessian_approximation', 'exact')
     
