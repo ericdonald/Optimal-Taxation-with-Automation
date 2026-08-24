@@ -747,7 +747,7 @@ def δ2EC_δX_δX(E, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, 
     # ---------------------------------------------- #
     # Second Derivative of Log Automation Thresholds #
     # ---------------------------------------------- #
-    δ2lnAT = np.zeros((J,J,J))
+    δ2lnAT = np.zeros((J,4*J,4*J))
     for j in range((J)):
         #   wrt to c_0
         #       wrt to c_0
