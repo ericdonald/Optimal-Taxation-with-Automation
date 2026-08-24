@@ -214,12 +214,46 @@ def _reduce_grad(g_full, c_1, m, J):
     
 
 
-
 def _reduce_jac(Jac_full, c_1, m, J):
     Jc0, Jc1, Jl, Jx = Jac_full[:, :J], Jac_full[:, J:2*J], Jac_full[:, 2*J:3*J], Jac_full[:,3*J:4*J]
     Jc0p = Jc0 + np.exp(m) * Jc1
     Jm = (Jc1 * c_1).sum(axis=1, keepdims=True)
     return np.hstack((Jc0p, Jl, Jx, Jm))
+
+
+
+def _reduce_hess(H_full, g_full, c_1, m, J):
+    em = np.exp(m)
+    Hc0, Hc1 = H_full[:, :J], H_full[:, J:2*J]
+    Hl,  Hx  = H_full[:, 2*J:3*J], H_full[:, 3*J:4*J]
+    H_col = np.hstack((Hc0 + em*Hc1, Hl, Hx,
+                       (Hc1 * c_1).sum(1, keepdims=True)))
+    Rc0, Rc1 = H_col[:J], H_col[J:2*J]
+    Rl,  Rx  = H_col[2*J:3*J], H_col[3*J:4*J]
+    H_z = np.vstack((Rc0 + em*Rc1, Rl, Rx,
+                     (Rc1 * c_1[:, None]).sum(0, keepdims=True)))
+    g_c1 = g_full[J:2*J]
+    ix = np.arange(J)
+    H_z[ix, 3*J] += g_c1 * em
+    H_z[3*J, ix] += g_c1 * em
+    H_z[3*J, 3*J] += np.sum(g_c1 * c_1)
+    return H_z
+
+
+
+def _ic_full(E, WS, λ_ic, args):
+    J = args[-1]
+    blocks, idx = pr.δ2IC_δX_δX(E, WS, *args)   
+    Wt = λ_ic[:, None, None] * blocks
+    H = np.zeros((4*J, 4*J))
+    r = np.repeat(idx[:, :, None], 8, axis=2)
+    c = np.repeat(idx[:, None, :], 8, axis=1)
+    np.add.at(H, (r.ravel(), c.ravel()), Wt.ravel())
+
+    rows, cols, vals = pr.δIC_δX(E, WS, *args) 
+    g = np.zeros(4*J)
+    np.add.at(g, cols, λ_ic[rows] * vals)
+    return H, g
 
 
 
@@ -258,11 +292,29 @@ def ic_reduced(z, WS, args):
 
 
 
-def ic_jac_reduced(z, WS, args):
+def lagr_hess_reduced(z, lagrange, obj_factor, WS, args):
     J = args[-1]
-    E, m = _expand(z, J)
-    rows, cols, vals = pr.δIC_δX(E, m, WS, *args)
-    return sp.sparse.csr_matrix((vals, (rows, cols)), shape=(WS.shape[0], z.size))
+    E, m = _expand(z, J); c_1 = E[J:2*J]
+    meq = J + 1
+    λ_eq, λ_ic = lagrange[:meq], lagrange[meq:]
+
+    # Objective
+    H_full = obj_factor * (-pr.δ2Obj_δX_δX(E, *args))
+    g_full = obj_factor * (-pr.δObj_δX(E, *args))
+
+    # Equality Constraints
+    EC_H = pr.δ2EC_δX_δX(E, *args)
+    EC_J = pr.δEC_δX(E, *args)
+    H_full += np.tensordot(λ_eq, EC_H, axes=(0, 0))
+    g_full += λ_eq @ EC_J
+
+    # IC Constraints
+    H_ic, g_ic = _ic_full(E, WS, λ_ic, args)
+    H_full += H_ic
+    g_full += g_ic
+
+    H_z = _reduce_hess(H_full, g_full, c_1, m, J)
+    return H_z
 
 
 
@@ -285,6 +337,9 @@ class _MirrleesNLP:
         ic_cols[6::7] = 3*J
         self._rows = np.concatenate([eq_rows, ic_rows])
         self._cols = np.concatenate([eq_cols, ic_cols])
+        tril = np.tril_indices(self.nz)
+        self._htril = tril
+        self._hrows, self._hcols = tril
 
     def objective(self, z):
         return obj_reduced(z, self.args)
@@ -299,12 +354,31 @@ class _MirrleesNLP:
 
     def jacobian(self, z):
         eq_jac = eq_jac_reduced(z, self.args).ravel()
-        E, m = _expand(z, self.J)
-        _, _, vals = pr.δIC_δX(E, m, self.WS, *self.args)
-        return np.concatenate([eq_jac, vals])
+        J = self.J; P = self.P
+        E, m = _expand(z, J)
+        em = np.exp(m); c_1 = E[J:2*J]
+        i = self.WS[:, 0]; j = self.WS[:, 1]
+        _, _, vals = pr.δIC_δX(E, self.WS, *self.args)   
+        V = vals.reshape(P, 8)   
+        ic = np.empty((P, 7))
+        ic[:, 0] = V[:, 0] + em * V[:, 2]              
+        ic[:, 1] = V[:, 1] + em * V[:, 3]             
+        ic[:, 2] = V[:, 4]                               
+        ic[:, 3] = V[:, 5]                               
+        ic[:, 4] = V[:, 6]                               
+        ic[:, 5] = V[:, 7]                               
+        ic[:, 6] = c_1[i] * V[:, 2] + c_1[j] * V[:, 3]
+        return np.concatenate([eq_jac, ic.ravel()])
 
     def jacobianstructure(self):
         return self._rows, self._cols
+    
+    def hessian(self, z, lagrange, obj_factor):
+        H_z = lagr_hess_reduced(z, lagrange, obj_factor, self.WS, self.args)
+        return H_z[self._htril]
+
+    def hessianstructure(self):
+        return self._hrows, self._hcols
 
 
 
@@ -342,8 +416,7 @@ def solve_planner(E_0, θ, args, WS):
                      problem_obj=_MirrleesNLP(WS, θ, args),
                      lb=lb, ub=ub, cl=cl, cu=cu)
     
-    for k, v in {'hessian_approximation': 'limited-memory',
-                 'limited_memory_max_history': 50, 'mu_strategy': 'adaptive',
+    for k, v in {'mu_strategy': 'adaptive',
                  'print_level': 0, 'sb': 'yes'}.items():
         nlp.add_option(k, v)
     #nlp.add_option('output_file', 'ipopt.log')

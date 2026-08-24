@@ -520,6 +520,39 @@ def δObj_δX(E, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, 
         
         
     return δW
+
+
+@njit
+def δ2Obj_δX_δX(E, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
+    "Hessian of Mirrlees Objective"
+    
+    c_0 = E[:J]
+    c_1 = E[J:2*J]
+    l = E[2*J:3*J]
+    
+    beta_tilde = β / (1 - β * (1+g)**(1-var_θ))
+    beta_tilde_l = (β / (1-β))
+    
+    
+    # ---------------------- #
+    # Derivatives of Welfare #
+    # ---------------------- #
+    #   wrt to c_0
+    δ2W_δc_0_δc_0 = (-var_θ) * n * c_0**(-var_θ- 1)
+    
+    #   wrt to c_1
+    δ2W_δc_1_δc_1 = (-var_θ) * n * beta_tilde * c_1**(-var_θ-1)
+    
+    #   wrt to l
+    δ2W_δl_δl = - (1/ε) * n * beta_tilde_l * φ * l**(1/ε - 1)
+    
+    #   wrt to x
+    δ2W_δx_δx = np.zeros(J)
+    
+    δ2W = np.concatenate((δ2W_δc_0_δc_0, δ2W_δc_1_δc_1, δ2W_δl_δl, δ2W_δx_δx))
+        
+        
+    return gpf.make_diag(δ2W)
     
 
 
@@ -572,18 +605,18 @@ def δEC_δX(E, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x
     # Derivatives of Second Period Resource Constraint #
     # ------------------------------------------------ #
     #   wrt to c_0
-    δRC_1_δc_0 = (1 + r - δ_tilde) * n.reshape((1,J))
+    δRC_δc_0 = (1 + r - δ_tilde) * n.reshape((1,J))
     
     #   wrt to c_1
-    δRC_1_δc_1 = n.reshape((1,J))
+    δRC_δc_1 = n.reshape((1,J))
     
     #   wrt to l
-    δRC_1_δl = - (w * n).reshape((1,J))
+    δRC_δl = - (w * n).reshape((1,J))
     
     #   wrt to x
-    δRC_1_δx = - Y * δlnY_δX.reshape((1,J))
+    δRC_δx = - Y * δlnY_δX.reshape((1,J))
     
-    δRC_1 = np.hstack((δRC_1_δc_0, δRC_1_δc_1, δRC_1_δl, δRC_1_δx))
+    δRC = np.hstack((δRC_δc_0, δRC_δc_1, δRC_δl, δRC_δx))
     
     
     # --------------------------------------- #
@@ -604,13 +637,182 @@ def δEC_δX(E, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x
     δlnAT = np.hstack((δlnAT_δc_0, δlnAT_δc_1, δlnAT_δl, δlnAT_δx))
  
     
-    return np.vstack((δRC_1, δlnAT))
+    return np.vstack((δRC, δlnAT))
+
+
+
+@njit
+def δ2EC_δX_δX(E, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
+    "Hessian of Equality Constraints"
+    
+    c_0 = E[:J]; l = E[2*J:3*J]; x = E[3*J:4*J]
+    
+    K = Y_bar - np.sum(n * c_0)
+    L = n * l
+    w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
+    r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
+    
+    Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
+    S_k = r * K / Y
+    S_j = w * L / Y
+    
+    
+    # ------------------ #
+    # Output Derivatives #
+    # ------------------ #
+    δlnY_δX = dlnY_dx(c_0, l, x, A_j, A_k, x_bar, ζ, ν, σ, J, n, Y_bar)
+    δlnY_δlnK = S_k
+    δlnY_δlnL = S_j
+    
+    
+    # ---------------- #
+    # Wage Derivatives #
+    # ---------------- #
+    rel_l = fn.relα(x, x_bar, ζ, ν, σ, 0)
+    
+    δlnw_δX = - (1/σ) * gpf.make_diag(rel_l) + (1/σ) * gpf.broadcast_row_to_matrix(δlnY_δX)
+    δlnw_δlnL = (1/σ) * gpf.broadcast_row_to_matrix(δlnY_δlnL) - np.eye(J) / σ
+    
+    
+    # ---------------- #
+    # Rent Derivatives #
+    # ---------------- #
+    rel_k = fn.relα(x, x_bar, ζ, ν, σ, 1)
+    
+    δlnr_δX = (1/σ) * rel_k + (1/σ) * δlnY_δX
+    δlnr_δlnK = (1/σ) * (δlnY_δlnK - 1)
+    δlnr_δlnL = (1/σ) * δlnY_δlnL
+    
+    
+    # ------------------------------------------------------- #
+    # Second Derivatives of Second Period Resource Constraint #
+    # ------------------------------------------------------- #
+    #   wrt to c_0
+    #       wrt to c_0
+    δ2RC_δc_0_δc_0 = - (δlnr_δlnK * r / K) * (n.reshape((J,1)) @ n.reshape((1,J)))
+    
+    #       wrt to c_1
+    δ2RC_δc_0_δc_1 = np.zeros((J,J))
+    
+    #       wrt to l
+    δ2RC_δc_0_δl = n.reshape((J,1)) @ (δlnr_δlnL * r / L * n).reshape((1,J))
+    
+    #       wrt to x
+    δ2RC_δc_0_δx = n.reshape((J,1)) @ (δlnr_δX * r).reshape((1,J))
+    
+    δ2RC_δc_0 = np.hstack((δ2RC_δc_0_δc_0, δ2RC_δc_0_δc_1, δ2RC_δc_0_δl, δ2RC_δc_0_δx))
+    
+    
+    #   wrt to c_1
+    δ2RC_δc_1 = np.zeros((J, 4*J))
+    
+    
+    #   wrt to l
+    #       wrt to c_0
+    δ2RC_δl_δc_0 = δ2RC_δc_0_δl
+    
+    #       wrt to c_1
+    δ2RC_δl_δc_1 = np.zeros((J,J))
+    
+    #       wrt to l
+    δ2RC_δl_δl = - δlnw_δlnL * ((w * n).reshape((J,1)) @ (n/L).reshape((1,J)))
+    
+    #       wrt to x
+    δ2RC_δl_δx = - δlnw_δX * gpf.broadcast_col_to_matrix(w * n)
+    
+    δ2RC_δl = np.hstack((δ2RC_δl_δc_0, δ2RC_δl_δc_1, δ2RC_δl_δl, δ2RC_δl_δx))
+    
+    
+    #   wrt to x
+    #       wrt to c_0
+    δ2RC_δx_δc_0 = δ2RC_δc_0_δx
+    
+    #       wrt to c_1
+    δ2RC_δx_δc_1 = np.zeros((J,J))
+    
+    #       wrt to l
+    δ2RC_δx_δl = δ2RC_δl_δx
+    
+    #       wrt to x
+    δ2RC_δx_δx = (- (δlnY_δX.reshape((J,1)) @ δlnY_δX.reshape((1,J))) + S_k * (rel_k.reshape((J,1)) @ δlnr_δX.reshape((1,J))) / (σ-1) 
+                      - gpf.broadcast_col_to_matrix(S_j * rel_l) * δlnw_δX / (σ-1) - S_k * (rel_k.reshape((J,1)) @ rel_k.reshape((1,J))) / (σ-1))
+    δ2RC_δx_δx += gpf.make_diag(S_k * rel_k * ζ * (ν-1) / x - S_j * rel_l * (ζ * ν * (σ-1) / x + rel_l) / (σ-1))
+    
+    δ2RC_δx = np.hstack((δ2RC_δx_δc_0, δ2RC_δx_δc_1, δ2RC_δx_δl, δ2RC_δx_δx))
+    
+    
+    δ2RC = np.vstack((δ2RC_δc_0, δ2RC_δc_1, δ2RC_δl, δ2RC_δx))
+    
+    
+    # ---------------------------------------------- #
+    # Second Derivative of Log Automation Thresholds #
+    # ---------------------------------------------- #
+    δ2lnAT = np.zeros((J,J,J))
+    for j in range((J)):
+        #   wrt to c_0
+        #       wrt to c_0
+        δ2lnAT_δc_0_δc_0 = (n.reshape((J,1)) @ n.reshape((1,J))) / σ / (K**2)
+        
+        #       wrt to c_1
+        δ2lnAT_δc_0_δc_1 = np.zeros((J,J))
+        
+        #       wrt to l
+        δ2lnAT_δc_0_δl = np.zeros((J,J))
+        
+        #       wrt to x
+        δ2lnAT_δc_0_δx = np.zeros((J,J))
+        
+        δ2lnAT_δc_0 = np.hstack((δ2lnAT_δc_0_δc_0, δ2lnAT_δc_0_δc_1, δ2lnAT_δc_0_δl, δ2lnAT_δc_0_δx))
+        
+        
+        #   wrt to c_1
+        δ2lnAT_δc_1 = np.zeros((J, 4*J))
+        
+        
+        #   wrt to l
+        #       wrt to c_0
+        δ2lnAT_δl_δc_0 = δ2lnAT_δc_0_δl
+        
+        #       wrt to c_1
+        δ2lnAT_δl_δc_1 = np.zeros((J,J))
+        
+        #       wrt to l
+        δ2lnAT_δl_δl = np.zeros((J,J))
+        δ2lnAT_δl_δl[j,j] = - (n[j]**2) / (L[j]**2) / σ 
+        
+        #       wrt to x
+        δ2lnAT_δl_δx = np.zeros((J,J))
+        
+        δ2lnAT_δl = np.hstack((δ2lnAT_δl_δc_0, δ2lnAT_δl_δc_1, δ2lnAT_δl_δl, δ2lnAT_δl_δx))
+        
+        
+        #   wrt to x
+        #       wrt to c_0
+        δ2lnAT_δx_δc_0 = δ2lnAT_δc_0_δx
+        
+        #       wrt to c_1
+        δ2lnAT_δx_δc_1 = np.zeros((J,J))
+        
+        #       wrt to l
+        δ2lnAT_δx_δl = δ2lnAT_δl_δx
+        
+        #       wrt to x
+        δ2lnAT_δx_δx = - (rel_k.reshape((J,1)) @ rel_k.reshape((1,J)))
+        δ2lnAT_δx_δx[j,j] += - ζ[j] / (x[j]**2) + rel_l[j] * (ζ[j] * ν[j] * (σ-1) / x[j] + rel_l[j]) + rel_k[j] * ζ[j] * (ν[j]-1) * (σ-1) / x[j]
+        
+        δ2lnAT_δx = np.hstack((δ2lnAT_δx_δc_0, δ2lnAT_δx_δc_1, δ2lnAT_δx_δl, δ2lnAT_δx_δx))
+        
+        
+        δ2lnAT[j] = np.vstack((δ2lnAT_δc_0, δ2lnAT_δc_1, δ2lnAT_δl, δ2lnAT_δx))
+ 
+    
+    return np.concatenate((δ2RC[None, :, :], δ2lnAT), axis=0)
     
     
  
 @njit
-def δIC_δX(E, m, WS, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
-    "Jacobian of Penalty Inequality Constraints"
+def δIC_δX(E, WS, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
+    "Jacobian of Inequality Constraints"
     
     c_0 = E[:J]; c_1 = E[J:2*J]; l = E[2*J:3*J]; x = E[3*J:4*J]
         
@@ -619,7 +821,6 @@ def δIC_δX(E, m, WS, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ
     w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     rel_l = fn.relα(x, x_bar, ζ, ν, σ, 0)
         
-    em  = np.exp(m)
     beta_tilde = β / (1 - β * (1+g)**(1-var_θ))
     beta_tilde_l = β / (1-β)
     
@@ -628,7 +829,7 @@ def δIC_δX(E, m, WS, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ
     # Derivatives of IC #
     # ----------------- #    
     P = WS.shape[0]
-    Q = 7
+    Q = 8
     rows = np.empty(Q*P, np.int64)
     cols = np.empty(Q*P, np.int64)
     vals = np.empty(Q*P)
@@ -636,23 +837,104 @@ def δIC_δX(E, m, WS, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ
     for p in range(P):
         i = WS[p, 0]; j = WS[p, 1]
         b = Q*p
+        im  = (w[j]*l[j]/w[i])
+        hh = beta_tilde_l*φ[i]*(im**(1+1/ε))
         #   wrt to c_0
-        rows[b]   = p; cols[b]   = i; vals[b]   = c_0[i]**(-var_θ) + beta_tilde*c_1[i]**(-var_θ)*em
-        rows[b+1] = p; cols[b+1] = j; vals[b+1] = -c_0[j]**(-var_θ) - beta_tilde*c_1[j]**(-var_θ)*em
+        rows[b]   = p; cols[b]   = i;       vals[b]   =  c_0[i]**(-var_θ)
+        rows[b+1] = p; cols[b+1] = j;       vals[b+1] = -c_0[j]**(-var_θ)
+        
+        #   wrt to c_1
+        rows[b+2] = p; cols[b+2] = J+i;     vals[b+2] =  beta_tilde*c_1[i]**(-var_θ)
+        rows[b+3] = p; cols[b+3] = J+j;     vals[b+3] = -beta_tilde*c_1[j]**(-var_θ)
         
         #   wrt to l
-        rows[b+2] = p; cols[b+2] = J+i; vals[b+2] = beta_tilde_l*φ[i]*(-l[i]**(1+1/ε) + (w[j]*l[j]/w[i])**(1+1/ε) / σ) / l[i]
-        rows[b+3] = p; cols[b+3] = J+j; vals[b+3] = beta_tilde_l*φ[i]*(l[j]**(1/ε))*((w[j]/w[i])**(1+1/ε)) * (1 - 1/σ)
+        rows[b+4] = p; cols[b+4] = 2*J+i;   vals[b+4] = beta_tilde_l*φ[i]*(-l[i]**(1+1/ε) + im**(1+1/ε)/σ)/l[i]
+        rows[b+5] = p; cols[b+5] = 2*J+j;   vals[b+5] = hh*(1 - 1/σ)/l[j]
         
         #   wrt to x
-        rows[b+4] = p; cols[b+4] = 2*J+i; vals[b+4] = beta_tilde_l*φ[i]*((w[j]*l[j]/w[i])**(1+1/ε))*rel_l[i]/σ
-        rows[b+5] = p; cols[b+5] = 2*J+j; vals[b+5] = -beta_tilde_l*φ[i]*((w[j]*l[j]/w[i])**(1+1/ε))*rel_l[j]/σ
+        rows[b+6] = p; cols[b+6] = 3*J+i;   vals[b+6] =  hh*rel_l[i]/σ
+        rows[b+7] = p; cols[b+7] = 3*J+j;   vals[b+7] = -hh*rel_l[j]/σ
         
-        #   wrt to m 
-        rows[b+6] = p; cols[b+6] = 3*J; vals[b+6] =  beta_tilde*(c_1[i]**(1-var_θ) - c_1[j]**(1-var_θ))
     
     return rows, cols, vals
 
+
+
+@njit
+def δ2IC_δX_δX(E, WS, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
+    "Hessian of Inequality Constraints"
+    
+    c_0 = E[:J]; c_1 = E[J:2*J]; l = E[2*J:3*J]; x = E[3*J:4*J]
+        
+    K = Y_bar - np.sum(n * c_0)
+    L = n * l
+    w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
+    rel_l = fn.relα(x, x_bar, ζ, ν, σ, 0)
+        
+    beta_tilde = β / (1 - β * (1+g)**(1-var_θ))
+    beta_tilde_l = β / (1-β)
+    
+    
+    # ------------------------ #
+    # Second Derivatives of IC #
+    # ------------------------ #    
+    P = WS.shape[0]
+    Q = 8
+    blocks = np.zeros((P, Q, Q))
+    idx    = np.empty((P, Q), np.int64)
+    
+    for p in range(P):
+        i = WS[p,0]; j = WS[p,1]
+        idx[p,0]=i;     idx[p,1]=j
+        idx[p,2]=J+i;   idx[p,3]=J+j
+        idx[p,4]=2*J+i; idx[p,5]=2*J+j
+        idx[p,6]=3*J+i; idx[p,7]=3*J+j
+        
+        im  = (w[j]*l[j]/w[i])
+        hh = beta_tilde_l*φ[i]*(im**(1+1/ε))
+        
+        #   wrt to c_0
+        #       wrt to c_0
+        blocks[p,0,0] = (-var_θ)*c_0[i]**(-var_θ-1)
+        blocks[p,1,1] = -(-var_θ)*c_0[j]**(-var_θ-1)
+        
+        
+        #   wrt to c_1
+        #       wrt to c_1
+        blocks[p,2,2] =  beta_tilde*(-var_θ)*c_1[i]**(-var_θ-1)
+        blocks[p,3,3] = -beta_tilde*(-var_θ)*c_1[j]**(-var_θ-1)
+        
+        
+        #   wrt to l
+        hh*(1 - 1/σ)/l[j]
+        #       wrt to l
+        blocks[p,4,4] = beta_tilde_l*φ[i]*(-(1/ε) * l[i]**(1/ε) + im**(1+1/ε) * ((1+1/ε)/σ - 1) / σ / l[i]) / l[i]
+        blocks[p,4,5] = blocks[p,5,4] = (1+1/ε) * hh / l[i] * (1 - 1/σ) / σ / l[j]
+        blocks[p,5,5] = (1/ε - (1+1/ε)/σ) * hh * (1 - 1/σ) / l[j]**2
+        
+        #       wrt to x
+        blocks[p,4,6] = (1+1/ε) * hh * rel_l[i] / (σ**2) / l[i]
+        blocks[p,4,7] = - (1+1/ε) * hh * rel_l[j] / (σ**2) / l[i]
+        
+        blocks[p,5,6] = (1+1/ε) * hh * rel_l[i] * (1 - 1/σ) / σ / l[j]
+        blocks[p,5,7] = - (1+1/ε) * hh * rel_l[j] * (1 - 1/σ) / σ / l[j]
+        
+        
+        #   wrt to x
+        #       wrt to l
+        blocks[p,6,4] = blocks[p,4,6]
+        blocks[p,6,5] = blocks[p,5,6]
+        
+        blocks[p,7,4] = blocks[p,4,7]
+        blocks[p,7,5] = blocks[p,5,7]
+        
+        #       wrt to x
+        blocks[p,6,6] = hh * rel_l[i] * ((1+1/ε) * rel_l[i] / σ + ζ[i] * ν[i] * (σ-1) / x[i] + rel_l[i]) /σ
+        blocks[p,6,7] = blocks[p,7,6] = - (1+1/ε) * hh * rel_l[j] * rel_l[i] / σ**2
+        blocks[p,7,7] = hh * rel_l[j] * ((1+1/ε) * rel_l[j] / σ - ζ[j] * ν[j] * (σ-1) / x[j] - rel_l[j]) /σ
+        
+    
+    return blocks, idx
 
 
 
