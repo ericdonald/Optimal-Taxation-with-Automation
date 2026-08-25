@@ -141,16 +141,16 @@ def δH_δclx(E, θ, τ_k, Ψ, ψ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, β, v
     # Derivatives of Log Automation Thresholds #
     # ---------------------------------------- #
     #   wrt to c_0
-    δlnAT_δc_0 = (- gpf.broadcast_col_to_matrix(δlnw_δlnK) / K + δlnr_δlnK / K) * gpf.broadcast_row_to_matrix(-n)
+    δlnAT_δc_0 = gpf.broadcast_row_to_matrix(n) / σ / K
     
     #   wrt to c_1
     δlnAT_δc_1 = np.zeros((J,J))
     
     #   wrt to l
-    δlnAT_δl = - δlnw_δlnL * gpf.broadcast_row_to_matrix(1 / l) + gpf.broadcast_row_to_matrix(δlnr_δlnL / l)
+    δlnAT_δl = gpf.make_diag(1 / l) / σ
     
     #   wrt to x
-    δlnAT_δx = gpf.make_diag(ζ/x) - δlnw_δX + gpf.broadcast_row_to_matrix(δlnr_δX)
+    δlnAT_δx = gpf.make_diag(ζ/x + rel_l/σ) + gpf.broadcast_row_to_matrix(rel_k/σ)
     
     δlnAT = np.hstack((δlnAT_δc_0, δlnAT_δc_1, δlnAT_δl, δlnAT_δx))
     
@@ -594,9 +594,9 @@ def δEC_δX(E, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x
     δRC = np.hstack((δRC_δc_0, δRC_δc_1, δRC_δl, δRC_δx))
     
     
-    # --------------------------------------- #
-    # Derivative of Log Automation Thresholds #
-    # --------------------------------------- #
+    # ---------------------------------------- #
+    # Derivatives of Log Automation Thresholds #
+    # ---------------------------------------- #
     #   wrt to c_0
     δlnAT_δc_0 = gpf.broadcast_row_to_matrix(n) / σ / K
     
@@ -706,25 +706,24 @@ def δ2EC_δX_δX(E, λ_eq, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_�
     # ---------------------------------------------- #
     sumλ = np.sum(λ_AT)
     
-    for j in range(J):
-        #   wrt to c_0
-        #       wrt to c_0
-        H[c0, c0] += sumλ * (n.reshape((J,1)) @ n.reshape((1,J))) / σ / (K**2)
-        
-        
-        #   wrt to l
-        #       wrt to l
-        diag_ll = - (n**2) / (L**2) / σ * λ_AT
-        H[l_, l_] += gpf.make_diag(diag_ll)
-        
-        
-        #   wrt to x
-        #       wrt to x
-        H[x_, x_] += sumλ * (- (rel_k.reshape((J,1)) @ rel_k.reshape((1,J))))
-        diag_xx = ( - ζ / (x**2)
-                + rel_l * (ζ * ν * (σ-1) / x + rel_l)
-                + rel_k * ζ * (ν-1) * (σ-1) / x ) * λ_AT
-        H[x_, x_] += gpf.make_diag(diag_xx)
+    #   wrt to c_0
+    #       wrt to c_0
+    H[c0, c0] += sumλ * (n.reshape((J,1)) @ n.reshape((1,J))) / σ / (K**2)
+    
+    
+    #   wrt to l
+    #       wrt to l
+    diag_ll = - (n**2) / (L**2) / σ * λ_AT
+    H[l_, l_] += gpf.make_diag(diag_ll)
+    
+    
+    #   wrt to x
+    #       wrt to x
+    H[x_, x_] += sumλ * (- (rel_k.reshape((J,1)) @ rel_k.reshape((1,J))))
+    diag_xx = ( - ζ / (x**2)
+            + rel_l * (ζ * ν * (σ-1) / x + rel_l)
+            + rel_k * ζ * (ν-1) * (σ-1) / x ) * λ_AT
+    H[x_, x_] += gpf.make_diag(diag_xx)
  
     
     return H

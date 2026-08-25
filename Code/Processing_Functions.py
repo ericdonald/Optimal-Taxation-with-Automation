@@ -437,7 +437,6 @@ def solve_planner(E_0, θ, args, WS, warm):
     if warm == False:
         nlp.add_option('hessian_approximation', 'limited-memory')
         nlp.add_option('limited_memory_max_history', 50)
-        nlp.add_option('acceptable_tol', 1e-4)
     else:
         nlp.add_option('hessian_approximation', 'exact')
     
@@ -593,7 +592,123 @@ def cov_dataframe(stats_A, label_A, stats_B, label_B, n, J):
 
 
 
+def _fd_grad_scalar(f, E, h=1e-6):
+    n = E.size; g = np.zeros(n)
+    for k in range(n):
+        Ep = E.copy(); Ep[k] += h
+        Em = E.copy(); Em[k] -= h
+        g[k] = (f(Ep) - f(Em)) / (2*h)
+    return g
 
+
+
+def _fd_jac_vec(f, E, m_out, h=1e-6):
+    n = E.size; Jf = np.zeros((m_out, n))
+    for k in range(n):
+        Ep = E.copy(); Ep[k] += h
+        Em = E.copy(); Em[k] -= h
+        Jf[:, k] = (f(Ep) - f(Em)) / (2*h)
+    return Jf
+
+
+
+def check_obj_grad(E, args, h=1e-6):
+    g_an = pr.δObj_δX(E, *args)
+    g_fd = _fd_grad_scalar(lambda e: rt.Mir_obj(e, *args), E, h)
+    err = np.max(np.abs(g_an - g_fd))
+    print(f"[obj grad]   max|an-fd| = {err:.3e}")
+    return err
+
+
+
+def check_obj_hess(E, args, h=1e-5):
+    H_an = pr.δ2Obj_δX_δX(E, *args)
+    H_fd = _fd_jac_vec(lambda e: pr.δObj_δX(e, *args), E, E.size, h)
+    H_fd = 0.5*(H_fd + H_fd.T)
+    err = np.max(np.abs(H_an - H_fd))
+    print(f"[obj hess]   max|an-fd| = {err:.3e}")
+    return err
+
+
+
+def check_eq_jac(E, args, h=1e-6):
+    J = args[-1]
+    f = lambda e: rt.Equal_Constr(e, *args)
+    m_out = J + 1
+    Jf = _fd_jac_vec(f, E, m_out, h)
+    J_an = pr.δEC_δX(E, *args)
+    err = np.max(np.abs(J_an - Jf))
+    print(f"[eq  jac]    max|an-fd| = {err:.3e}")
+    a, b = np.unravel_index(np.argmax(np.abs(J_an - Jf)), J_an.shape)
+    print(f"             worst entry ({a},{b}): an={J_an[a,b]:.4e} fd={Jf[a,b]:.4e}")
+    return err
+
+
+
+def check_eq_hess(E, λ_eq, args, h=1e-5):
+    H_an = pr.δ2EC_δX_δX(E, λ_eq, *args)
+    def wg(e):
+        return λ_eq @ pr.δEC_δX(e, *args)
+    H_fd = _fd_jac_vec(wg, E, E.size, h)
+    H_fd = 0.5*(H_fd + H_fd.T)
+    err = np.max(np.abs(H_an - H_fd))
+    print(f"[eq  hess]   max|an-fd| = {err:.3e}")
+    a, b = np.unravel_index(np.argmax(np.abs(H_an - H_fd)), H_an.shape)
+    print(f"             worst entry ({a},{b}): an={H_an[a,b]:.4e} fd={H_fd[a,b]:.4e}")
+    return err
+
+
+
+def check_ic_jac(E, WS, args, h=1e-6):
+    J = args[-1]; P = WS.shape[0]
+    rows, cols, vals = pr.δIC_δX(E, WS, *args)
+    G_an = np.zeros((P, 4*J))
+    G_an[rows, cols] = vals
+    G_fd = _fd_jac_vec(lambda e: rt.IC_on_set(e, WS, *args), E, P, h)
+    err = np.max(np.abs(G_an - G_fd))
+    print(f"[ic  jac]    max|an-fd| = {err:.3e}")
+    off = G_fd.copy(); off[rows, cols] = 0.0
+    print(f"             off-support FD energy = {np.max(np.abs(off)):.3e}")
+    return err
+
+
+
+def check_ic_hess(E, WS, args, pair_idx=0, h=1e-5):
+    blocks, idx = pr.δ2IC_δX_δX(E, WS, *args)
+    B_an = blocks[pair_idx]
+    coords = idx[pair_idx]
+    WSp = WS[pair_idx:pair_idx+1]
+    B_fd = np.zeros((8, 8))
+    for a in range(8):
+        for b in range(8):
+            ka, kb = coords[a], coords[b]
+            Epp = E.copy(); Epp[ka]+=h; Epp[kb]+=h
+            Epm = E.copy(); Epm[ka]+=h; Epm[kb]-=h
+            Emp = E.copy(); Emp[ka]-=h; Emp[kb]+=h
+            Emm = E.copy(); Emm[ka]-=h; Emm[kb]-=h
+            B_fd[a,b] = (rt.IC_on_set(Epp,WSp,*args)
+                        - rt.IC_on_set(Epm,WSp,*args)
+                        - rt.IC_on_set(Emp,WSp,*args)
+                        + rt.IC_on_set(Emm,WSp,*args))[0] / (4*h*h)
+    err = np.max(np.abs(B_an - B_fd))
+    print(f"[ic  hess p={pair_idx}] max|an-fd| = {err:.3e}")
+    labs = ['c0i','c0j','c1i','c1j','li','lj','xi','xj']
+    a, b = np.unravel_index(np.argmax(np.abs(B_an - B_fd)), (8,8))
+    print(f"             worst [{labs[a]},{labs[b]}]: an={B_an[a,b]:.4e} fd={B_fd[a,b]:.4e}")
+    return err
+
+
+
+def check_all(E, WS, args_θ, h=1e-6):
+    J = args_θ[-1]
+    λ_eq = np.ones(J + 1)
+    check_obj_grad(E, args_θ, h)
+    check_obj_hess(E, args_θ, max(h,1e-5))
+    check_eq_jac(E, args_θ, h)
+    check_eq_hess(E, λ_eq, args_θ, max(h,1e-5))
+    check_ic_jac(E, WS, args_θ, h)
+    for p in (0, WS.shape[0]//2, WS.shape[0]-1):
+        check_ic_hess(E, WS, args_θ, p, max(h,1e-5))
 
 
 
