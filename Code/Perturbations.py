@@ -569,36 +569,11 @@ def δEC_δX(E, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x
     
     δ_tilde = 1 + δ + g
     Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    S_k = r * K / Y
-    S_j = w * L / Y
     
-    
-    # ------------------ #
-    # Output Derivatives #
-    # ------------------ #
-    δlnY_δX = dlnY_dx(c_0, l, x, A_j, A_k, x_bar, ζ, ν, σ, J, n, Y_bar)
-    δlnY_δlnK = S_k
-    δlnY_δlnL = S_j
-    
-    
-    # ---------------- #
-    # Wage Derivatives #
-    # ---------------- #
     rel_l = fn.relα(x, x_bar, ζ, ν, σ, 0)
-    
-    δlnw_δX = - (1/σ) * gpf.make_diag(rel_l) + (1/σ) * gpf.broadcast_row_to_matrix(δlnY_δX)
-    δlnw_δlnK = (1/σ) * δlnY_δlnK * np.ones(J)
-    δlnw_δlnL = (1/σ) * gpf.broadcast_row_to_matrix(δlnY_δlnL) - np.eye(J) / σ
-    
-    
-    # ---------------- #
-    # Rent Derivatives #
-    # ---------------- #
     rel_k = fn.relα(x, x_bar, ζ, ν, σ, 1)
     
-    δlnr_δX = (1/σ) * rel_k + (1/σ) * δlnY_δX
-    δlnr_δlnK = (1/σ) * (δlnY_δlnK - 1)
-    δlnr_δlnL = (1/σ) * δlnY_δlnL
+    δlnY_δX = dlnY_dx(c_0, l, x, A_j, A_k, x_bar, ζ, ν, σ, J, n, Y_bar)
     
     
     # ------------------------------------------------ #
@@ -623,16 +598,16 @@ def δEC_δX(E, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x
     # Derivative of Log Automation Thresholds #
     # --------------------------------------- #
     #   wrt to c_0
-    δlnAT_δc_0 = (- gpf.broadcast_col_to_matrix(δlnw_δlnK) / K + δlnr_δlnK / K) * gpf.broadcast_row_to_matrix(-n)
+    δlnAT_δc_0 = gpf.broadcast_row_to_matrix(n) / σ / K
     
     #   wrt to c_1
     δlnAT_δc_1 = np.zeros((J,J))
     
     #   wrt to l
-    δlnAT_δl = - δlnw_δlnL * gpf.broadcast_row_to_matrix(1 / l) + gpf.broadcast_row_to_matrix(δlnr_δlnL / l)
+    δlnAT_δl = gpf.make_diag(1 / l) / σ
     
     #   wrt to x
-    δlnAT_δx = gpf.make_diag(ζ/x) - δlnw_δX + gpf.broadcast_row_to_matrix(δlnr_δX)
+    δlnAT_δx = gpf.make_diag(ζ/x + rel_l/σ) + gpf.broadcast_row_to_matrix(rel_k/σ)
     
     δlnAT = np.hstack((δlnAT_δc_0, δlnAT_δc_1, δlnAT_δl, δlnAT_δx))
  
