@@ -642,7 +642,7 @@ def δEC_δX(E, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x
 
 
 @njit
-def δ2EC_δX_δX(E, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
+def δ2EC_δX_δX(E, λ_eq, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
     "Hessian of Equality Constraints"
     
     c_0 = E[:J]; l = E[2*J:3*J]; x = E[3*J:4*J]
@@ -655,6 +655,10 @@ def δ2EC_δX_δX(E, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, 
     Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
     S_k = r * K / Y
     S_j = w * L / Y
+    
+    λ_RC = λ_eq[0]
+    λ_AT = λ_eq[1:]
+    H = np.zeros((4*J, 4*J))
     
     
     # ------------------ #
@@ -687,126 +691,68 @@ def δ2EC_δX_δX(E, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, 
     # ------------------------------------------------------- #
     # Second Derivatives of Second Period Resource Constraint #
     # ------------------------------------------------------- #
+    c0 = slice(0, J); l_ = slice(2*J, 3*J); x_ = slice(3*J, 4*J)
+    
     #   wrt to c_0
     #       wrt to c_0
     δ2RC_δc_0_δc_0 = - (δlnr_δlnK * r / K) * (n.reshape((J,1)) @ n.reshape((1,J)))
-    
-    #       wrt to c_1
-    δ2RC_δc_0_δc_1 = np.zeros((J,J))
     
     #       wrt to l
     δ2RC_δc_0_δl = n.reshape((J,1)) @ (δlnr_δlnL * r / L * n).reshape((1,J))
     
     #       wrt to x
     δ2RC_δc_0_δx = n.reshape((J,1)) @ (δlnr_δX * r).reshape((1,J))
-    
-    δ2RC_δc_0 = np.hstack((δ2RC_δc_0_δc_0, δ2RC_δc_0_δc_1, δ2RC_δc_0_δl, δ2RC_δc_0_δx))
-    
-    
-    #   wrt to c_1
-    δ2RC_δc_1 = np.zeros((J, 4*J))
-    
+        
     
     #   wrt to l
-    #       wrt to c_0
-    δ2RC_δl_δc_0 = δ2RC_δc_0_δl
-    
-    #       wrt to c_1
-    δ2RC_δl_δc_1 = np.zeros((J,J))
-    
     #       wrt to l
     δ2RC_δl_δl = - δlnw_δlnL * ((w * n).reshape((J,1)) @ (n/L).reshape((1,J)))
     
     #       wrt to x
     δ2RC_δl_δx = - δlnw_δX * gpf.broadcast_col_to_matrix(w * n)
-    
-    δ2RC_δl = np.hstack((δ2RC_δl_δc_0, δ2RC_δl_δc_1, δ2RC_δl_δl, δ2RC_δl_δx))
-    
+        
     
     #   wrt to x
-    #       wrt to c_0
-    δ2RC_δx_δc_0 = δ2RC_δc_0_δx
-    
-    #       wrt to c_1
-    δ2RC_δx_δc_1 = np.zeros((J,J))
-    
-    #       wrt to l
-    δ2RC_δx_δl = δ2RC_δl_δx
-    
     #       wrt to x
     δ2RC_δx_δx = (- (δlnY_δX.reshape((J,1)) @ δlnY_δX.reshape((1,J))) + S_k * (rel_k.reshape((J,1)) @ δlnr_δX.reshape((1,J))) / (σ-1) 
                       - gpf.broadcast_col_to_matrix(S_j * rel_l) * δlnw_δX / (σ-1) - S_k * (rel_k.reshape((J,1)) @ rel_k.reshape((1,J))) / (σ-1))
     δ2RC_δx_δx += gpf.make_diag(S_k * rel_k * ζ * (ν-1) / x - S_j * rel_l * (ζ * ν * (σ-1) / x + rel_l) / (σ-1))
     
-    δ2RC_δx = np.hstack((δ2RC_δx_δc_0, δ2RC_δx_δc_1, δ2RC_δx_δl, δ2RC_δx_δx))
-    
-    
-    δ2RC = np.vstack((δ2RC_δc_0, δ2RC_δc_1, δ2RC_δl, δ2RC_δx))
+    H[c0, c0] += λ_RC * δ2RC_δc_0_δc_0
+    H[c0, l_] += λ_RC * δ2RC_δc_0_δl ;  H[l_, c0] += λ_RC * δ2RC_δc_0_δl.T
+    H[c0, x_] += λ_RC * δ2RC_δc_0_δx ;  H[x_, c0] += λ_RC * δ2RC_δc_0_δx.T
+    H[l_, l_] += λ_RC * δ2RC_δl_δl
+    H[l_, x_] += λ_RC * δ2RC_δl_δx ;  H[x_, l_] += λ_RC * δ2RC_δl_δx.T
+    H[x_, x_] += λ_RC * δ2RC_δx_δx
     
     
     # ---------------------------------------------- #
     # Second Derivative of Log Automation Thresholds #
     # ---------------------------------------------- #
-    δ2lnAT = np.zeros((J,4*J,4*J))
-    for j in range((J)):
+    sumλ = np.sum(λ_AT)
+    
+    for j in range(J):
         #   wrt to c_0
         #       wrt to c_0
-        δ2lnAT_δc_0_δc_0 = (n.reshape((J,1)) @ n.reshape((1,J))) / σ / (K**2)
-        
-        #       wrt to c_1
-        δ2lnAT_δc_0_δc_1 = np.zeros((J,J))
-        
-        #       wrt to l
-        δ2lnAT_δc_0_δl = np.zeros((J,J))
-        
-        #       wrt to x
-        δ2lnAT_δc_0_δx = np.zeros((J,J))
-        
-        δ2lnAT_δc_0 = np.hstack((δ2lnAT_δc_0_δc_0, δ2lnAT_δc_0_δc_1, δ2lnAT_δc_0_δl, δ2lnAT_δc_0_δx))
-        
-        
-        #   wrt to c_1
-        δ2lnAT_δc_1 = np.zeros((J, 4*J))
+        H[c0, c0] += sumλ * (n.reshape((J,1)) @ n.reshape((1,J))) / σ / (K**2)
         
         
         #   wrt to l
-        #       wrt to c_0
-        δ2lnAT_δl_δc_0 = δ2lnAT_δc_0_δl
-        
-        #       wrt to c_1
-        δ2lnAT_δl_δc_1 = np.zeros((J,J))
-        
         #       wrt to l
-        δ2lnAT_δl_δl = np.zeros((J,J))
-        δ2lnAT_δl_δl[j,j] = - (n[j]**2) / (L[j]**2) / σ 
-        
-        #       wrt to x
-        δ2lnAT_δl_δx = np.zeros((J,J))
-        
-        δ2lnAT_δl = np.hstack((δ2lnAT_δl_δc_0, δ2lnAT_δl_δc_1, δ2lnAT_δl_δl, δ2lnAT_δl_δx))
+        diag_ll = - (n**2) / (L**2) / σ * λ_AT
+        H[l_, l_] += gpf.make_diag(diag_ll)
         
         
         #   wrt to x
-        #       wrt to c_0
-        δ2lnAT_δx_δc_0 = δ2lnAT_δc_0_δx
-        
-        #       wrt to c_1
-        δ2lnAT_δx_δc_1 = np.zeros((J,J))
-        
-        #       wrt to l
-        δ2lnAT_δx_δl = δ2lnAT_δl_δx
-        
         #       wrt to x
-        δ2lnAT_δx_δx = - (rel_k.reshape((J,1)) @ rel_k.reshape((1,J)))
-        δ2lnAT_δx_δx[j,j] += - ζ[j] / (x[j]**2) + rel_l[j] * (ζ[j] * ν[j] * (σ-1) / x[j] + rel_l[j]) + rel_k[j] * ζ[j] * (ν[j]-1) * (σ-1) / x[j]
-        
-        δ2lnAT_δx = np.hstack((δ2lnAT_δx_δc_0, δ2lnAT_δx_δc_1, δ2lnAT_δx_δl, δ2lnAT_δx_δx))
-        
-        
-        δ2lnAT[j] = np.vstack((δ2lnAT_δc_0, δ2lnAT_δc_1, δ2lnAT_δl, δ2lnAT_δx))
+        H[x_, x_] += sumλ * (- (rel_k.reshape((J,1)) @ rel_k.reshape((1,J))))
+        diag_xx = ( - ζ / (x**2)
+                + rel_l * (ζ * ν * (σ-1) / x + rel_l)
+                + rel_k * ζ * (ν-1) * (σ-1) / x ) * λ_AT
+        H[x_, x_] += gpf.make_diag(diag_xx)
  
     
-    return np.concatenate((δ2RC[None, :, :], δ2lnAT), axis=0)
+    return H
     
     
  
@@ -906,7 +852,6 @@ def δ2IC_δX_δX(E, WS, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, 
         
         
         #   wrt to l
-        hh*(1 - 1/σ)/l[j]
         #       wrt to l
         blocks[p,4,4] = beta_tilde_l*φ[i]*(-(1/ε) * l[i]**(1/ε) + im**(1+1/ε) * ((1+1/ε)/σ - 1) / σ / l[i]) / l[i]
         blocks[p,4,5] = blocks[p,5,4] = (1+1/ε) * hh / l[i] * (1 - 1/σ) / σ / l[j]

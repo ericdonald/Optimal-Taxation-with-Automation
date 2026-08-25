@@ -241,18 +241,29 @@ def _reduce_hess(H_full, g_full, c_1, m, J):
 
 
 
+@njit
+def _scatter_ic(blocks, idx, λ_ic, J):
+    H = np.zeros((4*J, 4*J))
+    P = blocks.shape[0]
+    for p in range(P):
+        w = λ_ic[p]
+        for a in range(8):
+            ia = idx[p, a]
+            for b in range(8):
+                H[ia, idx[p, b]] += w * blocks[p, a, b]
+    return H
+
+
+
 def _ic_full(E, WS, λ_ic, args):
     J = args[-1]
-    blocks, idx = pr.δ2IC_δX_δX(E, WS, *args)   
-    Wt = λ_ic[:, None, None] * blocks
-    H = np.zeros((4*J, 4*J))
-    r = np.repeat(idx[:, :, None], 8, axis=2)
-    c = np.repeat(idx[:, None, :], 8, axis=1)
-    np.add.at(H, (r.ravel(), c.ravel()), Wt.ravel())
+    blocks, idx = pr.δ2IC_δX_δX(E, WS, *args)
+    H = _scatter_ic(blocks, idx, λ_ic, J)
 
-    rows, cols, vals = pr.δIC_δX(E, WS, *args) 
+    rows, cols, vals = pr.δIC_δX(E, WS, *args)
     g = np.zeros(4*J)
-    np.add.at(g, cols, λ_ic[rows] * vals)
+    for k in range(vals.size):
+        g[cols[k]] += λ_ic[rows[k]] * vals[k]
     return H, g
 
 
@@ -303,10 +314,8 @@ def lagr_hess_reduced(z, lagrange, obj_factor, WS, args):
     g_full = obj_factor * (-pr.δObj_δX(E, *args))
 
     # Equality Constraints
-    EC_H = pr.δ2EC_δX_δX(E, *args)
-    EC_J = pr.δEC_δX(E, *args)
-    H_full += np.tensordot(λ_eq, EC_H, axes=(0, 0))
-    g_full += λ_eq @ EC_J
+    H_full += pr.δ2EC_δX_δX(E, λ_eq, *args)
+    g_full += λ_eq @ pr.δEC_δX(E, *args)
 
     # IC Constraints
     H_ic, g_ic = _ic_full(E, WS, λ_ic, args)
@@ -324,6 +333,7 @@ class _MirrleesNLP:
         self.WS, self.args = WS, (θ,) + args
         J = args[-1]; self.J = J
         P = WS.shape[0]; self.P = P
+        x_bar = args[-2]
         self.nz  = 3*J + 1
         self.meq = J + 1                           
         i = WS[:, 0]; j = WS[:, 1]
@@ -337,9 +347,12 @@ class _MirrleesNLP:
         ic_cols[6::7] = 3*J
         self._rows = np.concatenate([eq_rows, ic_rows])
         self._cols = np.concatenate([eq_cols, ic_cols])
-        tril = np.tril_indices(self.nz)
-        self._htril = tril
-        self._hrows, self._hcols = tril
+        z_probe = np.concatenate((np.ones(3*J)*0.5, np.full(J, 0.5*x_bar),
+                                  np.array([0.0])))
+        Hp = lagr_hess_reduced(z_probe, np.ones(self.meq + P), 1.0, WS, self.args)
+        tril_mask = np.tril(np.abs(Hp) > 1e-300)
+        self._hrows, self._hcols = np.nonzero(tril_mask)
+        self._htril = (self._hrows, self._hcols)
 
     def objective(self, z):
         return obj_reduced(z, self.args)
