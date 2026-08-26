@@ -495,7 +495,7 @@ def build_working_set(E, w, args, IC_k, IC_slack):
 
 
 
-def verify_working_set(E, w, WS, args, tol):
+def verify_working_set(E, w, WS, args, tol, max_add=1000):
     
     J = args[-1]; var_θ = args[-5]
     c_0 = E[:J]
@@ -504,12 +504,16 @@ def verify_working_set(E, w, WS, args, tol):
     
     in_set = np.zeros((J, J), dtype=bool)
     in_set[WS[:, 0], WS[:, 1]] = True
-    add = np.argwhere((dev > tol) & (~in_set)).astype(np.int64)
-    
-    if add.shape[0] == 0:
+    cand = np.argwhere((dev > tol) & (~in_set))
+    if cand.shape[0] == 0:
         return WS, 0
-    else:
-        return np.unique(np.vstack((WS, add)), axis=0), add.shape[0]
+
+    viol = dev[cand[:, 0], cand[:, 1]]
+    order = np.argsort(-viol)
+    if max_add is not None:
+        order = order[:max_add]
+    add = cand[order].astype(np.int64)
+    return np.unique(np.vstack((WS, add)), axis=0), add.shape[0]
 
 
 
