@@ -316,7 +316,7 @@ class Economy:
         
         
         
-    def Mirrlees_Lagr(self, E, θ_on, warm=True, max_iter=10_000):
+    def Mirrlees_Lagr(self, E, θ_on, tol=1e-6, max_iter=10_000):
         "Solve Non-Linear Tax Problem"
         
         Y_0 = self.Y_sq / (1+self.g); K_0 = self.K_sq / (1+self.g)
@@ -326,45 +326,45 @@ class Economy:
         IC_k = 2
         J = self.J
         
-        if warm == True:
-            IC_slack = 0.01
-            tol = 1e-4
-        else:
-            IC_slack = 0.05
-            tol = 1e-6
-                    
         
         # ----------- #
         # Solve Inner #
         # ----------- #
         def solve_at_θ(E_init, θ):
             E = E_init.copy()
-            c_0 = E[:J]; l = E[2*J:3*J]; x = E[3*J:4*J]
-            K = Y_bar - np.sum(self.n * c_0); L = self.n * l
-            w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-            WS = gpf.build_working_set(E, w, args, IC_k, IC_slack)
-
-            converged = False
-            minus_one_count = 0
-            for _ in range(max_iter):
-                print(f'Active ICs: {WS.shape[0]}')
-                E, status = gpf.solve_planner(E, θ, args, WS, warm)
+            
+            for warm in [False, True]:
+                if warm == True:
+                    IC_slack = 0.01
+                else:
+                    IC_slack = 0.05
+                    
                 c_0 = E[:J]; l = E[2*J:3*J]; x = E[3*J:4*J]
                 K = Y_bar - np.sum(self.n * c_0); L = self.n * l
                 w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-                
-                if status in (0, 1):
-                    WS, added = gpf.verify_working_set(E, w, WS, args, tol)
-                    if added == 0:
-                        converged = True
+                WS = gpf.build_working_set(E, w, args, IC_k, IC_slack)
+    
+                converged = False
+                minus_one_count = 0
+                for _ in range(max_iter):
+                    print(f'Active ICs: {WS.shape[0]}')
+                    E, status = gpf.solve_planner(E, θ, args, WS, warm)
+                    c_0 = E[:J]; l = E[2*J:3*J]; x = E[3*J:4*J]
+                    K = Y_bar - np.sum(self.n * c_0); L = self.n * l
+                    w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
+                    
+                    if status in (0, 1):
+                        WS, added = gpf.verify_working_set(E, w, WS, args, tol)
+                        if added == 0:
+                            converged = True
+                            break
+                    elif status == -1:
+                        minus_one_count += 1
+                        if minus_one_count >= 2:
+                            break
+                        WS = gpf.build_working_set(E, w, args, IC_k, IC_slack)
+                    else:
                         break
-                elif status == -1:
-                    minus_one_count += 1
-                    if minus_one_count >= 2:
-                        break
-                    WS = gpf.build_working_set(E, w, args, IC_k, IC_slack)
-                else:
-                    break
                     
 
             c_0 = E[:J]; c_1 = E[J:2*J]; x = E[3*J:4*J]
@@ -417,7 +417,7 @@ class Economy:
         δW = rt.Optimalθ_NL_Root(E, θ_star, *args)
         denom = np.sum(self.n * (c_0**(-self.var_θ) * c_0))
         δW_error = np.abs(δW) / denom
-        if δW_error > 0.1:
+        if δW_error > 0.01:
             print(f"δW above tolerance: {δW_error:.5f}")
         
         qe.toc(); print(f"Mirrlees Solution Found  (θ={θ_star:.5f}, τ_k={τ_k:.3g})")
