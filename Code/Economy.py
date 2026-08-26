@@ -333,8 +333,8 @@ class Economy:
         def solve_at_θ(E_init, θ):
             E = E_init.copy()
             
-            for warm in [False, True]:
-                if warm == True:
+            for exact in [False, False, True]:
+                if exact == True:
                     IC_slack = 0.01
                 else:
                     IC_slack = 0.05
@@ -348,7 +348,7 @@ class Economy:
                 minus_one_count = 0
                 for _ in range(max_iter):
                     print(f'Active ICs: {WS.shape[0]}')
-                    E, status = gpf.solve_planner(E, θ, args, WS, warm)
+                    E, status = gpf.solve_planner(E, θ, args, WS, exact)
                     c_0 = E[:J]; l = E[2*J:3*J]; x = E[3*J:4*J]
                     K = Y_bar - np.sum(self.n * c_0); L = self.n * l
                     w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
@@ -367,7 +367,7 @@ class Economy:
                         break
                     
 
-            c_0 = E[:J]; c_1 = E[J:2*J]; x = E[3*J:4*J]
+            c_0 = E[:J]; c_1 = E[J:2*J]; l = E[2*J:3*J]; x = E[3*J:4*J]
             K = Y_bar - np.sum(self.n * c_0); L = self.n * l
             MRS_c = fn.cap_MRS(c_0, c_1, self.β, self.var_θ, self.ε, self.g)
             r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
