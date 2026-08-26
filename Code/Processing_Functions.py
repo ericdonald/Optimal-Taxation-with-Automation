@@ -495,7 +495,7 @@ def build_working_set(E, w, args, IC_k, IC_slack):
 
 
 
-def verify_working_set(E, w, WS, args, tol, max_add=1000):
+def verify_working_set(E, w, WS, args, tol, max_add=None):
     
     J = args[-1]; var_θ = args[-5]
     c_0 = E[:J]

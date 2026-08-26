@@ -689,8 +689,8 @@ class Processor:
         
         (c_0_NT, c_1_NT, l_NT, K_NT, x_NT, τ_k_NT), _ = self.E.Mirrlees_Lagr(E_warm, 0)
         E_mirr = np.concatenate((c_0_NT, c_1_NT, l_NT, x_NT))
-        with open(f'{self.Directory}/Clean Data/E_mirr.pkl', 'wb') as file:
-            pickle.dump(E_mirr, file)
+        # with open(f'{self.Directory}/Clean Data/E_mirr.pkl', 'wb') as file:
+        #     pickle.dump(E_mirr, file)
         
         (c_0, c_1, l, K, x, τ_k), θ, _ = self.E.Mirrlees_Lagr(E_mirr, 1)
         

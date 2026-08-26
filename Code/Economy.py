@@ -316,15 +316,22 @@ class Economy:
         
         
         
-    def Mirrlees_Lagr(self, E, θ_on, warm=True, tol=1e-4, max_iter=10_000):
+    def Mirrlees_Lagr(self, E, θ_on, warm=True, max_iter=10_000):
         "Solve Non-Linear Tax Problem"
         
         Y_0 = self.Y_sq / (1+self.g); K_0 = self.K_sq / (1+self.g)
         Y_bar = Y_0 + (1-self.δ) * K_0
         args = (self.n, Y_bar, self.δ, self.g, self.A_j, self.A_k, self.ζ, self.ν, self.σ,
                 self.β, self.var_θ, self.φ, self.ε, self.x_bar, self.J)
-        IC_k = 2; IC_slack = 0.01
+        IC_k = 2
         J = self.J
+        
+        if warm == True:
+            IC_slack = 0.01
+            tol = 1e-4
+        else:
+            IC_slack = 0.05
+            tol = 1e-6
                     
         
         # ----------- #
