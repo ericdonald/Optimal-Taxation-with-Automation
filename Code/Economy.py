@@ -404,16 +404,11 @@ class Economy:
             print(f'θ={θ_1:.5f}')
             print(f'τ_k={τ_1:.5f}')
 
-        τ_k = τ_1; θ_star = θ_1
+        θ_star = θ_1
+        E, τ_k, converged, _ = solve_at_θ(E, θ_star, use_exact=True)
         converged = converged and (abs(τ_k) < tol)
         c_0 = E[:J]; c_1 = E[J:2*J]; l = E[2*J:3*J]; x = E[3*J:4*J]
         K = Y_bar - np.sum(self.n * c_0)
-        
-        δW = rt.Optimalθ_NL_Root(E, θ_star, *args)
-        denom = np.sum(self.n * (c_0**(-self.var_θ) * c_0))
-        δW_error = np.abs(δW) / denom
-        if δW_error > 0.01:
-            print(f"δW above tolerance: {δW_error:.5f}")
         
         qe.toc(); print(f"Mirrlees Solution Found  (θ={θ_star:.5f}, τ_k={τ_k:.3g})")
         return (c_0, c_1, l, K, x, τ_k), θ_star, converged

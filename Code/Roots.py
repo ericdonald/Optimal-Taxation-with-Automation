@@ -408,72 +408,10 @@ def IC_on_set(E, WS, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, 
 
 
 
-def Optimalθ_NL_Root(E, θ, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J):
-    "Root for Optimal Threshold Rule with Nonlinear Taxes"
-    
-    # ----------------- #
-    # Unpack Allocation #
-    # ----------------- #
-    c_0 = E[:J]
-    c_1 = E[J:2*J]
-    l = E[2*J:3*J]
-    x = E[3*J:4*J]
-    
-    L = n * l
-    K = Y_bar - np.sum(n * c_0)
-    κ = Y_bar - c_0
-    
-    w = fn.Wages(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    r = fn.Rents(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    
-    
-    # ------------------------------------ #
-    # Compute Threshold Rule Perturbations #
-    # ------------------------------------ #
-    ΔH_ΔΕ = pr.δH_δclx_NL(E, θ, w, r, n, Y_bar, δ, g, A_j, A_k, ζ, ν, σ, β, var_θ, φ, ε, x_bar, J)
-    ΔH_Δθ = pr.δH_δθ(θ, J)
 
-    dE = - np.linalg.solve(ΔH_ΔΕ, ΔH_Δθ)
-    
-    dc_0 = dE[:J,0]
-    dl = dE[2*J:3*J,0]
-    dx = dE[3*J:,0]
-    
-    δlnl = dl / l
-    δlnκ = - dc_0 / κ
-    
-    δ_tilde = 1 + δ + g
-    R = 1 + r - δ_tilde
-    Y = fn.Output(x, L, K, A_j, A_k, x_bar, ζ, ν, σ)
-    
-    δlnw = pr.dlnw(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, Y_bar)
-    δlnr = pr.dlnr(dc_0, dl, dx, c_0, l, x, θ, A_j, A_k, x_bar, ζ, ν, σ, J, n, Y_bar)
-    δlnR = r * δlnr / R
-    
-    α_k = x**(ζ*(ν-1))
-    
-    if σ == 1:
-        θ_wedge = np.log(1+θ)
-    else:
-        θ_wedge = ((1+θ)**(1-σ) - 1) / (1 - σ)
-    
-    δY_δX = Y * (A_k * α_k / r)**(σ-1) * θ_wedge
-    
-    MRS_l = fn.lab_MRS(c_1, l, β, var_θ, φ, ε, g)
-    MRS_c = fn.cap_MRS(c_0, c_1, β, var_θ, ε, g)
-    λ = c_1**(-var_θ) / np.sum(n * c_1**(-var_θ))
-    
-    
-    # -------------------- #
-    # Optimality Condition #
-    # -------------------- #
-    MC = -np.sum(δY_δX * dx)
-    cov = np.sum(n * (λ-1) * (MRS_l * l * δlnw + MRS_c * κ * δlnR))
-    Expect = np.sum(n * ((w - MRS_l) * l * δlnl + (R - MRS_c) * κ * δlnκ))
-    
-    δW = MC - cov - Expect
-    
-    return δW
+
+
+
 
 
 
