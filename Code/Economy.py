@@ -330,22 +330,21 @@ class Economy:
         # ----------- #
         # Solve Inner #
         # ----------- #
-        def solve_at_θ(E_init, θ):
+        def solve_at_θ(E_init, θ, WS=None, use_exact=False):
             E = E_init.copy()
+            exactness_set = [False, False, True] if use_exact else [False]
+            WS_set = 0
             
-            for exact in [False, False, True]:
-                if exact == True:
-                    IC_slack = 0.01
-                else:
-                    IC_slack = 0.05
+            for exact in exactness_set:
+                IC_slack = 0.01 if exact else 0.05
                     
                 c_0 = E[:J]; l = E[2*J:3*J]; x = E[3*J:4*J]
                 K = Y_bar - np.sum(self.n * c_0); L = self.n * l
                 w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
-                WS = gpf.build_working_set(E, w, args, IC_k, IC_slack)
+                WS = gpf.build_working_set(E, w, args, IC_k, IC_slack) if (WS is None or WS_set>0) else WS
+                WS_set += 1
     
                 converged = False
-                minus_one_count = 0
                 for _ in range(max_iter):
                     print(f'Active ICs: {WS.shape[0]}')
                     E, status = gpf.solve_planner(E, θ, args, WS, exact)
@@ -358,11 +357,6 @@ class Economy:
                         if added == 0:
                             converged = True
                             break
-                    elif status == -1:
-                        minus_one_count += 1
-                        if minus_one_count >= 2:
-                            break
-                        WS = gpf.build_working_set(E, w, args, IC_k, IC_slack)
                     else:
                         break
                     
@@ -372,7 +366,7 @@ class Economy:
             MRS_c = fn.cap_MRS(c_0, c_1, self.β, self.var_θ, self.ε, self.g)
             r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             τ_k = np.median(1 - (MRS_c + self.g) / (r - self.δ))
-            return E, τ_k, converged
+            return E, τ_k, converged, WS
         
         
         # ----------- #
@@ -380,7 +374,7 @@ class Economy:
         # ----------- #
         qe.tic()
         if θ_on == 0:
-            E, τ_k, converged = solve_at_θ(E, 0.0)
+            E, τ_k, converged, _ = solve_at_θ(E, 0.0, use_exact=True)
             c_0 = E[:J]; c_1 = E[J:2*J]; l = E[2*J:3*J]; x = E[3*J:4*J]
             K = Y_bar - np.sum(self.n * c_0)
             qe.toc(); print("Mirrlees Solution Found")
@@ -388,10 +382,10 @@ class Economy:
         
         
         # Secant θ
-        θ_0 = 0.10
-        E, τ_0, _ = solve_at_θ(E, θ_0)
+        θ_0 = 0.0
+        E, τ_0, _, WS = solve_at_θ(E, θ_0)
         θ_1 = θ_0 + 0.01                                   
-        E, τ_1, converged = solve_at_θ(E, θ_1)
+        E, τ_1, converged, WS = solve_at_θ(E, θ_1, WS)
 
         for _ in range(max_iter):
             if abs(τ_1) < tol:
@@ -403,9 +397,10 @@ class Economy:
             θ_2 = min(max(θ_2, 0), 5.0)           
             θ_0, τ_0 = θ_1, τ_1
             θ_1 = θ_2
-            E_new, τ_1, converged = solve_at_θ(E, θ_1)
+            E_new, τ_1, converged, WS_new = solve_at_θ(E, θ_1, WS)
             if converged:
                 E = E_new
+                WS = WS_new
             print(f'θ={θ_1:.5f}')
             print(f'τ_k={τ_1:.5f}')
 
