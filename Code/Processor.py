@@ -11,7 +11,7 @@ import numpy as np
 from ipumspy import IpumsApiClient, MicrodataExtract
 import scipy as sp
 from pathlib import Path
-import sys, pickle
+import sys
 import importlib.metadata as md
 import Roots as rt
 import Production_Functions as fn
@@ -666,8 +666,7 @@ class Processor:
         """""
         Optimal Threshold Rule for Non-Linear Taxes
         
-        Output: Clean Data/E_mirr.pkl
-                Results/Figures/Mirrlees_Covariance.csv
+        Output: Results/Figures/Mirrlees_Covariance.csv
                 Results/Tables/Mirrlees_Results.csv
         """""
         
@@ -685,11 +684,9 @@ class Processor:
         c_0_0,    c_1_0,    l_0,    x_0    = gpf.solve_eqbm(0, self.E.τ_k, self.E.Ψ, self.E.ψ, avg_y_0, E_init, *alloc_args)
         E_0 = np.concatenate((c_0_0, c_1_0, l_0, x_0))
         (c_0_NT, c_1_NT, l_NT, K_NT, x_NT, τ_k_NT), _ = self.E.Mirrlees_Lagr(E_0, 0)
-        E_mirr = np.concatenate((c_0_NT, c_1_NT, l_NT, x_NT))
-        with open(f'{self.Directory}/Clean Data/E_mirr.pkl', 'wb') as file:
-            pickle.dump(E_mirr, file)
+        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT, x_NT))
         
-        (c_0, c_1, l, K, x, τ_k), θ, _ = self.E.Mirrlees_Lagr(E_mirr, 1)
+        (c_0, c_1, l, K, x, τ_k), θ, _ = self.E.Mirrlees_Lagr(E_NT, 1)
         
         Mirrlees_Results.add('Optimal Mirrlees Capital Tax', gpf.clean_round(τ_k_NT*100, 1))
         Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
@@ -957,18 +954,17 @@ class Processor:
 
                 
         
-    def Σ_robust(self, Σ_low, σ_low):
+    def Σ_robust(self, σ_low):
         """""
         Robustness with Elasticities of Substitution
     
-        Output: Clean Data/E_σ.pkl
-                Results/Tables/ES_robust_Results.csv
+        Output: Results/Tables/ES_robust_Results.csv
         """""
         
         ES_robust_Results = gpf.ResultsTable()
-        σ_base = self.E.σ
-        self.E.Σ_k = Σ_low
+        dΣ = self.E.Σ_k - self.E.σ
         self.E.σ = σ_low
+        self.E.Σ_k = σ_low + dΣ
         
         
         # ----------- #
@@ -1045,37 +1041,11 @@ class Processor:
         # ---------------- #
         # Mirrlees Problem #
         # ---------------- #
-        
-        # Warm Start Ramp
-        dΣ = Σ_low - σ_low
-        σ_prev = σ_base
-        with open(f'{self.Directory}/Clean Data/E_mirr.pkl', 'rb') as file:
-            E_0 = pickle.load(file)
-        
-        inter_n = 20
-        targets = list(np.linspace(σ_base, σ_low, inter_n + 1))[1:]
-        while targets:
-            σ_try = targets[0]
-            print(σ_try)
-            self.E.σ = σ_try; self.E.Σ_k = σ_try + dΣ; self.E.Calibrate()
-            print(f'Γ={self.E.Γ:.5f}')
-            out, converged = self.E.Mirrlees_Lagr(E_0, 0)
-            if converged:
-                c_0, c_1, l, K, x, τ_k = out
-                E_0 = np.concatenate((c_0, c_1, l, x))
-                σ_prev = σ_try
-                targets.pop(0)
-                print(f'τ_k={τ_k:.5f}')
-                with open(f'{self.Directory}/Clean Data/E_σ.pkl', 'wb') as file:
-                    pickle.dump(E_0, file)
-            else:
-                σ_mid = 0.5 * (σ_prev + σ_try)
-                targets.insert(0, σ_mid) 
-        
-        alloc_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
-        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT, τ_k_NT) = out
-        
+        c_0_0,    c_1_0,    l_0,    x_0    = gpf.solve_eqbm(0, self.E.τ_k, self.E.Ψ, self.E.ψ, avg_y_0, E_init, *alloc_args)
+        E_0 = np.concatenate((c_0_0, c_1_0, l_0, x_0))
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT, τ_k_NT), _ = self.E.Mirrlees_Lagr(E_0, 0)
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT, x_NT))
+        
         (c_0, c_1, l, K, x, θ, τ_k), _ = self.E.Mirrlees_Lagr(E_NT, 1)
         
         ES_robust_Results.add('Low ES Mirrlees Capital Tax', gpf.clean_round(τ_k_NT*100, 1))

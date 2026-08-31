@@ -434,15 +434,15 @@ def solve_planner(E_0, θ, args, WS, exact):
         nlp.add_option(k, v)
     #nlp.add_option('output_file', 'ipopt.log')
     
-    if exact == True:
+    if exact is True:
         nlp.add_option('hessian_approximation', 'exact')
     else:
         nlp.add_option('hessian_approximation', 'limited-memory')
         nlp.add_option('limited_memory_max_history', 50)
     
-    if σ<0.5 and σ>0.25:
-        nlp.add_option('max_iter', 1500)
-        nlp.add_option('acceptable_tol', 1e-5)
+    if σ<0.5:
+        nlp.add_option('max_iter', 10_000)
+        nlp.add_option('acceptable_tol', 1e-4)
 
     z_opt, info = nlp.solve(z_0)
     E, _ = _expand(z_opt, J)

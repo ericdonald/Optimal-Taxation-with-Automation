@@ -352,7 +352,7 @@ class Economy:
                     K = Y_bar - np.sum(self.n * c_0); L = self.n * l
                     w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
                     
-                    if status in (0, 1):
+                    if status in (0, 1, -1):
                         WS, added = gpf.verify_working_set(E, w, WS, args, tol)
                         if added == 0:
                             converged = True
