@@ -5,6 +5,13 @@ Notes: This file executes the code for "Optimal Taxation with Automation".
     
 """""""""""
 
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
 import Economy as e
 import Processor as p
 
@@ -31,7 +38,7 @@ P = p.Processor(E)
 API = 0
 #Set to 1 for new API download
 
-P.Cleaner(API)
+#P.Cleaner(API)
 
 
 # --------- #
@@ -43,13 +50,13 @@ P.Calibrate()
 # ---------- #
 # Validation #
 # ---------- #
-P.Validation()
+#P.Validation()
 
 
 # --------------------------- #
 # Optimal Parametric Policies #
 # --------------------------- #
-P.Parametric_Optimum()
+#P.Parametric_Optimum()
 
 
 # ---------------------- #

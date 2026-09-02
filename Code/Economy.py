@@ -336,6 +336,7 @@ class Economy:
             WS_set = 0
             
             for exact in exactness_set:
+                print(exact)
                 IC_slack = 0.01 if exact else 0.05
                     
                 c_0 = E[:J]; l = E[2*J:3*J]; x = E[3*J:4*J]

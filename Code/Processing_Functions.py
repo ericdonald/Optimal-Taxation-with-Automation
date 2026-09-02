@@ -428,7 +428,7 @@ def solve_planner(E_0, θ, args, WS, exact):
                      problem_obj=_MirrleesNLP(WS, θ, args),
                      lb=lb, ub=ub, cl=cl, cu=cu)
     
-    for k, v in {'mu_strategy': 'adaptive',
+    for k, v in {'mu_strategy': 'adaptive', 'linear_solver': 'mumps',
                  'print_level': 0, 'sb': 'yes'}.items():
         nlp.add_option(k, v)
     #nlp.add_option('output_file', 'ipopt.log')
