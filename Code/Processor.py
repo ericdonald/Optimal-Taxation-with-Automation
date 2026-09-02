@@ -681,7 +681,7 @@ class Processor:
         avg_y_0 = np.sum(self.E.n * self.E.y_0)
         alloc_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
         
-        c_0_0,    c_1_0,    l_0,    x_0    = gpf.solve_eqbm(0, 0.111, self.E.Ψ, self.E.ψ, avg_y_0, E_init, *alloc_args)
+        c_0_0,    c_1_0,    l_0,    x_0    = gpf.solve_eqbm(0, self.E.τ_k, self.E.Ψ, self.E.ψ, avg_y_0, E_init, *alloc_args)
         E_0 = np.concatenate((c_0_0, c_1_0, l_0, x_0))
         (c_0_NT, c_1_NT, l_NT, K_NT, x_NT, τ_k_NT), _ = self.E.Mirrlees_Lagr(E_0, 0)
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT, x_NT))
