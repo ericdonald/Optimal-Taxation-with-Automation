@@ -1038,33 +1038,6 @@ class Processor:
         ES_robust_Results.add('Low ES Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv_both, 2))
        
         
-        # ---------------- #
-        # Mirrlees Problem #
-        # ---------------- #
-        c_0_0,    c_1_0,    l_0,    x_0    = gpf.solve_eqbm(0, self.E.τ_k, self.E.Ψ, self.E.ψ, avg_y_0, E_init, *alloc_args)
-        E_0 = np.concatenate((c_0_0, c_1_0, l_0, x_0))
-        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT, τ_k_NT), _ = self.E.Mirrlees_Lagr(E_0, 0)
-        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT, x_NT))
-        
-        (c_0, c_1, l, K, x, θ, τ_k), _ = self.E.Mirrlees_Lagr(E_NT, 1)
-        
-        ES_robust_Results.add('Low ES Mirrlees Capital Tax', gpf.clean_round(τ_k_NT*100, 1))
-        ES_robust_Results.add('Low ES Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
-    
-        # Comparison Table 
-        stats_NT    = gpf.alloc_stats(c_0_NT, c_1_NT, l_NT, x_NT, avg_y_0, *alloc_args)
-        stats = gpf.alloc_stats(c_0, c_1, l, x, avg_y_0, *alloc_args)
-        
-        Δ_ln_Λ, Δ_var_λ, Δ_cov = gpf.deltas(stats, stats_NT)
-        ConEquiv = gpf.consumption_equiv(c_0, c_1, l,
-                                           c_0_NT, c_1_NT, l_NT, *alloc_args)
-        
-        ES_robust_Results.add('Low ES Mirrlees DLambda', gpf.clean_round(Δ_ln_Λ, 1))
-        ES_robust_Results.add('Low ES Mirrlees DvarWW', gpf.clean_round(Δ_var_λ, 1))
-        ES_robust_Results.add('Low ES Mirrlees DCOV', gpf.clean_round(Δ_cov, 1))
-        ES_robust_Results.add('Low ES Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv, 2))
-        
-        
         ES_robust_Results.to_csv(f'{self.Directory}/Results/Tables/ES_robust_Results.csv')
         
         

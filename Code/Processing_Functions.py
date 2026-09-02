@@ -400,7 +400,6 @@ def solve_planner(E_0, θ, args, WS, exact):
     
     J = args[-1]
     x_bar = args[-2]
-    σ = args[8]
     
     
     # -------------------- #
@@ -439,10 +438,6 @@ def solve_planner(E_0, θ, args, WS, exact):
     else:
         nlp.add_option('hessian_approximation', 'limited-memory')
         nlp.add_option('limited_memory_max_history', 50)
-    
-    if σ<0.5:
-        nlp.add_option('max_iter', 10_000)
-        nlp.add_option('acceptable_tol', 1e-4)
 
     z_opt, info = nlp.solve(z_0)
     E, _ = _expand(z_opt, J)

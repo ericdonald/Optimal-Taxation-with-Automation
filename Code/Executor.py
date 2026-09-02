@@ -28,10 +28,10 @@ P = p.Processor(E)
 # ---------- #
 # Clean Data #
 # ---------- #
-#API = 0
+API = 0
 #Set to 1 for new API download
 
-#P.Cleaner(API)
+P.Cleaner(API)
 
 
 # --------- #
@@ -43,13 +43,13 @@ P.Calibrate()
 # ---------- #
 # Validation #
 # ---------- #
-#P.Validation()
+P.Validation()
 
 
 # --------------------------- #
 # Optimal Parametric Policies #
 # --------------------------- #
-#P.Parametric_Optimum()
+P.Parametric_Optimum()
 
 
 # ---------------------- #
@@ -61,13 +61,13 @@ P.Mirrlees_Optimum()
 # ------------------ #
 # Introduction of AI #
 # ------------------ #
-#P.AI_Experiment(0.5, 5)
+P.AI_Experiment(0.5, 5)
 
 
 # ---------------------------------- #
 # Lower Elasticities of Substitution #
 # ---------------------------------- #
-P.Σ_robust(0.3)
+P.Σ_robust(0.25)
 
 
 # ----------------------- #
