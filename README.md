@@ -2,7 +2,10 @@
 
 ## Data Sources:
 
-Below is the list of all data sources required for replication. The first group are those programmatically retrieved via APIs or direct download, and the second group are those contained in the Raw Data folder. The links below are for reference only; a user does not need to visit these sites to extract the data.
+Below is the list of all data sources required for replication. All necessary data files are included in the Raw Data folder, so the replication code can be run immediately with `API=0`. Setting `API=1` will re-download the data from the original sources, which may produce small numerical differences if the underlying databases have been updated since the archived data was collected.
+
+The first group are those that can be programmatically retrieved via APIs or direct download, and the second group are those contained exclusively in the Raw Data folder and do not make use of API. The links below are for reference only; a user does not need to visit these sites to extract the data.
+
 To make use of the API commands, the user will need to make a `.keys` file with the following lines:
 
 ```
@@ -12,7 +15,7 @@ IPUMS_API = XX
 
 where `XX` is the user's API key for the relevant data source.
 
-### API/Web Acessible:
+### API/Web Accessible:
 
 - FRED
   - [CPI](https://fred.stlouisfed.org/series/CPIAUCSL)
@@ -31,17 +34,18 @@ where `XX` is the user's API key for the relevant data source.
 
 ### Python
 
-All of the replication codes run on Python `3.11.14`. Prior to running the codes, install the following packages:
+All of the replication codes run on Python `3.11.15`. Prior to running the codes, install the following packages:
 
 | Package | Version |
 |---------|---------|
-| cyipopt | 1.6.1 |
-| ipumspy | 0.7.0 |
-| numba | 0.63.1 |
-| numpy | 2.3.5 |
+| cyipopt | 1.7.0 |
+| ipumspy | 0.8.2 |
+| numba | 0.66.0 |
+| numpy | 2.4.6 |
+| openpyxl | 3.1.5 |
 | pandas | 2.3.3 |
-| quantecon | 0.10.1 |
-| scipy | 1.17.0 |
+| quantecon | 0.11.4 |
+| scipy | 1.17.1 |
 
 ## Description of Code:
 
