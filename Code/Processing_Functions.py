@@ -47,7 +47,7 @@ def clean_round(number, decimals):
             return int(rounded_number)
     elif decimals > 0:
         if rounded_number == np.round(rounded_number, decimals-1):
-            return np.round(rounded_number, decimals-1)
+            return clean_round(rounded_number, decimals-1)
     return rounded_number
     
 
@@ -443,10 +443,10 @@ def solve_planner(E_0, θ, args, WS, exact):
     E, _ = _expand(z_opt, J)
     status = info['status']
     
-    _IPOPT_STATUS = {0: 'solved', 1: 'solved to acceptable tolerance',
-                     2: 'infeasible problem detected', -1: 'maximum iterations exceeded',
-                    -2: 'restoration failed', -3: 'error in step computation'}
-    print(f"IPOPT: {_IPOPT_STATUS.get(status, 'status ' + str(status))} ({status})")
+    # _IPOPT_STATUS = {0: 'solved', 1: 'solved to acceptable tolerance',
+    #                  2: 'infeasible problem detected', -1: 'maximum iterations exceeded',
+    #                 -2: 'restoration failed', -3: 'error in step computation'}
+    # print(f"IPOPT: {_IPOPT_STATUS.get(status, 'status ' + str(status))} ({status})")
     
     return E, status
 

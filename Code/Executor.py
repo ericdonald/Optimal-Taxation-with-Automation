@@ -38,7 +38,7 @@ P = p.Processor(E)
 API = 0
 #Set to 1 for new API download
 
-#P.Cleaner(API)
+P.Cleaner(API)
 
 
 # --------- #
@@ -50,13 +50,13 @@ P.Calibrate()
 # ---------- #
 # Validation #
 # ---------- #
-#P.Validation()
+P.Validation()
 
 
 # --------------------------- #
 # Optimal Parametric Policies #
 # --------------------------- #
-#P.Parametric_Optimum()
+P.Parametric_Optimum()
 
 
 # ---------------------- #

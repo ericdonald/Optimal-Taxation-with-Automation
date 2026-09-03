@@ -332,11 +332,11 @@ class Economy:
         # ----------- #
         def solve_at_θ(E_init, θ, WS=None, use_exact=False):
             E = E_init.copy()
-            exactness_set = [False, False, True] if use_exact else [False]
+            exactness_set = [False, True] if use_exact else [False]
             WS_set = 0
             
             for exact in exactness_set:
-                print(exact)
+                #print(exact)
                 IC_slack = 0.01 if exact else 0.05
                     
                 c_0 = E[:J]; l = E[2*J:3*J]; x = E[3*J:4*J]
@@ -347,7 +347,7 @@ class Economy:
     
                 converged = False
                 for _ in range(max_iter):
-                    print(f'Active ICs: {WS.shape[0]}')
+                    #print(f'Active ICs: {WS.shape[0]}')
                     E, status = gpf.solve_planner(E, θ, args, WS, exact)
                     c_0 = E[:J]; l = E[2*J:3*J]; x = E[3*J:4*J]
                     K = Y_bar - np.sum(self.n * c_0); L = self.n * l
@@ -383,7 +383,7 @@ class Economy:
         
         
         # Secant θ
-        θ_0 = 0.0
+        θ_0 = 0.15
         E, τ_0, _, WS = solve_at_θ(E, θ_0)
         θ_1 = θ_0 + 0.01                                   
         E, τ_1, converged, WS = solve_at_θ(E, θ_1, WS)
@@ -402,11 +402,10 @@ class Economy:
             if converged:
                 E = E_new
                 WS = WS_new
-            print(f'θ={θ_1:.5f}')
-            print(f'τ_k={τ_1:.5f}')
+            #print(f'θ={θ_1:.5f}')
+            #print(f'τ_k={τ_1:.5f}')
 
-        θ_star = θ_1
-        E, τ_k, converged, _ = solve_at_θ(E, θ_star, use_exact=True)
+        θ_star = θ_1; τ_k = τ_1
         converged = converged and (abs(τ_k) < tol)
         c_0 = E[:J]; c_1 = E[J:2*J]; l = E[2*J:3*J]; x = E[3*J:4*J]
         K = Y_bar - np.sum(self.n * c_0)
