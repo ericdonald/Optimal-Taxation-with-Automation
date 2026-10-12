@@ -26,17 +26,6 @@ class Processor:
         
         self.E = E
         self.Directory = Path(__file__).resolve().parent.parent
-        
-        keys_path = self.Directory / ".keys"
-        keys = {}
-        with open(keys_path) as f:
-            for line in f:
-                if "=" in line:
-                    k, v = line.strip().split("=", 1)
-                    keys[k.strip()] = v.strip()
-        
-        self.FRED_API = keys.get("FRED_API")
-        self.IPUMS_API = keys.get("IPUMS_API")
                 
         
         
@@ -56,6 +45,18 @@ class Processor:
                 Raw Data/Elondou.pkl
                 Clean Data/Elondou.pkl
         """""
+        
+        if API==1:
+            keys_path = self.Directory / ".keys"
+            keys = {}
+            with open(keys_path) as f:
+                for line in f:
+                    if "=" in line:
+                        k, v = line.strip().split("=", 1)
+                        keys[k.strip()] = v.strip()
+            
+            self.FRED_API = keys.get("FRED_API")
+            self.IPUMS_API = keys.get("IPUMS_API")
    
         
         # -------- #
