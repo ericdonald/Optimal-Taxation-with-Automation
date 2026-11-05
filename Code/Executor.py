@@ -80,7 +80,7 @@ P.Σ_robust(0.25)
 # ----------------------- #
 # Record Package Versions #
 # ----------------------- #
-packages = ["cyipopt", "ipumspy", "numba", "numpy", "openpyxl", "pandas", "quantecon", "scipy"]
+packages = ["cyipopt", "ipumspy", "numba", "numpy", "openpyxl", "pandas", "quantecon", "requests", "scipy"]
 P.write_package_versions(packages)
 
 

@@ -22,7 +22,7 @@ where `XX` is the user's API key for the relevant data source.
 - IPUMS
   - [1980 Census](https://usa.ipums.org/usa/)
   - [2016 ACS](https://usa.ipums.org/usa/)
-- AI Exposure from [Felten el al. (2021)](https://github.com/AIOE-Data/AIOE/tree/main) and [Elondou et al. (2024)](https://github.com/openai/GPTs-are-GPTs/tree/main)
+- AI Exposure from [Felten et al. (2021)](https://github.com/AIOE-Data/AIOE/tree/main) and [Eloundou et al. (2024)](https://github.com/openai/GPTs-are-GPTs/tree/main)
 
 ### Contained in Raw Data:
 

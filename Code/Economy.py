@@ -190,7 +190,7 @@ class Economy:
         self.ν = nu.x
         
         x_j = self.var_κ * self.x_bar
-        Λ_k = fn.Lamba_k(x_j, self.x_bar, self.ζ, self.ν, self.σ)
+        Λ_k = fn.Lambda_k(x_j, self.x_bar, self.ζ, self.ν, self.σ)
         self.A_k = self.r_sq**(self.σ / (self.σ-1)) * (self.COR / Λ_k)**(1 / (self.σ-1))
         
         self.A_j = (self.w_j_sq / x_j**(self.ζ)) / (self.r_sq / self.A_k)
@@ -364,7 +364,7 @@ class Economy:
 
             c_0 = E[:J]; c_1 = E[J:2*J]; l = E[2*J:3*J]; x = E[3*J:4*J]
             K = Y_bar - np.sum(self.n * c_0); L = self.n * l
-            MRS_c = fn.cap_MRS(c_0, c_1, self.β, self.var_θ, self.ε, self.g)
+            MRS_c = fn.cap_MRS(c_0, c_1, self.β, self.var_θ, self.g)
             r = fn.Rents(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
             τ_k = np.median(1 - (MRS_c + self.g) / (r - self.δ))
             return E, τ_k, converged, WS
@@ -481,6 +481,11 @@ class Economy:
                 if single == 1:
                     θ_AI[n] = θ_new
                     τ_k_AI[n] = τ_new
+
+                    Eqbm = sp.optimize.root(rt.Eqbm_Root, E,
+                                  args=(θ_new, τ_new, Ψ_AI, self.ψ, *args),
+                                  jac=pr.δH_δclx)
+                    E = Eqbm.x #Warm start next growth level from this equilibrium
                     break
                 
                 error_θ = np.abs(θ - θ_new)

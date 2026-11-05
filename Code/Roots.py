@@ -81,7 +81,7 @@ def GammaRoot(Γ, E_sq, w_j_sq, r_sq, COR, var_κ, Σ_k, χ, x_bar, σ, S_k, S_j
     ν = nu.x
     x_j = var_κ * x_bar
     
-    Λ_k = fn.Lamba_k(x_j, x_bar, ζ, ν, σ)
+    Λ_k = fn.Lambda_k(x_j, x_bar, ζ, ν, σ)
     A_k = r_sq**(σ / (σ-1)) * (COR / Λ_k)**(1 / (σ-1))
     
     A_j = (w_j_sq / x_j**(ζ)) / (r_sq / A_k)
@@ -126,8 +126,8 @@ def νRoot(ν, Γ, χ, var_κ, x_bar, σ, S_j, S_k):
     
     x_j = var_κ * x_bar
     
-    Λ_l = fn.Lamba_l(x_j, x_bar, ζ, ν, σ)
-    Λ_k = fn.Lamba_k(x_j, x_bar, ζ, ν, σ)
+    Λ_l = fn.Lambda_l(x_j, x_bar, ζ, ν, σ)
+    Λ_k = fn.Lambda_k(x_j, x_bar, ζ, ν, σ)
     
     RHS = (S_j / S_k) * Λ_k * x_j**(ζ * (σ-1))
     
@@ -154,7 +154,7 @@ def Eqbm_Root(E, θ, τ_k, Ψ, ψ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, β, v
     D = np.sum(n * (w * l - Ψ * (w * l)**(1-ψ))) + τ_k * (r - δ) * K
     
     MRS_l = fn.lab_MRS(c_1, l, β, var_θ, φ, ε, g)
-    MRS_c = fn.cap_MRS(c_0, c_1, β, var_θ, ε, g)
+    MRS_c = fn.cap_MRS(c_0, c_1, β, var_θ, g)
     keep_l = fn.Heath_keep(w, l, Ψ, ψ)
     
     
@@ -197,7 +197,12 @@ def Optimal_Para_Root(θ, τ_k, Ψ, ψ, digamma, E_sq, A_j, A_k, x_bar, ζ, ν, 
     Eqbm = sp.optimize.root(Eqbm_Root, warm,
                   args=(θ, τ_k, Ψ, ψ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, β, var_θ, ε, δ, g, φ),
                   jac=pr.δH_δclx)
-    
+
+    if not Eqbm.success and warm is not E_sq: #Cached start can be far from the solution, retry from the reference allocation
+        Eqbm = sp.optimize.root(Eqbm_Root, E_sq,
+                      args=(θ, τ_k, Ψ, ψ, A_j, A_k, x_bar, ζ, ν, σ, J, n, y_0, β, var_θ, ε, δ, g, φ),
+                      jac=pr.δH_δclx)
+
     E = Eqbm.x
     if _cache is not None:
        _cache[0] = E
@@ -262,7 +267,7 @@ def Optimal_Para_Root(θ, τ_k, Ψ, ψ, digamma, E_sq, A_j, A_k, x_bar, ζ, ν, 
     δY_δX = Y * (A_k * α_k / r)**(σ-1) * θ_wedge
     
     MRS_l = fn.lab_MRS(c_1, l, β, var_θ, φ, ε, g)
-    MRS_c = fn.cap_MRS(c_0, c_1, β, var_θ, ε, g)
+    MRS_c = fn.cap_MRS(c_0, c_1, β, var_θ, g)
     λ = c_1**(-var_θ) / np.sum(n * c_1**(-var_θ))
     
     

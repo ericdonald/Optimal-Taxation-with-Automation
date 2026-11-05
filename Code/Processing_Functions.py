@@ -529,7 +529,7 @@ def alloc_stats(c_0, c_1, l, x, y_0, A_j, A_k, x_bar, ζ, ν, σ, J, n, β, var_
     λ     = c_1**(-var_θ) / np.sum(n * c_1**(-var_θ))
     var_λ = np.sum(n * λ**2) - 1
 
-    E_ln_Λ = (np.sum(n * np.log(fn.Lamba_l(x, x_bar, ζ, ν, σ))) / σ)
+    E_ln_Λ = (np.sum(n * np.log(fn.Lambda_l(x, x_bar, ζ, ν, σ))) / σ)
 
     L    = n * l
     K    = np.sum(n * (y_0 - c_0))

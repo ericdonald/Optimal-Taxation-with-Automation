@@ -42,8 +42,8 @@ class Processor:
                 Clean Data/CapbyOcc_ES_2d.pkl
                 Raw Data/Felten.pkl
                 Clean Data/Felten.pkl
-                Raw Data/Elondou.pkl
-                Clean Data/Elondou.pkl
+                Raw Data/Eloundou.pkl
+                Clean Data/Eloundou.pkl
         """""
         
         if API==1:
@@ -195,6 +195,14 @@ class Processor:
             on='occ',
             how='inner'
         )
+        ACS16_df = pd.merge(
+            ACS16_df,
+            CPI_df,
+            on='year',
+            how='inner'
+        )
+        ACS16_df['incwage'] = ACS16_df['incwage'] / ACS16_df['CPI'] #Make wages real
+        
         ACS16_df['workforce'] = ACS16_df['perwt'].sum()
         ACS16_df['n'] = ACS16_df.groupby('occ1990dd')['perwt'].transform('sum') / ACS16_df['workforce']
         
@@ -266,58 +274,58 @@ class Processor:
 
         
         # ---------------------- #
-        # Elondou et al Exposure #
+        # Eloundou et al Exposure #
         # ---------------------- #
         if API==1:
-            Elondou_df = pd.read_csv("https://github.com/openai/GPTs-are-GPTs/raw/refs/heads/main/data/occ_level.csv")
-            Elondou_df.to_pickle(f'{self.Directory}/Raw Data/Elondou.pkl')
+            Eloundou_df = pd.read_csv("https://github.com/openai/GPTs-are-GPTs/raw/refs/heads/main/data/occ_level.csv")
+            Eloundou_df.to_pickle(f'{self.Directory}/Raw Data/Eloundou.pkl')
         else:
-            Elondou_df = pd.read_pickle(f'{self.Directory}/Raw Data/Elondou.pkl')
+            Eloundou_df = pd.read_pickle(f'{self.Directory}/Raw Data/Eloundou.pkl')
             
-        Elondou_df.rename(columns={'O*NET-SOC Code': 'onetsoccode'}, inplace=True)
-        Elondou_df = pd.merge(
+        Eloundou_df.rename(columns={'O*NET-SOC Code': 'onetsoccode'}, inplace=True)
+        Eloundou_df = pd.merge(
             Crosswalk_soc_df,
-            Elondou_df[['onetsoccode', 'dv_rating_beta', 'human_rating_beta']],
+            Eloundou_df[['onetsoccode', 'dv_rating_beta', 'human_rating_beta']],
             on='onetsoccode',
             how='inner'
         )
         
-        Elondou_df['β_expos'] = (Elondou_df.groupby('occ1990dd')['dv_rating_beta'].transform('mean') + Elondou_df.groupby('occ1990dd')['human_rating_beta'].transform('mean')) / 2
-        Elondou_df = Elondou_df[['occ1990dd', 'β_expos']].drop_duplicates()
+        Eloundou_df['β_expos'] = (Eloundou_df.groupby('occ1990dd')['dv_rating_beta'].transform('mean') + Eloundou_df.groupby('occ1990dd')['human_rating_beta'].transform('mean')) / 2
+        Eloundou_df = Eloundou_df[['occ1990dd', 'β_expos']].drop_duplicates()
         
-        Elondou_df = pd.merge(
-            Elondou_df,
+        Eloundou_df = pd.merge(
+            Eloundou_df,
             Webb_df[['occ1990dd', 'lswt2010']],
             on='occ1990dd',
             how='inner'
         )
         
-        Elondou_df = Elondou_df.sort_values('β_expos')
+        Eloundou_df = Eloundou_df.sort_values('β_expos')
 
-        Elondou_df['cum_weight'] = Elondou_df['lswt2010'].cumsum()
-        Elondou_df['percentile'] = 100 * Elondou_df['cum_weight'] / Elondou_df['lswt2010'].sum()
+        Eloundou_df['cum_weight'] = Eloundou_df['lswt2010'].cumsum()
+        Eloundou_df['percentile'] = 100 * Eloundou_df['cum_weight'] / Eloundou_df['lswt2010'].sum()
         
-        Elondou_df = pd.merge(
-            Elondou_df,
+        Eloundou_df = pd.merge(
+            Eloundou_df,
             Webb_df[['occ1990dd', 'pct_software', 'pct_robot', 'pct_ai']],
             on='occ1990dd',
             how='outer'
         )
         
-        W_sft_exp = Elondou_df.dropna()['pct_software'].to_numpy()
-        W_rbt_exp = Elondou_df.dropna()['pct_robot'].to_numpy()
-        W_ai_exp = Elondou_df.dropna()['pct_ai'].to_numpy()
-        E_exp = Elondou_df.dropna()['percentile'].to_numpy()
+        W_sft_exp = Eloundou_df.dropna()['pct_software'].to_numpy()
+        W_rbt_exp = Eloundou_df.dropna()['pct_robot'].to_numpy()
+        W_ai_exp = Eloundou_df.dropna()['pct_ai'].to_numpy()
+        E_exp = Eloundou_df.dropna()['percentile'].to_numpy()
         
         X = np.hstack((np.ones((W_ai_exp.size,1)), W_sft_exp.reshape((-1,1)), W_rbt_exp.reshape((-1,1)), W_ai_exp.reshape((-1,1))))
         β = np.linalg.inv(X.T @ X) @ X.T @ E_exp.reshape((-1,1))
         
-        Elondou_df['percentile'] = Elondou_df['percentile'].fillna(
-            β[0,0] + β[1,0] * Elondou_df['pct_software'] + β[2,0] * Elondou_df['pct_robot'] + β[3,0] * Elondou_df['pct_ai']
+        Eloundou_df['percentile'] = Eloundou_df['percentile'].fillna(
+            β[0,0] + β[1,0] * Eloundou_df['pct_software'] + β[2,0] * Eloundou_df['pct_robot'] + β[3,0] * Eloundou_df['pct_ai']
             )
         
-        Elondou_df = Elondou_df[['occ1990dd', 'percentile']].sort_values('occ1990dd')
-        Elondou_df.to_pickle(f'{self.Directory}/Clean Data/Elondou.pkl')
+        Eloundou_df = Eloundou_df[['occ1990dd', 'percentile']].sort_values('occ1990dd')
+        Eloundou_df.to_pickle(f'{self.Directory}/Clean Data/Eloundou.pkl')
 
 
 
@@ -455,9 +463,9 @@ class Processor:
         Validation_Results.add('Regression Fit', gpf.clean_round(R_squared*100, 1))
         
         
-        # -------------------------------------------- #
-        # Occupation-Level Elasticities of Subsitution #
-        # -------------------------------------------- #
+        # --------------------------------------------- #
+        # Occupation-Level Elasticities of Substitution #
+        # --------------------------------------------- #
         CapbyOcc_df = ACS16_df[['occ1990dd']]
         
         conditions = [
@@ -731,24 +739,25 @@ class Processor:
                 Results/Figures/AI_Experiment_LAT.csv
                 Results/Figures/AI_Experiment_VAT.csv
                 Results/Figures/AI_Experiment_Felten.csv
-                Results/Figures/AI_Experiment_Elondou.csv
+                Results/Figures/AI_Experiment_Eloundou.csv
                 Results/Tables/AI_Experiment_Results.csv
         """""
         
         AI_Experiment_Results = gpf.ResultsTable()
         
-        def _ConEquiv_seq(τ_k_AI, θ_AI_both, τ_k_AI_both, ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, LAT_frac, y_0):
+        def _ConEquiv_seq(τ_k_AI, θ_AI_both, τ_k_AI_both, ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, LAT_frac, y_0, growth=None):
             
+            growth = AI_growth if growth is None else growth
             ConEquiv_AI = np.empty(N_g)
             x_sq = self.E.var_κ * self.E.x_bar
             E_init_AI = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, x_sq))
             E_init_AI_both = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, x_sq))
             
             for n in range(N_g):
-                A_k_AI = A_k_AI_base * (1 + AI_growth[n])
-                A_j_AI = A_j_AI_base * (1 + AI_growth[n] * LAT_frac)
+                A_k_AI = A_k_AI_base * (1 + growth[n])
+                A_j_AI = A_j_AI_base * (1 + growth[n] * LAT_frac)
                 
-                g_y = self.E.S_k * AI_growth[n] + (1-self.E.S_k) * AI_growth[n] * LAT_frac
+                g_y = self.E.S_k * growth[n] + (1-self.E.S_k) * growth[n] * LAT_frac
                 Ψ_AI = self.E.Ψ * (1+g_y)**(self.E.ψ)
                 
                 alloc_args = (A_j_AI, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
@@ -771,7 +780,7 @@ class Processor:
             θ_AI_both *= 100
             
             AI_Experiment_Results.add(f'Optimal AI {case}Threshold Rule, Start', gpf.clean_round(θ_AI_both[0], 1))
-            AI_Experiment_Results.add(f'Optimal AI {case}Threshold Rule, End', gpf.clean_round(θ_AI_both[1], 1))
+            AI_Experiment_Results.add(f'Optimal AI {case}Threshold Rule, End', gpf.clean_round(θ_AI_both[-1], 1))
             
             AI_Experiment_Results.add(f'Optimal AI {case}Capital Tax Difference, Start', gpf.clean_round(dτ_k_AI[0], 1))
             AI_Experiment_Results.add(f'Optimal AI {case}Capital Tax Difference, End', gpf.clean_round(dτ_k_AI[-1], 1))
@@ -806,7 +815,7 @@ class Processor:
         ν_AI_webb = nu.x
         
         x_AI = self.E.var_κ * self.E.x_bar
-        Λ_k_AI_webb = fn.Lamba_k(x_AI, self.E.x_bar, ζ_AI_webb, ν_AI_webb, self.E.σ)
+        Λ_k_AI_webb = fn.Lambda_k(x_AI, self.E.x_bar, ζ_AI_webb, ν_AI_webb, self.E.σ)
         A_k_AI_webb_base = self.E.r_sq**(self.E.σ / (self.E.σ-1)) * (self.E.COR / Λ_k_AI_webb)**(1 / (self.E.σ-1))
         
         A_j_AI_webb_base = (self.E.w_j_sq / x_AI**(ζ_AI_webb)) / (self.E.r_sq / A_k_AI_webb_base)
@@ -830,17 +839,20 @@ class Processor:
         # -------------- #
         # LAT Robustness #
         # -------------- #
-        (τ_k_AI_10,) = self.E.AI_economy(0, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0, G_k-0.02, N_g*4) #Fix this!
-        (θ_AI_both_10, τ_k_AI_both_10) = self.E.AI_economy(1, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0, G_k, N_g)
+        G_k_LAT = G_k - 0.02 #End of the baseline interval is unstable for these cases
+        AI_growth_LAT = np.linspace(0, G_k_LAT, N_g)
         
-        ConEquiv_AI_10 = _ConEquiv_seq(τ_k_AI_10, θ_AI_both_10, τ_k_AI_both_10, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0)
+        (τ_k_AI_10,) = self.E.AI_economy(0, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0, G_k_LAT, N_g)
+        (θ_AI_both_10, τ_k_AI_both_10) = self.E.AI_economy(1, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0, G_k_LAT, N_g)
         
-        (τ_k_AI_50,) = self.E.AI_economy(0, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0, G_k-0.02, N_g)
-        (θ_AI_both_50, τ_k_AI_both_50) = self.E.AI_economy(1, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0, G_k, N_g)
+        ConEquiv_AI_10 = _ConEquiv_seq(τ_k_AI_10, θ_AI_both_10, τ_k_AI_both_10, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0, AI_growth_LAT)
         
-        ConEquiv_AI_50 = _ConEquiv_seq(τ_k_AI_50, θ_AI_both_50, τ_k_AI_both_50, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0)
+        (τ_k_AI_50,) = self.E.AI_economy(0, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0, G_k_LAT, N_g)
+        (θ_AI_both_50, τ_k_AI_both_50) = self.E.AI_economy(1, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0, G_k_LAT, N_g)
         
-        DF_AI_LAT = pd.DataFrame(100*np.hstack((AI_growth.reshape((-1,1)), θ_AI_both_10.reshape((-1,1)), τ_k_AI_10.reshape((-1,1)), τ_k_AI_both_10.reshape((-1,1)), ConEquiv_AI_10.reshape((-1,1)),
+        ConEquiv_AI_50 = _ConEquiv_seq(τ_k_AI_50, θ_AI_both_50, τ_k_AI_both_50, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0, AI_growth_LAT)
+        
+        DF_AI_LAT = pd.DataFrame(100*np.hstack((AI_growth_LAT.reshape((-1,1)), θ_AI_both_10.reshape((-1,1)), τ_k_AI_10.reshape((-1,1)), τ_k_AI_both_10.reshape((-1,1)), ConEquiv_AI_10.reshape((-1,1)),
                                                                         θ_AI_both_50.reshape((-1,1)), τ_k_AI_50.reshape((-1,1)), τ_k_AI_both_50.reshape((-1,1)), ConEquiv_AI_50.reshape((-1,1)))), 
                              columns=['Growth', 'Threshold Rule 10', 'Capital Tax 10', 'Capital Tax Both 10', 'Consumption Equivalence 10', 
                                                 'Threshold Rule 50', 'Capital Tax 50', 'Capital Tax Both 50', 'Consumption Equivalence 50'])
@@ -889,7 +901,7 @@ class Processor:
         
         ν_AI_Felt = nu.x
         
-        Λ_k_AI_Felt = fn.Lamba_k(x_AI, self.E.x_bar, ζ_AI_Felt, ν_AI_Felt, self.E.σ)
+        Λ_k_AI_Felt = fn.Lambda_k(x_AI, self.E.x_bar, ζ_AI_Felt, ν_AI_Felt, self.E.σ)
         A_k_AI_Felt_base = self.E.r_sq**(self.E.σ / (self.E.σ-1)) * (self.E.COR / Λ_k_AI_Felt)**(1 / (self.E.σ-1))
         
         A_j_AI_Felt_base = (self.E.w_j_sq / x_AI**(ζ_AI_Felt)) / (self.E.r_sq / A_k_AI_Felt_base)
@@ -912,43 +924,43 @@ class Processor:
         
         # ----------------------------------------------------------------
 
-        # Robustness with Elondou et al. (2024) exposure.
+        # Robustness with Eloundou et al. (2024) exposure.
 
         # ----------------------------------------------------------------
         
         # ------------------- #
         # Post-AI Calibration #
         # ------------------- #
-        Elondou_df = pd.read_pickle(f'{self.Directory}/Clean Data/Elondou.pkl')
-        χ_AI_Elond = Elondou_df['percentile'].to_numpy()
+        Eloundou_df = pd.read_pickle(f'{self.Directory}/Clean Data/Eloundou.pkl')
+        χ_AI_Eloun = Eloundou_df['percentile'].to_numpy()
         
-        ζ_AI_Elond = np.exp(self.E.Γ * χ_AI_Elond)
+        ζ_AI_Eloun = np.exp(self.E.Γ * χ_AI_Eloun)
                
         nu = sp.optimize.root(rt.νRoot, nu_g,
-                      args=(self.E.Γ, χ_AI_Elond, self.E.var_κ, self.E.x_bar, self.E.σ, self.E.S_j_sq, self.E.S_k),
+                      args=(self.E.Γ, χ_AI_Eloun, self.E.var_κ, self.E.x_bar, self.E.σ, self.E.S_j_sq, self.E.S_k),
                       method='lm')
         
-        ν_AI_Elond = nu.x
+        ν_AI_Eloun = nu.x
         
-        Λ_k_AI_Elond = fn.Lamba_k(x_AI, self.E.x_bar, ζ_AI_Elond, ν_AI_Elond, self.E.σ)
-        A_k_AI_Elond_base = self.E.r_sq**(self.E.σ / (self.E.σ-1)) * (self.E.COR / Λ_k_AI_Elond)**(1 / (self.E.σ-1))
+        Λ_k_AI_Eloun = fn.Lambda_k(x_AI, self.E.x_bar, ζ_AI_Eloun, ν_AI_Eloun, self.E.σ)
+        A_k_AI_Eloun_base = self.E.r_sq**(self.E.σ / (self.E.σ-1)) * (self.E.COR / Λ_k_AI_Eloun)**(1 / (self.E.σ-1))
         
-        A_j_AI_Elond_base = (self.E.w_j_sq / x_AI**(ζ_AI_Elond)) / (self.E.r_sq / A_k_AI_Elond_base)
+        A_j_AI_Eloun_base = (self.E.w_j_sq / x_AI**(ζ_AI_Eloun)) / (self.E.r_sq / A_k_AI_Eloun_base)
         
         
         # ----- #
         # Solve #
         # ----- #
-        (τ_k_AI_Elond,) = self.E.AI_economy(0, 1, ζ_AI_Elond, ν_AI_Elond, A_k_AI_Elond_base, A_j_AI_Elond_base, 0.25, self.E.y_0, G_k, N_g)
-        (θ_AI_Elond_both, τ_k_AI_Elond_both) = self.E.AI_economy(1, 1, ζ_AI_Elond, ν_AI_Elond, A_k_AI_Elond_base, A_j_AI_Elond_base, 0.25, self.E.y_0, G_k, N_g)
+        (τ_k_AI_Eloun,) = self.E.AI_economy(0, 1, ζ_AI_Eloun, ν_AI_Eloun, A_k_AI_Eloun_base, A_j_AI_Eloun_base, 0.25, self.E.y_0, G_k, N_g)
+        (θ_AI_Eloun_both, τ_k_AI_Eloun_both) = self.E.AI_economy(1, 1, ζ_AI_Eloun, ν_AI_Eloun, A_k_AI_Eloun_base, A_j_AI_Eloun_base, 0.25, self.E.y_0, G_k, N_g)
         
-        ConEquiv_AI_Elond = _ConEquiv_seq(τ_k_AI_Elond, θ_AI_Elond_both, τ_k_AI_Elond_both, ζ_AI_Elond, ν_AI_Elond, A_k_AI_Elond_base, A_j_AI_Elond_base, 0.25, self.E.y_0)
+        ConEquiv_AI_Eloun = _ConEquiv_seq(τ_k_AI_Eloun, θ_AI_Eloun_both, τ_k_AI_Eloun_both, ζ_AI_Eloun, ν_AI_Eloun, A_k_AI_Eloun_base, A_j_AI_Eloun_base, 0.25, self.E.y_0)
         
-        DF_AI = pd.DataFrame(100*np.hstack((AI_growth.reshape((-1,1)), θ_AI_Elond_both.reshape((-1,1)), τ_k_AI_Elond.reshape((-1,1)), τ_k_AI_Elond_both.reshape((-1,1)), ConEquiv_AI_Elond.reshape((-1,1)))), 
-                             columns=['Growth', 'Threshold Rule Elondou', 'Capital Tax Elondou', 'Capital Tax Both Elondou', 'Consumption Equivalence Elondou'])
-        DF_AI.to_csv(f'{self.Directory}/Results/Figures/AI_Experiment_Elondou.csv', index=False)
+        DF_AI = pd.DataFrame(100*np.hstack((AI_growth.reshape((-1,1)), θ_AI_Eloun_both.reshape((-1,1)), τ_k_AI_Eloun.reshape((-1,1)), τ_k_AI_Eloun_both.reshape((-1,1)), ConEquiv_AI_Eloun.reshape((-1,1)))), 
+                             columns=['Growth', 'Threshold Rule Eloundou', 'Capital Tax Eloundou', 'Capital Tax Both Eloundou', 'Consumption Equivalence Eloundou'])
+        DF_AI.to_csv(f'{self.Directory}/Results/Figures/AI_Experiment_Eloundou.csv', index=False)
         
-        _stat_helper(τ_k_AI_Elond, τ_k_AI_Elond_both, θ_AI_Elond_both, ConEquiv_AI_Elond, 'Elondou ')
+        _stat_helper(τ_k_AI_Eloun, τ_k_AI_Eloun_both, θ_AI_Eloun_both, ConEquiv_AI_Eloun, 'Eloundou ')
         
         
         AI_Experiment_Results.to_csv(f'{self.Directory}/Results/Tables/AI_Experiment_Results.csv')
