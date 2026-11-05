@@ -7,6 +7,7 @@ The goal here is to complete several additional simulations for the paper before
 ## Hard rules
 - I am very familiar with the structure of this code and will not be asking you to make a large number of changes.
 So please make any changes minimally invasive.
+- Do not touch anything in /Raw Data.
   
 ## Environment
 - All code is in python. You can run the code in the default Spyder environment. Executor is the top layer of the code, 

@@ -77,6 +77,12 @@ P.AI_Experiment(0.5, 5)
 P.Σ_robust(0.25)
 
 
+# ---------- #
+# Nested CES #
+# ---------- #
+P.ρ_robust(0.8)
+
+
 # ----------------------- #
 # Record Package Versions #
 # ----------------------- #

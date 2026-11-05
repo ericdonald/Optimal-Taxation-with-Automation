@@ -16,6 +16,7 @@ import importlib.metadata as md
 import Roots as rt
 import Production_Functions as fn
 import Processing_Functions as gpf
+import Nested_Economy as ne
 
 
 
@@ -745,19 +746,18 @@ class Processor:
         
         AI_Experiment_Results = gpf.ResultsTable()
         
-        def _ConEquiv_seq(τ_k_AI, θ_AI_both, τ_k_AI_both, ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, LAT_frac, y_0, growth=None):
+        def _ConEquiv_seq(τ_k_AI, θ_AI_both, τ_k_AI_both, ζ_AI, ν_AI, A_k_AI_base, A_j_AI_base, LAT_frac, y_0):
             
-            growth = AI_growth if growth is None else growth
             ConEquiv_AI = np.empty(N_g)
             x_sq = self.E.var_κ * self.E.x_bar
             E_init_AI = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, x_sq))
             E_init_AI_both = np.concatenate((self.E.c_0_sq, self.E.c_1_sq, self.E.l_j_sq, x_sq))
             
             for n in range(N_g):
-                A_k_AI = A_k_AI_base * (1 + growth[n])
-                A_j_AI = A_j_AI_base * (1 + growth[n] * LAT_frac)
+                A_k_AI = A_k_AI_base * (1 + AI_growth[n])
+                A_j_AI = A_j_AI_base * (1 + AI_growth[n] * LAT_frac)
                 
-                g_y = self.E.S_k * growth[n] + (1-self.E.S_k) * growth[n] * LAT_frac
+                g_y = self.E.S_k * AI_growth[n] + (1-self.E.S_k) * AI_growth[n] * LAT_frac
                 Ψ_AI = self.E.Ψ * (1+g_y)**(self.E.ψ)
                 
                 alloc_args = (A_j_AI, A_k_AI, self.E.x_bar, ζ_AI, ν_AI, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
@@ -839,20 +839,17 @@ class Processor:
         # -------------- #
         # LAT Robustness #
         # -------------- #
-        G_k_LAT = G_k - 0.02 #End of the baseline interval is unstable for these cases
-        AI_growth_LAT = np.linspace(0, G_k_LAT, N_g)
+        (τ_k_AI_10,) = self.E.AI_economy(0, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0, G_k, N_g)
+        (θ_AI_both_10, τ_k_AI_both_10) = self.E.AI_economy(1, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0, G_k, N_g)
         
-        (τ_k_AI_10,) = self.E.AI_economy(0, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0, G_k_LAT, N_g)
-        (θ_AI_both_10, τ_k_AI_both_10) = self.E.AI_economy(1, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0, G_k_LAT, N_g)
+        ConEquiv_AI_10 = _ConEquiv_seq(τ_k_AI_10, θ_AI_both_10, τ_k_AI_both_10, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0)
         
-        ConEquiv_AI_10 = _ConEquiv_seq(τ_k_AI_10, θ_AI_both_10, τ_k_AI_both_10, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.10, self.E.y_0, AI_growth_LAT)
+        (τ_k_AI_50,) = self.E.AI_economy(0, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0, G_k, N_g)
+        (θ_AI_both_50, τ_k_AI_both_50) = self.E.AI_economy(1, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0, G_k, N_g)
         
-        (τ_k_AI_50,) = self.E.AI_economy(0, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0, G_k_LAT, N_g)
-        (θ_AI_both_50, τ_k_AI_both_50) = self.E.AI_economy(1, 1, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0, G_k_LAT, N_g)
+        ConEquiv_AI_50 = _ConEquiv_seq(τ_k_AI_50, θ_AI_both_50, τ_k_AI_both_50, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0)
         
-        ConEquiv_AI_50 = _ConEquiv_seq(τ_k_AI_50, θ_AI_both_50, τ_k_AI_both_50, ζ_AI_webb, ν_AI_webb, A_k_AI_webb_base, A_j_AI_webb_base, 0.50, self.E.y_0, AI_growth_LAT)
-        
-        DF_AI_LAT = pd.DataFrame(100*np.hstack((AI_growth_LAT.reshape((-1,1)), θ_AI_both_10.reshape((-1,1)), τ_k_AI_10.reshape((-1,1)), τ_k_AI_both_10.reshape((-1,1)), ConEquiv_AI_10.reshape((-1,1)),
+        DF_AI_LAT = pd.DataFrame(100*np.hstack((AI_growth.reshape((-1,1)), θ_AI_both_10.reshape((-1,1)), τ_k_AI_10.reshape((-1,1)), τ_k_AI_both_10.reshape((-1,1)), ConEquiv_AI_10.reshape((-1,1)),
                                                                         θ_AI_both_50.reshape((-1,1)), τ_k_AI_50.reshape((-1,1)), τ_k_AI_both_50.reshape((-1,1)), ConEquiv_AI_50.reshape((-1,1)))), 
                              columns=['Growth', 'Threshold Rule 10', 'Capital Tax 10', 'Capital Tax Both 10', 'Consumption Equivalence 10', 
                                                 'Threshold Rule 50', 'Capital Tax 50', 'Capital Tax Both 50', 'Consumption Equivalence 50'])
@@ -1052,6 +1049,96 @@ class Processor:
        
         
         ES_robust_Results.to_csv(f'{self.Directory}/Results/Tables/ES_robust_Results.csv')
+        
+        
+        
+    def ρ_robust(self, ρ):
+        """""
+        Robustness with Nested CES (type goods CES over tasks with elasticity σ, final output CES over types with elasticity ρ)
+    
+        Output: Results/Tables/Nested_robust_Results.csv
+        """""
+        
+        NE_Results = gpf.ResultsTable()
+        
+        
+        # ----------- #
+        # Recalibrate #
+        # ----------- #
+        NE = ne.Nested_Economy(self.E.J, ρ)
+        NE.Calibrate()
+        print(f'Nested calibration: Γ={NE.Γ:.5f}, ζ in [{NE.ζ.min():.3f}, {NE.ζ.max():.3f}], ν in [{NE.ν.min():.3f}, {NE.ν.max():.3f}]')
+        
+        x_sq = NE.var_κ * NE.x_bar
+        E_init = np.concatenate((NE.c_0_sq, NE.c_1_sq, NE.l_j_sq, x_sq))
+        alloc_args = (NE.A_j, NE.A_k, NE.x_bar, NE.ζ, NE.ν, NE.σ, NE.ρ, NE.J, NE.n, NE.β, NE.var_θ, NE.ε, NE.δ, NE.g, NE.φ)
+        ce_args = (NE.A_j, NE.A_k, NE.x_bar, NE.ζ, NE.ν, NE.σ, NE.J, NE.n, NE.β, NE.var_θ, NE.ε, NE.δ, NE.g, NE.φ)
+        
+        
+        # ------------------------ #
+        # Status Quo Optimum + VAT #
+        # ------------------------ #
+        avg_y_0 = np.sum(NE.n * NE.y_0)
+        τ_vat = 25
+        y_0_vat = NE.y_0 * (100 - τ_vat)/100 + avg_y_0 * τ_vat/100
+            
+        (τ_k_sq_vat,) = NE.Para_Solver(0, 1, y_0=y_0_vat)
+        (θ_sq_vat_both, τ_k_sq_vat_both) = NE.Para_Solver(1, 1, y_0=y_0_vat, damp=1/3)
+        
+        print(f'VAT: tau only {τ_k_sq_vat:.4f}; both theta {θ_sq_vat_both:.4f}, tau {τ_k_sq_vat_both:.4f}', flush=True)
+        NE_Results.add('Nested Status Quo VAT Capital Tax', gpf.clean_round(τ_k_sq_vat*100, 1))
+        NE_Results.add('Nested Status Quo VAT Threshold Rule, Both', gpf.clean_round(θ_sq_vat_both*100, 1))
+        NE_Results.add('Nested Status Quo VAT Capital Tax, Both', gpf.clean_round(τ_k_sq_vat_both*100, 1))
+        
+        # Derive Equilibria
+        c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat    = ne.solve_eqbm(0, τ_k_sq_vat, NE.Ψ, NE.ψ, y_0_vat, E_init, *alloc_args)
+        c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both = ne.solve_eqbm(θ_sq_vat_both, τ_k_sq_vat_both, NE.Ψ, NE.ψ, y_0_vat, E_init, *alloc_args)
+
+        stats_sq_vat    = ne.alloc_stats(c_0_sq_vat,    c_1_sq_vat,    l_sq_vat,    x_sq_vat, y_0_vat, *alloc_args)
+        stats_sq_vat_both = ne.alloc_stats(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both, y_0_vat, *alloc_args)
+        
+        # Comparison Table
+        Δ_ln_Λ_vat_both, Δ_var_λ_vat_both, Δ_cov_vat_both = gpf.deltas(stats_sq_vat_both, stats_sq_vat)
+        ConEquiv_sq_vat = gpf.consumption_equiv(c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both,
+                                           c_0_sq_vat, c_1_sq_vat, l_sq_vat, *ce_args)
+    
+        NE_Results.add('Nested Status Quo VAT DLambda', gpf.clean_round(Δ_ln_Λ_vat_both, 1))
+        NE_Results.add('Nested Status Quo VAT DvarWW', gpf.clean_round(Δ_var_λ_vat_both, 1))
+        NE_Results.add('Nested Status Quo VAT DCOV', gpf.clean_round(Δ_cov_vat_both, 1))
+        NE_Results.add('Nested Status Quo VAT Consumption Equivalence', gpf.clean_round(ConEquiv_sq_vat, 2))
+        
+        
+        # ------------------ #
+        # Status Quo Optimum #
+        # ------------------ #
+        E_vat = np.concatenate((c_0_sq_vat_both, c_1_sq_vat_both, l_sq_vat_both, x_sq_vat_both))
+        (τ_k_sq,) = NE.Para_Solver(0, 1)
+        (θ_sq_both, τ_k_sq_both) = NE.Para_Solver(1, 1, E=E_vat, θ_init=θ_sq_vat_both, τ_k_init=τ_k_sq_vat_both, damp=1/3)
+        
+        print(f'No VAT: tau only {τ_k_sq:.4f}; both theta {θ_sq_both:.4f}, tau {τ_k_sq_both:.4f}', flush=True)
+        NE_Results.add('Nested Status Quo Capital Tax', gpf.clean_round(τ_k_sq*100, 1))
+        NE_Results.add('Nested Status Quo Threshold Rule, Both', gpf.clean_round(θ_sq_both*100, 1))
+        NE_Results.add('Nested Status Quo Capital Tax, Both', gpf.clean_round(τ_k_sq_both*100, 1))
+        
+        # Derive Equilibria        
+        c_0_τ,    c_1_τ,    l_τ,    x_τ    = ne.solve_eqbm(0, τ_k_sq, NE.Ψ, NE.ψ, NE.y_0, E_init, *alloc_args)
+        c_0_both, c_1_both, l_both, x_both = ne.solve_eqbm(θ_sq_both, τ_k_sq_both, NE.Ψ, NE.ψ, NE.y_0, E_vat, *alloc_args)
+
+        stats_τ    = ne.alloc_stats(c_0_τ,    c_1_τ,    l_τ,    x_τ, NE.y_0, *alloc_args)
+        stats_both = ne.alloc_stats(c_0_both, c_1_both, l_both, x_both, NE.y_0, *alloc_args)
+        
+        # Comparison Table 
+        Δ_ln_Λ_both, Δ_var_λ_both, Δ_cov_both = gpf.deltas(stats_both, stats_τ)
+        ConEquiv_both = gpf.consumption_equiv(c_0_both, c_1_both, l_both,
+                                           c_0_τ, c_1_τ, l_τ, *ce_args)
+        
+        NE_Results.add('Nested Status Quo DLambda', gpf.clean_round(Δ_ln_Λ_both, 1))
+        NE_Results.add('Nested Status Quo DvarWW', gpf.clean_round(Δ_var_λ_both, 1))
+        NE_Results.add('Nested Status Quo DCOV', gpf.clean_round(Δ_cov_both, 1))
+        NE_Results.add('Nested Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv_both, 2))
+        
+        
+        NE_Results.to_csv(f'{self.Directory}/Results/Tables/Nested_robust_Results.csv')
         
         
         
