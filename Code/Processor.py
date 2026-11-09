@@ -691,12 +691,15 @@ class Processor:
         avg_y_0 = np.sum(self.E.n * self.E.y_0)
         alloc_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
         
-        c_0_0,    c_1_0,    l_0,    x_0    = gpf.solve_eqbm(0, self.E.τ_k, self.E.Ψ, self.E.ψ, avg_y_0, E_init, *alloc_args)
-        E_0 = np.concatenate((c_0_0, c_1_0, l_0, x_0))
-        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT, τ_k_NT), _ = self.E.Mirrlees_Lagr(E_0, 0)
+        E_0 = self.E.Mirrlees_Start()   #Best coarse-grained start, mapped back to occupations
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT, τ_k_NT), conv_NT = self.E.Mirrlees_Lagr(E_0, 0)
+        if not conv_NT or not (0 < τ_k_NT < 1):
+            raise RuntimeError(f'Mirrlees no-θ solve rejected (converged={conv_NT}, τ_k={τ_k_NT:.4g})')
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT, x_NT))
-        
-        (c_0, c_1, l, K, x, τ_k), θ, _ = self.E.Mirrlees_Lagr(E_NT, 1)
+
+        (c_0, c_1, l, K, x, τ_k), θ, conv_θ = self.E.Mirrlees_Lagr(E_NT, 1)
+        if not conv_θ:
+            raise RuntimeError(f'Mirrlees θ solve did not converge (θ={θ:.4g}, τ_k={τ_k:.4g})')
         
         Mirrlees_Results.add('Optimal Mirrlees Capital Tax', gpf.clean_round(τ_k_NT*100, 1))
         Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
@@ -1159,7 +1162,8 @@ class Processor:
         for pkg in packages:
             ver = md.version(pkg)
             rows.append((pkg, ver))
-    
+        rows.append(("ipopt", ".".join(map(str, gpf.cp.IPOPT_VERSION))))   #Underlying Ipopt library (not pinned by cyipopt version)
+
     
         # ----------- #
         # Write Table #

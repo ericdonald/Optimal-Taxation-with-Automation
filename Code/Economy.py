@@ -19,10 +19,11 @@ import Perturbations as pr
 
 class Economy:
     
-    def __init__(self, J):
+    def __init__(self, J, groups=None):
         "Initialize Economy Object"
-        
+
         self.Directory = Path(__file__).resolve().parent.parent
+        self.groups = groups #Occupation Cluster Labels (Coarse-Grained Economy); None = One Type per Occupation
         
         
         # --------------------------------------- #
@@ -86,6 +87,8 @@ class Economy:
         SCF_df = pd.read_pickle(f'{self.Directory}/Clean Data/SCF_2016.pkl')
         ACS16_df = pd.read_pickle(f'{self.Directory}/Clean Data/ACS16.pkl')
         Webb_df = pd.read_pickle(f'{self.Directory}/Clean Data/Webb.pkl')
+        if self.groups is not None:
+            ACS16_df, Webb_df = gpf.aggregate_occupations(ACS16_df, Webb_df, self.groups)
 
 
         # ----------------------------- #
@@ -316,7 +319,42 @@ class Economy:
         
         
         
-    def Mirrlees_Lagr(self, E, θ_on, tol=1e-6, max_iter=10_000):
+    def Mirrlees_Start(self, J_c=100, n_starts=12, σ_x=0.3):
+        "Starting Allocation for Non-Linear Tax Problem: Best of Random-Automation Starts on a Coarse-Grained Economy"
+
+        ACS16_df = pd.read_pickle(f'{self.Directory}/Clean Data/ACS16.pkl')
+        Webb_df = pd.read_pickle(f'{self.Directory}/Clean Data/Webb.pkl')
+        groups = gpf.cluster_occupations(ACS16_df, Webb_df, J_c)
+
+        E_c = Economy(J_c, groups); E_c.Calibrate()
+        x_sq = E_c.var_κ * E_c.x_bar
+        E_init = np.concatenate((E_c.c_0_sq, E_c.c_1_sq, E_c.l_j_sq, x_sq))
+        alloc_args = (E_c.A_j, E_c.A_k, E_c.x_bar, E_c.ζ, E_c.ν, E_c.σ, J_c, E_c.n, E_c.β, E_c.var_θ, E_c.ε, E_c.δ, E_c.g, E_c.φ)
+        E_0 = np.concatenate(gpf.solve_eqbm(0, 0.0, E_c.Ψ, E_c.ψ, np.sum(E_c.n * E_c.y_0), E_init, *alloc_args))
+
+        best_W, best = -np.inf, None
+        for s in range(n_starts):
+            E_s = E_0.copy()
+            x_s = E_s[3*J_c:] * np.exp(σ_x * np.random.default_rng(s).standard_normal(J_c))
+            E_s[3*J_c:] = np.minimum(x_s, 0.95 * E_c.x_bar)
+            (c_0, c_1, l, _, x, τ_k), converged = E_c.Mirrlees_Lagr(E_s, 0, exact=False)
+            W = np.sum(E_c.n * fn.V(c_0, c_1, l, E_c.β, E_c.var_θ, E_c.φ, E_c.ε, E_c.g))
+            print(f'Coarse start {s}: converged={converged}, τ_k={τ_k:.4g}, welfare={W:.5f}')
+            if converged and 0 < τ_k < 1 and W > best_W:
+                best_W, best = W, (c_0, c_1, l, x)
+        if best is None:
+            raise RuntimeError('No coarse start converged')
+        c_0, c_1, l, x = best
+
+        #Map each occupation to its cluster, keeping within-cluster differences in status quo values
+        return np.concatenate((c_0[groups] * self.c_0_sq / E_c.c_0_sq[groups],
+                               c_1[groups] * self.c_1_sq / E_c.c_1_sq[groups],
+                               l[groups] * self.l_j_sq / E_c.l_j_sq[groups],
+                               np.minimum(x[groups], 0.95 * self.x_bar)))
+
+
+
+    def Mirrlees_Lagr(self, E, θ_on, tol=1e-6, max_iter=10_000, exact=True):
         "Solve Non-Linear Tax Problem"
         
         Y_0 = self.Y_sq / (1+self.g); K_0 = self.K_sq / (1+self.g)
@@ -354,7 +392,7 @@ class Economy:
                     w = fn.Wages(x, L, K, self.A_j, self.A_k, self.x_bar, self.ζ, self.ν, self.σ)
                     
                     if status in (0, 1, -1):
-                        WS, added = gpf.verify_working_set(E, w, WS, args, tol)
+                        WS, added = gpf.verify_working_set(E, w, WS, args, tol, max_add=300)
                         if added == 0:
                             converged = True
                             break
@@ -375,7 +413,7 @@ class Economy:
         # ----------- #
         qe.tic()
         if θ_on == 0:
-            E, τ_k, converged, _ = solve_at_θ(E, 0.0, use_exact=True)
+            E, τ_k, converged, _ = solve_at_θ(E, 0.0, use_exact=exact)
             c_0 = E[:J]; c_1 = E[J:2*J]; l = E[2*J:3*J]; x = E[3*J:4*J]
             K = Y_bar - np.sum(self.n * c_0)
             qe.toc(); print("Mirrlees Solution Found")

@@ -52,6 +52,33 @@ def clean_round(number, decimals):
     
 
 
+def cluster_occupations(ACS16_df, Webb_df, J_c, seed=0):
+    "Cluster Occupations on Log Wage and Automation Exposure (k-means)"
+
+    χ = (Webb_df['pct_software'].to_numpy() + Webb_df['pct_robot'].to_numpy()) / 2
+    X = np.column_stack((np.log(ACS16_df['w'].to_numpy()), χ))
+    X = (X - X.mean(axis=0)) / X.std(axis=0)
+
+    return sp.cluster.vq.kmeans2(X, J_c, minit='++', seed=seed, missing='raise')[1]
+
+
+
+def aggregate_occupations(ACS16_df, Webb_df, groups):
+    "Aggregate Occupations into Clusters (Population and Labor Summed, Wage and Exposure Labor-Income Weighted)"
+
+    wL = (ACS16_df['w'] * ACS16_df['L']).to_numpy()
+    ACS_rows, Webb_rows = [], []
+
+    for k in np.unique(groups):
+        m = np.where(groups == k)[0]
+        n = ACS16_df['n'].to_numpy()[m].sum(); L = ACS16_df['L'].to_numpy()[m].sum()
+        ACS_rows.append({'n': n, 'l': L / n, 'w': wL[m].sum() / L, 'L': L})
+        Webb_rows.append({col: np.average(Webb_df[col].to_numpy()[m], weights=wL[m]) for col in ('pct_software', 'pct_robot')})
+
+    return pd.DataFrame(ACS_rows), pd.DataFrame(Webb_rows)
+
+
+
 def compute_decile_shares(df, value_col, weight_col='Weight', n_groups=10):
     "Returns Shares by Decile"
     
