@@ -40,7 +40,6 @@ class Processor:
                 Clean Data/Census80.pkl
                 Clean Data/ACS16.pkl
                 Clean Data/Webb.pkl
-                Clean Data/CapbyOcc_ES_2d.pkl
                 Raw Data/Felten.pkl
                 Clean Data/Felten.pkl
                 Raw Data/Eloundou.pkl
@@ -235,17 +234,6 @@ class Processor:
         
         Webb_df.to_pickle(f'{self.Directory}/Clean Data/Webb.pkl')
         
-        # --------------------- #
-        # Capital by Occupation #
-        # --------------------- #
-        CapbyOcc_ES_2d_df = pd.read_csv(f'{self.Directory}/Raw Data/CapbyOcc_ES_2d.csv')
-        
-        CapbyOcc_ES_2d_df.rename(columns={'occp': 'occ1990dd_2d_title',
-                                          'rhobas_IVall': 'ES'}, inplace=True)
-        CapbyOcc_ES_2d_df = CapbyOcc_ES_2d_df[['occ1990dd_2d_title', 'ES']]
-        
-        CapbyOcc_ES_2d_df.to_pickle(f'{self.Directory}/Clean Data/CapbyOcc_ES_2d.pkl')
-        
         
         # --------------------- #
         # Felten et al Exposure #
@@ -345,6 +333,7 @@ class Processor:
         Calibrate_Results.add('Automation Exposure Effect', gpf.clean_round(self.E.Γ, 3))
         Calibrate_Results.add('Household Discount Factor', gpf.clean_round(self.E.β, 2))
         
+        
         # ---------------------- #
         # Wealth Convexity Graph #
         # ---------------------- #
@@ -363,6 +352,7 @@ class Processor:
         
         Calibrate_Results.add('Top Wealth Share', gpf.clean_round(WS[-1,0]*100, 1))
         
+        
         # ------------------------------------ #
         # Marginal Effect of Task Displacement #
         # ------------------------------------ #
@@ -375,6 +365,7 @@ class Processor:
         β_auto = np.sum(self.E.L_j_sq * β_j) / N
         
         Calibrate_Results.add('Task Displacement Effect', gpf.clean_round(β_auto, 2))
+        
         
         # ---------------------- #
         # 50th Percentile Effect #
@@ -413,8 +404,7 @@ class Processor:
         """""
         Validation Exercises
         
-        Output: Results/Figures/CapbyOcc_ES_2d.csv
-                Results/Tables/Validation_Results.csv
+        Output: Results/Tables/Validation_Results.csv
         """""
         
         Validation_Results = gpf.ResultsTable()
@@ -424,7 +414,6 @@ class Processor:
         # --------- #
         Census80_df = pd.read_pickle(f'{self.Directory}/Clean Data/Census80.pkl')
         ACS16_df = pd.read_pickle(f'{self.Directory}/Clean Data/ACS16.pkl')
-        CapbyOcc_ES_2d_df = pd.read_pickle(f'{self.Directory}/Clean Data/CapbyOcc_ES_2d.pkl')
 
         
         # --------------------- #
@@ -463,70 +452,6 @@ class Processor:
         
         Validation_Results.add('Regression Fit', gpf.clean_round(R_squared*100, 1))
         
-        
-        # --------------------------------------------- #
-        # Occupation-Level Elasticities of Substitution #
-        # --------------------------------------------- #
-        CapbyOcc_df = ACS16_df[['occ1990dd']]
-        
-        conditions = [
-                    (CapbyOcc_df['occ1990dd'] >= 405) & (CapbyOcc_df['occ1990dd'] <= 408),
-                    (CapbyOcc_df['occ1990dd'] == 415) | ((CapbyOcc_df['occ1990dd'] >= 417) & (CapbyOcc_df['occ1990dd'] <= 423)) | ((CapbyOcc_df['occ1990dd'] >= 425) & (CapbyOcc_df['occ1990dd'] <= 427)),
-                    (CapbyOcc_df['occ1990dd'] >= 433) & (CapbyOcc_df['occ1990dd'] <= 444),
-                    (CapbyOcc_df['occ1990dd'] >= 445) & (CapbyOcc_df['occ1990dd'] <= 447),
-                    (CapbyOcc_df['occ1990dd'] >= 448) & (CapbyOcc_df['occ1990dd'] <= 455),
-                    ((CapbyOcc_df['occ1990dd'] >= 457) & (CapbyOcc_df['occ1990dd'] <= 458)) | ((CapbyOcc_df['occ1990dd'] >= 459) & (CapbyOcc_df['occ1990dd'] <= 467)) | ((CapbyOcc_df['occ1990dd'] >= 469) & (CapbyOcc_df['occ1990dd'] <= 472)),
-                    (CapbyOcc_df['occ1990dd'] == 468),
-                    (CapbyOcc_df['occ1990dd'] >= 3) & (CapbyOcc_df['occ1990dd'] <= 22),
-                    ((CapbyOcc_df['occ1990dd'] >= 23) & (CapbyOcc_df['occ1990dd'] <= 37)) | (CapbyOcc_df['occ1990dd'] == 489),
-                    (CapbyOcc_df['occ1990dd'] >= 43) & (CapbyOcc_df['occ1990dd'] <= 200),
-                    (CapbyOcc_df['occ1990dd'] >= 203) & (CapbyOcc_df['occ1990dd'] <= 235),
-                    (CapbyOcc_df['occ1990dd'] >= 243) & (CapbyOcc_df['occ1990dd'] <= 258),
-                    (CapbyOcc_df['occ1990dd'] >= 274) & (CapbyOcc_df['occ1990dd'] <= 283),
-                    (CapbyOcc_df['occ1990dd'] >= 303) & (CapbyOcc_df['occ1990dd'] <= 389),
-                    ((CapbyOcc_df['occ1990dd'] >= 503) & (CapbyOcc_df['occ1990dd'] <= 549)) | ((CapbyOcc_df['occ1990dd'] >= 803) & (CapbyOcc_df['occ1990dd'] <= 889)),
-                    (CapbyOcc_df['occ1990dd'] >= 558) & (CapbyOcc_df['occ1990dd'] <= 599),
-                    (CapbyOcc_df['occ1990dd'] >= 628) & (CapbyOcc_df['occ1990dd'] <= 699),
-                    (CapbyOcc_df['occ1990dd'] >= 703) & (CapbyOcc_df['occ1990dd'] <= 799)
-                ]
-
-        values_2d = list(range(1, 19))
-        
-        CapbyOcc_df['occ1990dd_2d'] = np.select(conditions, values_2d, default=np.nan)
-
-        z_jk = fn.relα(x_j, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, 1) * x_j
-        Σ_j = self.E.σ + (z_j + z_jk) / self.E.ζ
-        ES_weight = self.E.S_j_sq * (self.E.Σ_k - self.E.σ) * self.E.ζ / z_jk
-        
-        CapbyOcc_df['Σ_j'] = Σ_j
-        CapbyOcc_df['ES_weight'] = ES_weight
-        CapbyOcc_df['norm'] = CapbyOcc_df.groupby('occ1990dd_2d')['ES_weight'].transform('sum')
-        
-        CapbyOcc_df['ES_summand'] = CapbyOcc_df['ES_weight'] * CapbyOcc_df['Σ_j'] / CapbyOcc_df['norm']
-        CapbyOcc_df['Sigma_2d'] = CapbyOcc_df.groupby('occ1990dd_2d')['ES_summand'].transform('sum')
-
-        CapbyOcc_df = CapbyOcc_df.dropna(subset=['occ1990dd_2d'])
-        CapbyOcc_df = CapbyOcc_df.drop_duplicates('occ1990dd_2d')
-        CapbyOcc_df = CapbyOcc_df.sort_values(by='occ1990dd_2d')
-        
-        norm = CapbyOcc_df['norm'].to_numpy()
-        Sigma_model = CapbyOcc_df['Sigma_2d'].to_numpy()
-        Sigma = CapbyOcc_ES_2d_df['ES'].to_numpy()
-        
-        X = np.hstack((np.ones((18,1)), Sigma_model.reshape((-1,1))))
-        
-        β = np.linalg.inv(X.T @ X) @ X.T @ Sigma.reshape((-1,1))
-        
-        Sigma_hat = (X @ β).reshape(-1)
-        
-        Validation_Results.add('Occ Regression Slope', gpf.clean_round(β[1,0], 2))
-        
-        CapbyOcc_ES_2d_df['Sigma_2d'] = Sigma_model
-        CapbyOcc_ES_2d_df['Sigma_2d_hat'] = Sigma_hat
-        CapbyOcc_ES_2d_df['norm'] = norm
-        CapbyOcc_ES_2d_df.loc[CapbyOcc_ES_2d_df['norm'] < CapbyOcc_ES_2d_df['norm'].quantile(5/9), 'occ1990dd_2d_title'] = ''
-        
-        CapbyOcc_ES_2d_df.to_csv(f'{self.Directory}/Results/Figures/CapbyOcc_ES_2d.csv', index=False)
         
         Validation_Results.to_csv(f'{self.Directory}/Results/Tables/Validation_Results.csv')
         
@@ -691,15 +616,21 @@ class Processor:
         avg_y_0 = np.sum(self.E.n * self.E.y_0)
         alloc_args = (self.E.A_j, self.E.A_k, self.E.x_bar, self.E.ζ, self.E.ν, self.E.σ, self.E.J, self.E.n, self.E.β, self.E.var_θ, self.E.ε, self.E.δ, self.E.g, self.E.φ)
         
-        E_0 = self.E.Mirrlees_Start()   #Best coarse-grained start, mapped back to occupations
+        _, E_0 = self.E.Mirrlees_Start(0)[0]   #Best coarse-grained start, mapped back to occupations
         (c_0_NT, c_1_NT, l_NT, K_NT, x_NT, τ_k_NT), conv_NT = self.E.Mirrlees_Lagr(E_0, 0)
         if not conv_NT or not (0 < τ_k_NT < 1):
             raise RuntimeError(f'Mirrlees no-θ solve rejected (converged={conv_NT}, τ_k={τ_k_NT:.4g})')
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT, x_NT))
 
-        (c_0, c_1, l, K, x, τ_k), θ, conv_θ = self.E.Mirrlees_Lagr(E_NT, 1)
-        if not conv_θ:
-            raise RuntimeError(f'Mirrlees θ solve did not converge (θ={θ:.4g}, τ_k={τ_k:.4g})')
+        W_NT = np.sum(self.E.n * fn.V(c_0_NT, c_1_NT, l_NT, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g))
+        for θ_0, E_θ0 in self.E.Mirrlees_Start(1)[:3]:   #Coarse-grained starts for the θ problem, best first
+            (c_0, c_1, l, K, x, τ_k), θ, conv_θ = self.E.Mirrlees_Lagr(E_θ0, 1, θ_init=θ_0)
+            W_θ = np.sum(self.E.n * fn.V(c_0, c_1, l, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g))
+            if conv_θ and W_θ >= W_NT:   #The planner can always choose θ=0, so a solution below the no-θ welfare is a solver failure
+                break
+            print(f'Mirrlees θ solve rejected (converged={conv_θ}, θ={θ:.4g}, welfare={W_θ:.5f} vs {W_NT:.5f} without θ); trying next start')
+        else:
+            raise RuntimeError('Mirrlees θ solve failed from every coarse start')
         
         Mirrlees_Results.add('Optimal Mirrlees Capital Tax', gpf.clean_round(τ_k_NT*100, 1))
         Mirrlees_Results.add('Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))

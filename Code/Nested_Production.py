@@ -18,15 +18,6 @@ import Production_Functions as fn
 
 
 
-def Lambda_kj(x_j, ζ, ν, σ, x_underbar=1e-7):
-    "Type-level Capital Task Integral (summand of fn.Lambda_k)"
-
-    e = ζ*(ν-1)*(σ-1) + 1
-
-    return (x_j**e - x_underbar**e) / e
-
-
-
 def _blocks(u, x, A_j, A_k, x_bar, ζ, ν, σ, ρ):
     "Prices and shares implied by u"
 
@@ -35,7 +26,7 @@ def _blocks(u, x, A_j, A_k, x_bar, ζ, ν, σ, ρ):
     lnr = u[J]
 
     Λ_j = fn.Lambda_l(x, x_bar, ζ, ν, σ)
-    Λ_kj = Lambda_kj(x, ζ, ν, σ)
+    Λ_kj = fn.Lambda_kj(x, ζ, ν, σ)
     dΛ_j = -x**(ζ*ν*(σ-1))                  #dΛ_j/dx_j
     dΛ_kj = x**(ζ*(ν-1)*(σ-1))              #dΛ_kj/dx_j
 

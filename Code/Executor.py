@@ -86,7 +86,7 @@ P.ρ_robust(0.8)
 # ----------------------- #
 # Record Package Versions #
 # ----------------------- #
-packages = ["cyipopt", "ipumspy", "numba", "numpy", "openpyxl", "pandas", "quantecon", "requests", "scipy"]
+packages = ["cyipopt", "ipumspy", "numba", "numpy", "openpyxl", "pandas", "quantecon", "requests", "scipy", "xlrd"]
 P.write_package_versions(packages)
 
 

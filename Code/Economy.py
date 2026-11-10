@@ -319,8 +319,8 @@ class Economy:
         
         
         
-    def Mirrlees_Start(self, J_c=100, n_starts=12, σ_x=0.3):
-        "Starting Allocation for Non-Linear Tax Problem: Best of Random-Automation Starts on a Coarse-Grained Economy"
+    def Mirrlees_Start(self, θ_on, J_c=100, n_starts=12, σ_x=0.3):
+        "Starting Allocations for Non-Linear Tax Problem: Converged Random-Automation Starts on a Coarse-Grained Economy, Best First, Mapped to Occupations"
 
         ACS16_df = pd.read_pickle(f'{self.Directory}/Clean Data/ACS16.pkl')
         Webb_df = pd.read_pickle(f'{self.Directory}/Clean Data/Webb.pkl')
@@ -332,29 +332,32 @@ class Economy:
         alloc_args = (E_c.A_j, E_c.A_k, E_c.x_bar, E_c.ζ, E_c.ν, E_c.σ, J_c, E_c.n, E_c.β, E_c.var_θ, E_c.ε, E_c.δ, E_c.g, E_c.φ)
         E_0 = np.concatenate(gpf.solve_eqbm(0, 0.0, E_c.Ψ, E_c.ψ, np.sum(E_c.n * E_c.y_0), E_init, *alloc_args))
 
-        best_W, best = -np.inf, None
+        starts = []
         for s in range(n_starts):
             E_s = E_0.copy()
             x_s = E_s[3*J_c:] * np.exp(σ_x * np.random.default_rng(s).standard_normal(J_c))
             E_s[3*J_c:] = np.minimum(x_s, 0.95 * E_c.x_bar)
-            (c_0, c_1, l, _, x, τ_k), converged = E_c.Mirrlees_Lagr(E_s, 0, exact=False)
+            out = E_c.Mirrlees_Lagr(E_s, θ_on, exact=False, max_iter=30)   #Cap iterations: a start that does not converge is dropped
+            (c_0, c_1, l, _, x, τ_k), converged = out[0], out[-1]
+            θ = out[1] if θ_on == 1 else 0.0
             W = np.sum(E_c.n * fn.V(c_0, c_1, l, E_c.β, E_c.var_θ, E_c.φ, E_c.ε, E_c.g))
-            print(f'Coarse start {s}: converged={converged}, τ_k={τ_k:.4g}, welfare={W:.5f}')
-            if converged and 0 < τ_k < 1 and W > best_W:
-                best_W, best = W, (c_0, c_1, l, x)
-        if best is None:
+            print(f'Coarse start {s}: converged={converged}, θ={θ:.4g}, τ_k={τ_k:.4g}, welfare={W:.5f}')
+            if converged and (0 < τ_k < 1 if θ_on == 0 else 0 < θ < 5):
+                #Map each occupation to its cluster, keeping within-cluster differences in status quo values
+                E_start = np.concatenate((c_0[groups] * self.c_0_sq / E_c.c_0_sq[groups],
+                                          c_1[groups] * self.c_1_sq / E_c.c_1_sq[groups],
+                                          l[groups] * self.l_j_sq / E_c.l_j_sq[groups],
+                                          np.minimum(x[groups], 0.95 * self.x_bar)))
+                starts.append((W, θ, E_start))
+        if not starts:
             raise RuntimeError('No coarse start converged')
-        c_0, c_1, l, x = best
-
-        #Map each occupation to its cluster, keeping within-cluster differences in status quo values
-        return np.concatenate((c_0[groups] * self.c_0_sq / E_c.c_0_sq[groups],
-                               c_1[groups] * self.c_1_sq / E_c.c_1_sq[groups],
-                               l[groups] * self.l_j_sq / E_c.l_j_sq[groups],
-                               np.minimum(x[groups], 0.95 * self.x_bar)))
+        
+        starts.sort(key=lambda start: -start[0])   #Best welfare first
+        return [(θ, E_start) for _, θ, E_start in starts]
 
 
 
-    def Mirrlees_Lagr(self, E, θ_on, tol=1e-6, max_iter=10_000, exact=True):
+    def Mirrlees_Lagr(self, E, θ_on, tol=1e-6, max_iter=10_000, exact=True, θ_init=0.15):
         "Solve Non-Linear Tax Problem"
         
         Y_0 = self.Y_sq / (1+self.g); K_0 = self.K_sq / (1+self.g)
@@ -421,7 +424,7 @@ class Economy:
         
         
         # Secant θ
-        θ_0 = 0.15
+        θ_0 = θ_init
         E, τ_0, _, WS = solve_at_θ(E, θ_0)
         θ_1 = θ_0 + 0.01                                   
         E, τ_1, converged, WS = solve_at_θ(E, θ_1, WS)

@@ -21,10 +21,21 @@ def Lambda_l(x_j, x_bar, ζ, ν, σ):
 
 
 @njit
+def Lambda_kj(x_j, ζ, ν, σ, x_underbar=1e-7):
+    "Type-level Capital Task Integral"
+
+    e = ζ*(ν-1)*(σ-1) + 1
+
+    return (x_j**e - x_underbar**e) / e
+
+
+
+@njit
 def Lambda_k(x_j, x_bar, ζ, ν, σ, x_underbar=1e-7):
     "Capital Task Integral"
     
-    Λ_k = np.sum((x_j**(ζ*(ν-1)*(σ-1) + 1) - x_underbar**(ζ*(ν-1)*(σ-1) + 1)) / (ζ*(ν-1)*(σ-1) + 1))
+    Λ_kj = Lambda_kj(x_j, ζ, ν, σ)
+    Λ_k = np.sum(Λ_kj)
     
     return Λ_k
     

@@ -25,7 +25,7 @@ def _M(x_j, x_bar, ζ, ν, σ):
     "Type Cost Aggregator"
 
     Λ_j = fn.Lambda_l(x_j, x_bar, ζ, ν, σ)
-    Λ_kj = npf.Lambda_kj(x_j, ζ, ν, σ)
+    Λ_kj = fn.Lambda_kj(x_j, ζ, ν, σ)
 
     return Λ_j, Λ_kj + Λ_j * x_j**(-ζ*(σ-1))
 
