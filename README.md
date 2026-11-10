@@ -28,7 +28,6 @@ where `XX` is the user's API key for the relevant data source.
 
 - [2016 SCF](https://www.federalreserve.gov/econres/scf_2016.htm)
 - Occupational Exposure Scores and Crosswalk from [Webb (2020)](http://eepurl.com/gxo4zr)
-- Capital-Labor Elasticities of Substitution from [Caunedo et al. (2023)](https://capitalbyoccupation.weebly.com/)
 
 ## Software Requirements:
 
