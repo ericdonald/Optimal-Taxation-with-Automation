@@ -623,6 +623,7 @@ class Processor:
         E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT, x_NT))
 
         W_NT = np.sum(self.E.n * fn.V(c_0_NT, c_1_NT, l_NT, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g))
+        #The θ solve is stage 1 (L-BFGS) by design: an exact-Hessian polish of the accepted point failed to converge when tested
         for θ_0, E_θ0 in self.E.Mirrlees_Start(1)[:3]:   #Coarse-grained starts for the θ problem, best first
             (c_0, c_1, l, K, x, τ_k), θ, conv_θ = self.E.Mirrlees_Lagr(E_θ0, 1, θ_init=θ_0)
             W_θ = np.sum(self.E.n * fn.V(c_0, c_1, l, self.E.β, self.E.var_θ, self.E.φ, self.E.ε, self.E.g))

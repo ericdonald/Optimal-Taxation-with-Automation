@@ -326,7 +326,7 @@ class Economy:
         Webb_df = pd.read_pickle(f'{self.Directory}/Clean Data/Webb.pkl')
         groups = gpf.cluster_occupations(ACS16_df, Webb_df, J_c)
 
-        E_c = Economy(J_c, groups); E_c.Calibrate()
+        E_c = Economy(J_c, groups); E_c.σ, E_c.Σ_k = self.σ, self.Σ_k; E_c.Calibrate()   #Inherit elasticities (robustness)
         x_sq = E_c.var_κ * E_c.x_bar
         E_init = np.concatenate((E_c.c_0_sq, E_c.c_1_sq, E_c.l_j_sq, x_sq))
         alloc_args = (E_c.A_j, E_c.A_k, E_c.x_bar, E_c.ζ, E_c.ν, E_c.σ, J_c, E_c.n, E_c.β, E_c.var_θ, E_c.ε, E_c.δ, E_c.g, E_c.φ)
