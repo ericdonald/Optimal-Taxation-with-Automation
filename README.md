@@ -33,18 +33,20 @@ where `XX` is the user's API key for the relevant data source.
 
 ### Python
 
-All of the replication codes run on Python `3.11.15`. Prior to running the codes, install the following packages:
+All of the replication codes run on Python `3.12.15`. Prior to running the codes, install the following packages:
 
 | Package | Version |
 |---------|---------|
 | cyipopt | 1.7.0 |
-| ipumspy | 0.8.2 |
-| numba | 0.66.0 |
-| numpy | 2.4.6 |
+| ipumspy | 0.9.0 |
+| numba | 0.68.0 |
+| numpy | 2.5.4 |
 | openpyxl | 3.1.5 |
-| pandas | 2.3.3 |
-| quantecon | 0.11.4 |
-| scipy | 1.17.1 |
+| pandas | 3.0.6 |
+| quantecon | 0.13.1 |
+| requests | 2.34.2 |
+| scipy | 1.18.1 |
+| ipopt | 3.14.20 |
 
 ## Description of Code:
 
