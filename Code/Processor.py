@@ -17,6 +17,7 @@ import Roots as rt
 import Production_Functions as fn
 import Processing_Functions as gpf
 import Nested_Economy as ne
+import Nested_Mirrlees as nmr
 
 
 
@@ -1071,6 +1072,49 @@ class Processor:
         NE_Results.add('Nested Status Quo DvarWW', gpf.clean_round(Δ_var_λ_both, 1))
         NE_Results.add('Nested Status Quo DCOV', gpf.clean_round(Δ_cov_both, 1))
         NE_Results.add('Nested Status Quo Consumption Equivalence', gpf.clean_round(ConEquiv_both, 2))
+        
+        
+        # ------------------------------------- #
+        # Solve for Two Planner Allocations (M) #
+        # ------------------------------------- #
+        _, E_0 = nmr.Mirrlees_Start(NE, 0)[0]   #Best coarse-grained start, mapped back to occupations
+        (c_0_NT, c_1_NT, l_NT, K_NT, x_NT, τ_k_NT), conv_NT, z_NT = nmr.Mirrlees_Lagr(NE, E_0, 0)
+        if not conv_NT or not (0 < τ_k_NT < 1):
+            raise RuntimeError(f'Nested Mirrlees no-θ solve rejected (converged={conv_NT}, τ_k={τ_k_NT:.4g})')
+        E_NT = np.concatenate((c_0_NT, c_1_NT, l_NT, x_NT))
+        W_NT = np.sum(NE.n * fn.V(c_0_NT, c_1_NT, l_NT, NE.β, NE.var_θ, NE.φ, NE.ε, NE.g))
+        
+        #The θ solve is stage 1 (L-BFGS) from the no-θ optimum; the coarse-grained θ is its first guess (a mapped coarse start can fall into a poor local optimum)
+        θ_0, _ = nmr.Mirrlees_Start(NE, 1)[0]
+        (c_0, c_1, l, K, x, τ_k), θ, conv_θ, z = nmr.Mirrlees_Lagr(NE, E_NT, 1, θ_init=θ_0)
+        W_θ = np.sum(NE.n * fn.V(c_0, c_1, l, NE.β, NE.var_θ, NE.φ, NE.ε, NE.g))
+        if not conv_θ or W_θ < W_NT:   #The planner can always choose θ=0, so a solution below the no-θ welfare is a solver failure
+            raise RuntimeError(f'Nested Mirrlees θ solve rejected (converged={conv_θ}, θ={θ:.4g}, welfare={W_θ:.5f} vs {W_NT:.5f} without θ)')
+        
+        NE_Results.add('Nested Optimal Mirrlees Capital Tax', gpf.clean_round(τ_k_NT*100, 1))
+        NE_Results.add('Nested Optimal Mirrlees Threshold Rule', gpf.clean_round(θ*100, 1))
+        
+        r_NT = nmr.Alloc(z_NT, NE.J)[2]
+        Return_NT = 1 + r_NT - NE.δ
+        Return_tilde_NT = 1 + (1-τ_k_NT)*(r_NT-NE.δ)
+        τ_wealth_NT = 1 - Return_tilde_NT / Return_NT
+        NE_Results.add('Nested Optimal Mirrlees Wealth Tax', gpf.clean_round(τ_wealth_NT*100, 2))
+        
+        
+        # ---------------- #
+        # Comparison Table #
+        # ---------------- #
+        stats_NT = ne.alloc_stats(c_0_NT, c_1_NT, l_NT, x_NT, avg_y_0, *alloc_args)
+        stats_M = ne.alloc_stats(c_0, c_1, l, x, avg_y_0, *alloc_args)
+        
+        Δ_ln_Λ_M, Δ_var_λ_M, Δ_cov_M = gpf.deltas(stats_M, stats_NT)
+        ConEquiv_M = gpf.consumption_equiv(c_0, c_1, l,
+                                           c_0_NT, c_1_NT, l_NT, *ce_args)
+        
+        NE_Results.add('Nested Optimal Mirrlees DLambda', gpf.clean_round(Δ_ln_Λ_M, 1))
+        NE_Results.add('Nested Optimal Mirrlees DvarWW', gpf.clean_round(Δ_var_λ_M, 1))
+        NE_Results.add('Nested Optimal Mirrlees DCOV', gpf.clean_round(Δ_cov_M, 1))
+        NE_Results.add('Nested Optimal Mirrlees Consumption Equivalence', gpf.clean_round(ConEquiv_M, 2))
         
         
         NE_Results.to_csv(f'{self.Directory}/Results/Tables/Nested_robust_Results.csv')

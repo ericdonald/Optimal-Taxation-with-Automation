@@ -319,7 +319,7 @@ class Economy:
         
         
         
-    def Mirrlees_Start(self, θ_on, J_c=100, n_starts=12, σ_x=0.3):
+    def Mirrlees_Start(self, θ_on, J_c=100, n_starts=12, x_noise=0.3):
         "Starting Allocations for Non-Linear Tax Problem: Converged Random-Automation Starts on a Coarse-Grained Economy, Best First, Mapped to Occupations"
 
         ACS16_df = pd.read_pickle(f'{self.Directory}/Clean Data/ACS16.pkl')
@@ -335,7 +335,7 @@ class Economy:
         starts = []
         for s in range(n_starts):
             E_s = E_0.copy()
-            x_s = E_s[3*J_c:] * np.exp(σ_x * np.random.default_rng(s).standard_normal(J_c))
+            x_s = E_s[3*J_c:] * np.exp(x_noise * np.random.default_rng(s).standard_normal(J_c))
             E_s[3*J_c:] = np.minimum(x_s, 0.95 * E_c.x_bar)
             out = E_c.Mirrlees_Lagr(E_s, θ_on, exact=False, max_iter=30)   #Cap iterations: a start that does not converge is dropped
             (c_0, c_1, l, _, x, τ_k), converged = out[0], out[-1]

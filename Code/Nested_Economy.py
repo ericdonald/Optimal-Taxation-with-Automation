@@ -20,10 +20,10 @@ import Nested_Roots as nrt
 
 class Nested_Economy(ec.Economy):
 
-    def __init__(self, J, ρ):
+    def __init__(self, J, ρ, groups=None):
         "Initialize Nested Economy Object"
 
-        super().__init__(J)
+        super().__init__(J, groups)
         self.ρ = ρ #Cross-Type Elasticity of Substitution
 
 
